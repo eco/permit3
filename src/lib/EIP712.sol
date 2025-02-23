@@ -3,9 +3,9 @@
 
 pragma solidity ^0.8.20;
 
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {ShortStrings, ShortString} from "@openzeppelin/contracts/utils/ShortStrings.sol";
-import {IERC5267} from "@openzeppelin/contracts/interfaces/IERC5267.sol";
+import { IERC5267 } from "@openzeppelin/contracts/interfaces/IERC5267.sol";
+import { ShortString, ShortStrings } from "@openzeppelin/contracts/utils/ShortStrings.sol";
+import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @dev https://eips.ethereum.org/EIPS/eip-712[EIP-712] is a standard for hashing and signing of typed structured data.
@@ -16,7 +16,7 @@ abstract contract EIP712 is IERC5267 {
     using ShortStrings for *;
 
     bytes32 private constant TYPE_HASH =
-    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     uint256 private constant CROSS_CHAIN_ID = 0;
 
@@ -87,7 +87,9 @@ abstract contract EIP712 is IERC5267 {
      * address signer = ECDSA.recover(digest, signature);
      * ```
      */
-    function _hashTypedDataV4(bytes32 structHash) internal view virtual returns (bytes32) {
+    function _hashTypedDataV4(
+        bytes32 structHash
+    ) internal view virtual returns (bytes32) {
         return MessageHashUtils.toTypedDataHash(_domainSeparatorV4(), structHash);
     }
 
@@ -95,18 +97,18 @@ abstract contract EIP712 is IERC5267 {
      * @dev See {IERC-5267}.
      */
     function eip712Domain()
-    public
-    view
-    virtual
-    returns (
-        bytes1 fields,
-        string memory name,
-        string memory version,
-        uint256 chainId,
-        address verifyingContract,
-        bytes32 salt,
-        uint256[] memory extensions
-    )
+        public
+        view
+        virtual
+        returns (
+            bytes1 fields,
+            string memory name,
+            string memory version,
+            uint256 chainId,
+            address verifyingContract,
+            bytes32 salt,
+            uint256[] memory extensions
+        )
     {
         return (
             hex"0f", // 01111
