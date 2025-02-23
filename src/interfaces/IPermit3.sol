@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { INonceManager } from "./INonceManager.sol";
 import { IPermit } from "./IPermit.sol";
 
 /**
  * @title IPermit3
  * @notice Interface for the Permit3 cross-chain token approval and transfer system
  */
-interface IPermit3 is IPermit {
+interface IPermit3 is IPermit, INonceManager {
     /**
      * @notice Struct representing a single token approval or transfer operation
      * @param transferOrExpiration Special values: 1 = immediate transfer, 0 = permanent approval
@@ -51,41 +52,6 @@ interface IPermit3 is IPermit {
     }
 
     /**
-     * @notice Struct for invalidating nonces on a specific chain
-     * @param chainId Target chain identifier
-     * @param nonce Random identifier for this invalidation request
-     * @param noncesToInvalidate Array of nonces to mark as used
-     */
-    struct NoncesToInvalidate {
-        uint64 chainId;
-        uint48[] noncesToInvalidate;
-    }
-
-    /**
-     * @notice Struct for cross-chain nonce invalidation proof
-     * @param preHash Hash of previous chain invalidations
-     * @param invalidations Current chain invalidation data
-     * @param followingHashes Subsequent chain invalidation hashes
-     */
-    struct CancelPermit3Proof {
-        bytes32 preHash;
-        NoncesToInvalidate invalidations;
-        bytes32[] followingHashes;
-    }
-
-    /**
-     * @notice Struct storing allowance details
-     * @param amount Approved amount
-     * @param expiration Approval expiration timestamp
-     * @param nonce Last used nonce (not sequential)
-     */
-    struct Allowance {
-        uint160 amount;
-        uint48 expiration;
-        uint48 nonce;
-    }
-
-    /**
      * @notice Process permit for single chain token approvals
      * @param owner Token owner address
      * @param deadline Signature expiration timestamp
@@ -102,40 +68,4 @@ interface IPermit3 is IPermit {
      * @param signature EIP-712 signature authorizing the batch
      */
     function permit(address owner, uint256 deadline, Permit3Proof memory batch, bytes calldata signature) external;
-
-    /**
-     * @notice Mark multiple nonces as used
-     * @param noncesToInvalidate Array of nonces to invalidate
-     */
-    function invalidateNonces(
-        uint48[] calldata noncesToInvalidate
-    ) external;
-
-    /**
-     * @notice Signature-based nonce invalidation for single chain
-     * @param owner Token owner address
-     * @param deadline Signature expiration timestamp
-     * @param invalidations Chain-specific nonce invalidation data
-     * @param signature EIP-712 signature authorizing the invalidation
-     */
-    function invalidateNonces(
-        address owner,
-        uint256 deadline,
-        NoncesToInvalidate memory invalidations,
-        bytes calldata signature
-    ) external;
-
-    /**
-     * @notice Signature-based nonce invalidation for multiple chains
-     * @param owner Token owner address
-     * @param deadline Signature expiration timestamp
-     * @param proof Cross-chain invalidation proof data
-     * @param signature EIP-712 signature authorizing the batch invalidation
-     */
-    function invalidateNonces(
-        address owner,
-        uint256 deadline,
-        CancelPermit3Proof memory proof,
-        bytes calldata signature
-    ) external;
 }

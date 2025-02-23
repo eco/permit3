@@ -44,6 +44,18 @@ interface IPermit {
     }
 
     /**
+     * @notice Struct storing allowance details
+     * @param amount Approved amount
+     * @param expiration Approval expiration timestamp
+     * @param nonce Last used nonce (not sequential)
+     */
+    struct Allowance {
+        uint160 amount;
+        uint48 expiration;
+        uint48 nonce;
+    }
+
+    /**
      * @dev Emitted when permissions are set directly through approve()
      * @param owner The token owner
      * @param token The token contract address
