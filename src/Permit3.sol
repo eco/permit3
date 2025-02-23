@@ -52,7 +52,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param signature EIP-712 signature authorizing all permits in the batch
      */
     function permit(address owner, uint256 deadline, ChainPermits memory permits, bytes calldata signature) external {
-        require(block.timestamp <= deadline, "Permit expired");
+        require(block.timestamp <= deadline, SignatureExpired());
 
         bytes32 signedHash = keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, deadline, _hashChainPermits(permits)));
 
@@ -72,7 +72,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param signature EIP-712 signature covering the entire cross-chain batch
      */
     function permit(address owner, uint256 deadline, Permit3Proof memory batch, bytes calldata signature) external {
-        require(block.timestamp <= deadline, "Permit expired");
+        require(block.timestamp <= deadline, SignatureExpired());
 
         // Chain all permit hashes together to verify the complete cross-chain operation
         bytes32 chainedPermitsHashes = batch.preHash;
@@ -151,6 +151,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      */
     function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
         bytes32 digest = _hashTypedDataV4(structHash);
-        require(digest.recover(signature) == owner, "Invalid signature");
+        require(digest.recover(signature) == owner, InvalidSignature());
     }
 }

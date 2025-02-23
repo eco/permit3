@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
  * @title IPermit
  * @notice Interface for the Permit protocol that enables gasless token approvals and transfers
  * @dev Defines core functionality for managing token permissions and transfers
+ * @dev This is the subset of the Uniswap permit2 interface
  */
 interface IPermit {
     /**

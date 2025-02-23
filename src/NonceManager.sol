@@ -40,6 +40,13 @@ abstract contract NonceManager is INonceManager, EIP712 {
     constructor(string memory name, string memory version) EIP712(name, version) { }
 
     /**
+     * @dev Returns the domain separator for the current chain.
+     */
+    function DOMAIN_SEPARATOR() external view returns (bytes32) {
+        return _domainSeparatorV4();
+    }
+
+    /**
      * @notice Check if a specific nonce has been used
      * @param owner The address to check nonces for
      * @param nonce The nonce value to verify
@@ -74,16 +81,49 @@ abstract contract NonceManager is INonceManager, EIP712 {
         NoncesToInvalidate memory invalidations,
         bytes calldata signature
     ) external {
-        require(block.timestamp <= deadline, "Signature expired");
+        require(block.timestamp <= deadline, SignatureExpired());
 
         bytes32 signedHash = keccak256(
             abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations))
         );
 
         bytes32 digest = _hashTypedDataV4(signedHash);
-        require(digest.recover(signature) == owner, "Invalid signature");
+        require(digest.recover(signature) == owner, InvalidSignature());
 
         _processNonceInvalidation(owner, invalidations);
+    }
+
+    /**
+     * @notice Cross-chain nonce invalidation
+     * @dev Similar to cross-chain permits but for nonce invalidation
+     * @param owner Token owner
+     * @param deadline Signature expiration
+     * @param proof Cross-chain invalidation proof
+     * @param signature Authorization signature
+     */
+    function invalidateNonces(
+        address owner,
+        uint256 deadline,
+        CancelPermit3Proof memory proof,
+        bytes calldata signature
+    ) external {
+        require(block.timestamp <= deadline, SignatureExpired());
+
+        bytes32 chainedInvalidationHashes = proof.preHash;
+        chainedInvalidationHashes =
+            keccak256(abi.encodePacked(chainedInvalidationHashes, hashNoncesToInvalidate(proof.invalidations)));
+
+        for (uint256 i = 0; i < proof.followingHashes.length; i++) {
+            chainedInvalidationHashes = keccak256(abi.encodePacked(chainedInvalidationHashes, proof.followingHashes[i]));
+        }
+
+        bytes32 signedHash =
+            keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, chainedInvalidationHashes));
+
+        bytes32 digest = _hashTypedDataV4(signedHash);
+        require(digest.recover(signature) == owner, InvalidSignature());
+
+        _processNonceInvalidation(owner, proof.invalidations);
     }
 
     /**
@@ -118,7 +158,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @param nonce Nonce value to consume
      */
     function _useNonce(address owner, uint48 nonce) internal {
-        require(usedNonces[owner][nonce] == 0, "Nonce already used");
+        require(usedNonces[owner][nonce] == 0, NonceAlreadyUsed());
         usedNonces[owner][nonce] = 1;
     }
 }

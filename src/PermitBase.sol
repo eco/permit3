@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { IPermit } from "./interfaces/IPermit.sol";
 
@@ -11,6 +12,8 @@ import { IPermit } from "./interfaces/IPermit.sol";
  * @dev Core functionality for managing token permissions
  */
 contract PermitBase is IPermit {
+    using SafeERC20 for IERC20;
+
     /// @dev Core data structure for tracking token permissions
     /// Maps: owner => token => spender => {amount, expiration, nonce}
     mapping(address => mapping(address => mapping(address => Allowance))) internal allowances;
@@ -58,14 +61,14 @@ contract PermitBase is IPermit {
      */
     function transferFrom(address from, address to, uint160 amount, address token) external override {
         Allowance storage allowed = allowances[from][token][msg.sender];
-        require(block.timestamp <= allowed.expiration || allowed.expiration == 0, "Allowance expired");
+        require(allowed.expiration == 0 || block.timestamp <= allowed.expiration, AllowanceExpired(allowed.expiration));
 
         if (allowed.amount != type(uint160).max) {
-            require(allowed.amount >= amount, "Insufficient allowance");
+            require(allowed.amount >= amount, InsufficientAllowance(allowed.amount));
             allowed.amount -= amount;
         }
 
-        require(IERC20(token).transferFrom(from, to, amount), "Transfer failed");
+        _transferFrom(from, to, amount, token);
     }
 
     /**
@@ -106,6 +109,6 @@ contract PermitBase is IPermit {
      * @param token ERC20 token contract
      */
     function _transferFrom(address from, address to, uint160 amount, address token) internal {
-        require(IERC20(token).transferFrom(from, to, amount), "Transfer failed");
+        IERC20(token).safeTransferFrom(from, to, amount);
     }
 }
