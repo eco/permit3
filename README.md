@@ -4,7 +4,7 @@ The Permit3 protocol enables cross-chain token approvals and transfers while mai
 
 ## Key Features
 
-- Cross-chain token approvals with single signature
+- Cross-chain token transfers and approvals with single signature
 - Flexible allowance management system
     - Increase/decrease allowances asynchronously
     - Time-bound permissions with automatic expiration

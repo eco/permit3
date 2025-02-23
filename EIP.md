@@ -13,7 +13,7 @@ requires: 20, 712, 2612
 
 ## Abstract
 
-The Permit3 protocol introduces a new standard for managing token approvals across multiple blockchains. While maintaining compatibility with Permit2's transfer functions, it enables single-signature cross-chain operations and provides advanced features for asynchronous allowance management, timestamped updates, and account security controls.multiple wallets on different blockchains, and you want to give someone permission to use your tokens. Currently, you need to sign separate permissions for each chain. This EIP introduces Permit3, which lets you sign just once to give permissions across all chains. It works with all your existing token permissions (Permit2) and adds new features to make everything safer and easier.
+The Permit3 protocol introduces a new standard for managing token transfers and approvals across multiple blockchains. While maintaining compatibility with Permit2's transfer functions, it enables single-signature cross-chain operations and provides advanced features for asynchronous allowance management, timestamped updates, and account security controls.multiple wallets on different blockchains, and you want to give someone permission to use your tokens. Currently, you need to sign separate permissions for each chain. This EIP introduces Permit3, which lets you sign just once to give permissions across all chains. It works with all your existing token permissions (Permit2) and adds new features to make everything safer and easier.
 
 ## Motivation
 
