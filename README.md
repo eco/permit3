@@ -94,7 +94,7 @@ struct Allowance {
 ```
 
 - Timestamps order operations across chains
-- Most recent timestamp takes precedence
+- Most recent timestamp takes precedence in expiration updates
 - Prevents cross-chain race conditions
 - Critical for async allowance updates
 

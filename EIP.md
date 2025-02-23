@@ -107,7 +107,7 @@ if (allowed.expiration == LOCKED_ALLOWANCE &&
 
 #### Asynchronous Processing
 - Operations can arrive in any order
-- Most recent timestamp takes precedence
+- Most recent timestamp takes precedence in expiration updates
 - Prevents cross-chain race conditions
 - Maintains consistent state across chains
 
