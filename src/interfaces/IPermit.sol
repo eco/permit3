@@ -106,13 +106,13 @@ interface IPermit {
      * @param spender The approved spender
      * @return amount The current approved amount
      * @return expiration The timestamp when the approval expires
-     * @return nonce The nonce associated with this approval
+     * @return timestamp The timestamp when the approval was set
      */
     function allowance(
         address user,
         address token,
         address spender
-    ) external view returns (uint160 amount, uint48 expiration, uint48 nonce);
+    ) external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
 
     /**
      * @notice Sets or updates token approval without using a signature
@@ -135,11 +135,11 @@ interface IPermit {
 
     /**
      * @notice Executes multiple token transfers in a single transaction
-     * @param transferDetails Array of transfer instructions containing owner, recipient, amount, and token
+     * @param transfers Array of transfer instructions containing owner, recipient, amount, and token
      * @dev Requires prior approval for each transfer. Reverts if any transfer fails
      */
     function transferFrom(
-        AllowanceTransferDetails[] calldata transferDetails
+        AllowanceTransferDetails[] calldata transfers
     ) external;
 
     /**

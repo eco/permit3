@@ -30,14 +30,14 @@ contract PermitBase is IPermit {
      * @param token ERC20 token address
      * @param spender Approved spender
      * @return amount Current approved amount
-     * @return expiration Timestamp when approval expires (0 = no expiration)
-     * @return nonce Nonce used for this approval
+     * @return expiration Timestamp when approval expires
+     * @return timestamp Timestamp when approval was set
      */
     function allowance(
         address user,
         address token,
         address spender
-    ) external view override returns (uint160 amount, uint48 expiration, uint48 nonce) {
+    ) external view override returns (uint160 amount, uint48 expiration, uint48 timestamp) {
         Allowance memory allowed = allowances[user][token][spender];
         return (allowed.amount, allowed.expiration, allowed.timestamp);
     }
@@ -67,8 +67,9 @@ contract PermitBase is IPermit {
      */
     function transferFrom(address from, address to, uint160 amount, address token) external override {
         Allowance memory allowed = allowances[from][token][msg.sender];
+
         require(allowed.expiration != LOCKED_ALLOWANCE, AllowanceLocked());
-        require(allowed.expiration == 0 || block.timestamp <= allowed.expiration, AllowanceExpired(allowed.expiration));
+        require(block.timestamp <= allowed.expiration, AllowanceExpired(allowed.expiration));
 
         if (allowed.amount != MAX_ALLOWANCE) {
             require(allowed.amount >= amount, InsufficientAllowance(allowed.amount));
