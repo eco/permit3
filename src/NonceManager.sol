@@ -82,6 +82,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
+        require(invalidations.chainId == block.chainid, WrongChainId(block.chainid, invalidations.chainId));
 
         bytes32 signedHash = keccak256(
             abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations))
@@ -108,6 +109,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
+        require(proof.invalidations.chainId == block.chainid, WrongChainId(block.chainid, proof.invalidations.chainId));
 
         bytes32 chainedInvalidationHashes = proof.preHash;
         chainedInvalidationHashes =

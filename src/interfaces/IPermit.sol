@@ -21,6 +21,11 @@ interface IPermit {
     error InsufficientAllowance(uint256 amount);
 
     /**
+     * @notice Thrown when an allowance on a token was locked.
+     */
+    error AllowanceLocked();
+
+    /**
      * @dev Represents a token and spender pair for batch operations
      * @param token The address of the token contract
      * @param spender The address approved to spend the token
@@ -48,12 +53,12 @@ interface IPermit {
      * @notice Struct storing allowance details
      * @param amount Approved amount
      * @param expiration Approval expiration timestamp
-     * @param nonce Last used nonce (not sequential)
+     * @param timestamp The timestamp when the approval expiration was set
      */
     struct Allowance {
         uint160 amount;
         uint48 expiration;
-        uint48 nonce;
+        uint48 timestamp;
     }
 
     /**

@@ -14,6 +14,11 @@ import { IPermit } from "./interfaces/IPermit.sol";
 contract PermitBase is IPermit {
     using SafeERC20 for IERC20;
 
+    /// @dev Special value representing a locked allowance
+    uint48 internal constant LOCKED_ALLOWANCE = 2;
+    /// @dev Maximum value for uint160
+    uint160 internal constant MAX_ALLOWANCE = type(uint160).max;
+
     /// @dev Core data structure for tracking token permissions
     /// Maps: owner => token => spender => {amount, expiration, nonce}
     mapping(address => mapping(address => mapping(address => Allowance))) internal allowances;
@@ -34,7 +39,7 @@ contract PermitBase is IPermit {
         address spender
     ) external view override returns (uint160 amount, uint48 expiration, uint48 nonce) {
         Allowance memory allowed = allowances[user][token][spender];
-        return (allowed.amount, allowed.expiration, allowed.nonce);
+        return (allowed.amount, allowed.expiration, allowed.timestamp);
     }
 
     /**
@@ -46,7 +51,8 @@ contract PermitBase is IPermit {
      * @param expiration Optional expiration timestamp
      */
     function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
-        allowances[msg.sender][token][spender] = Allowance({ amount: amount, expiration: expiration, nonce: 0 });
+        allowances[msg.sender][token][spender] =
+            Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
 
         emit Approval(msg.sender, token, spender, amount, expiration);
     }
@@ -60,12 +66,15 @@ contract PermitBase is IPermit {
      * @param token ERC20 token address
      */
     function transferFrom(address from, address to, uint160 amount, address token) external override {
-        Allowance storage allowed = allowances[from][token][msg.sender];
+        Allowance memory allowed = allowances[from][token][msg.sender];
+        require(allowed.expiration != LOCKED_ALLOWANCE, AllowanceLocked());
         require(allowed.expiration == 0 || block.timestamp <= allowed.expiration, AllowanceExpired(allowed.expiration));
 
-        if (allowed.amount != type(uint160).max) {
+        if (allowed.amount != MAX_ALLOWANCE) {
             require(allowed.amount >= amount, InsufficientAllowance(allowed.amount));
             allowed.amount -= amount;
+
+            allowances[from][token][msg.sender] = allowed;
         }
 
         _transferFrom(from, to, amount, token);
@@ -96,7 +105,13 @@ contract PermitBase is IPermit {
             address token = approvals[i].token;
             address spender = approvals[i].spender;
 
-            delete allowances[msg.sender][token][spender];
+            Allowance memory allowed = allowances[msg.sender][token][spender];
+            allowed.amount = 0;
+            allowed.expiration = LOCKED_ALLOWANCE; // Special value indicating locked state
+            allowed.timestamp = uint48(block.timestamp);
+
+            allowances[msg.sender][token][spender] = allowed;
+
             emit Lockdown(msg.sender, token, spender);
         }
     }

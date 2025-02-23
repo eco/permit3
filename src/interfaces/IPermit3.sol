@@ -10,19 +10,37 @@ import { IPermit } from "./IPermit.sol";
  */
 interface IPermit3 is IPermit, INonceManager {
     /**
-     * @notice Struct representing a single token approval or transfer operation
-     * @param transferOrExpiration Special values: 1 = immediate transfer, 0 = permanent approval
-     *                            Any value > 1 represents an expiration timestamp
-     * @param token Address of the token contract
-     * @param spender Address approved to spend tokens
-     * @param amount Special values: 0 = remove approval, type(uint160).max = unlimited approval
-     *               Otherwise represents the approved amount
+     * @notice Enum representing the type of permit operation
+     * @param Transfer Execute immediate transfer
+     * @param Decrease Decrease allowance
+     * @param Lock Lock allowance
      */
-    struct SpendTransferPermit {
+    enum PermitType {
+        Transfer,
+        Decrease,
+        Lock
+    }
+
+    /**
+     * @notice Represents a token allowance modification or transfer operation
+     * @param transferOrExpiration Mode indicators:
+     *        - 0: Execute immediate transfer
+     *        - 1: Decrease allowance
+     *        - 2: Lock allowance
+     *        - >2: Increase allowance, expiration for allowance if the timestamp is recent
+     * @param token Address of the ERC20 token
+     * @param spender Transfer recipient (for mode 1) or approved spender (for allowance)
+     * @param amountDelta Allowance change or transfer amount:
+     *        - For transfer mode: Amount to transfer
+     *        - For allowance mode: Increases or decreases allowance
+     *           - 0: Only updates expiration
+     *           - type(uint160).max: Unlimited approval or decrease to 0.
+     */
+    struct AllowanceOrTransfer {
         uint48 transferOrExpiration;
         address token;
         address spender;
-        uint160 amount;
+        uint160 amountDelta;
     }
 
     /**
@@ -34,7 +52,7 @@ interface IPermit3 is IPermit, INonceManager {
     struct ChainPermits {
         uint64 chainId;
         uint48 nonce;
-        SpendTransferPermit[] permits;
+        AllowanceOrTransfer[] permits;
     }
 
     /**
@@ -55,17 +73,31 @@ interface IPermit3 is IPermit, INonceManager {
      * @notice Process permit for single chain token approvals
      * @param owner Token owner address
      * @param deadline Signature expiration timestamp
-     * @param permits Chain-specific permit data
+     * @param timestamp Timestamp of the permit
+     * @param chain Chain-specific permit data
      * @param signature EIP-712 signature authorizing the permits
      */
-    function permit(address owner, uint256 deadline, ChainPermits memory permits, bytes calldata signature) external;
+    function permit(
+        address owner,
+        uint256 deadline,
+        uint48 timestamp,
+        ChainPermits memory chain,
+        bytes calldata signature
+    ) external;
 
     /**
      * @notice Process permit for multi-chain token approvals
      * @param owner Token owner address
      * @param deadline Signature expiration timestamp
-     * @param batch Cross-chain proof data
+     * @param timestamp Timestamp of the permit
+     * @param proof Cross-chain proof data
      * @param signature EIP-712 signature authorizing the batch
      */
-    function permit(address owner, uint256 deadline, Permit3Proof memory batch, bytes calldata signature) external;
+    function permit(
+        address owner,
+        uint256 deadline,
+        uint48 timestamp,
+        Permit3Proof memory proof,
+        bytes calldata signature
+    ) external;
 }

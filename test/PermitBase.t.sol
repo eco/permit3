@@ -48,7 +48,7 @@ contract PermitBaseTest is Test {
         (amount, expiration, nonce) = permitBase.allowance(owner, address(token), spender);
         assertEq(amount, APPROVE_AMOUNT);
         assertEq(expiration, EXPIRATION);
-        assertEq(nonce, 0);
+        assertEq(nonce, 1); // block timestamp is 1
     }
 
     function test_approve() public {
@@ -115,13 +115,13 @@ contract PermitBaseTest is Test {
     function test_transferFromExpiredAllowance() public {
         // Setup approval with past expiration
         vm.prank(owner);
-        permitBase.approve(address(token), spender, APPROVE_AMOUNT, 1); // expired
+        permitBase.approve(address(token), spender, APPROVE_AMOUNT, 10); // expired
 
-        vm.warp(2); // time travel past expiration
+        vm.warp(11); // time travel past expiration
 
         // Attempt transfer should fail
         vm.prank(spender);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceExpired.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceExpired.selector, 10));
         permitBase.transferFrom(owner, recipient, 500, address(token));
     }
 

@@ -27,7 +27,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * Used in cross-chain signature verification
      */
     bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
-        "ChainPermits(uint64 chainId,uint48 nonce,SpendTransferPermit[] permits)SpendTransferPermit(uint48 transferOrExpiration,address token,address spender,uint160 amount)"
+        "ChainPermits(uint64 chainId,uint48 nonce,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 transferOrExpiration,address token,address spender,uint160 amountDelta)"
     );
 
     /**
@@ -35,12 +35,12 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * Binds owner, deadline, and permit data hash for signature verification
      */
     bytes32 public constant SIGNED_PERMIT3_TYPEHASH =
-        keccak256("SignedPermit3(address owner,uint256 deadline,bytes32 chainedPermitsHashes)");
-
+        keccak256("SignedPermit3(address owner,uint256 deadline,uint48 timestamp,bytes32 chainedPermitsHashes)");
     /**
      * @dev Sets up EIP-712 domain separator with protocol identifiers
      * @notice Establishes the contract's domain for typed data signing
      */
+
     constructor() NonceManager("Permit3", "1") { }
 
     /**
@@ -48,16 +48,25 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @dev Core permit processing function for single-chain operations
      * @param owner The token owner authorizing the permits
      * @param deadline Timestamp limiting signature validity for security
-     * @param permits Structured data containing token approval parameters
+     * @param timestamp Timestamp of the permit
+     * @param chain Structured data containing token approval parameters
      * @param signature EIP-712 signature authorizing all permits in the batch
      */
-    function permit(address owner, uint256 deadline, ChainPermits memory permits, bytes calldata signature) external {
+    function permit(
+        address owner,
+        uint256 deadline,
+        uint48 timestamp,
+        ChainPermits memory chain,
+        bytes calldata signature
+    ) external {
         require(block.timestamp <= deadline, SignatureExpired());
+        require(chain.chainId == block.chainid, WrongChainId(block.chainid, chain.chainId));
 
-        bytes32 signedHash = keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, deadline, _hashChainPermits(permits)));
+        bytes32 signedHash =
+            keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, deadline, timestamp, _hashChainPermits(chain)));
 
         _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, permits);
+        _processChainPermits(owner, timestamp, chain);
     }
 
     /**
@@ -65,52 +74,93 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @dev Handles complex cross-chain permit batches using hash chaining
      * @param owner Token owner authorizing the operations
      * @param deadline Signature expiration timestamp
-     * @param batch Contains:
+     * @param timestamp Timestamp of the permit
+     * @param proof Contains:
      *        - preHash: Combined hash of permits from previous chains
      *        - permits: Current chain's permit data
      *        - followingHashes: Hashes of permits for subsequent chains
      * @param signature EIP-712 signature covering the entire cross-chain batch
      */
-    function permit(address owner, uint256 deadline, Permit3Proof memory batch, bytes calldata signature) external {
+    function permit(
+        address owner,
+        uint256 deadline,
+        uint48 timestamp,
+        Permit3Proof memory proof,
+        bytes calldata signature
+    ) external {
         require(block.timestamp <= deadline, SignatureExpired());
+        require(proof.permits.chainId == block.chainid, WrongChainId(block.chainid, proof.permits.chainId));
 
         // Chain all permit hashes together to verify the complete cross-chain operation
-        bytes32 chainedPermitsHashes = batch.preHash;
-        chainedPermitsHashes = keccak256(abi.encodePacked(chainedPermitsHashes, _hashChainPermits(batch.permits)));
+        bytes32 chainedPermitsHashes = proof.preHash;
+        chainedPermitsHashes = keccak256(abi.encodePacked(chainedPermitsHashes, _hashChainPermits(proof.permits)));
 
-        for (uint256 i = 0; i < batch.followingHashes.length; i++) {
-            chainedPermitsHashes = keccak256(abi.encodePacked(chainedPermitsHashes, batch.followingHashes[i]));
+        for (uint256 i = 0; i < proof.followingHashes.length; i++) {
+            chainedPermitsHashes = keccak256(abi.encodePacked(chainedPermitsHashes, proof.followingHashes[i]));
         }
 
-        bytes32 signedHash = keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, deadline, chainedPermitsHashes));
+        bytes32 signedHash =
+            keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, deadline, timestamp, chainedPermitsHashes));
 
         _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, batch.permits);
+        _processChainPermits(owner, timestamp, proof.permits);
     }
 
     /**
      * @dev Core permit processing logic
      * @param owner Token owner
-     * @param permits Bundle of permit operations to process
+     * @param chain Bundle of permit operations to process
      * @notice Handles two types of operations:
      * 1. Immediate transfers (transferOrExpiration = 1)
      * 2. Allowance updates (transferOrExpiration = future timestamp)
      */
-    function _processChainPermits(address owner, ChainPermits memory permits) internal {
-        _useNonce(owner, permits.nonce);
+    function _processChainPermits(address owner, uint48 timestamp, ChainPermits memory chain) internal {
+        _useNonce(owner, chain.nonce);
 
-        for (uint256 i = 0; i < permits.permits.length; i++) {
-            SpendTransferPermit memory p = permits.permits[i];
+        for (uint256 i = 0; i < chain.permits.length; i++) {
+            AllowanceOrTransfer memory p = chain.permits[i];
 
-            if (p.transferOrExpiration == 1) {
-                // Immediate transfer mode
-                _transferFrom(owner, p.spender, p.amount, p.token);
+            if (p.transferOrExpiration == uint48(PermitType.Transfer)) {
+                _transferFrom(owner, p.spender, p.amountDelta, p.token);
             } else {
-                // Update allowance with expiration
-                allowances[owner][p.token][p.spender] =
-                    Allowance({ amount: p.amount, expiration: p.transferOrExpiration, nonce: permits.nonce });
+                Allowance memory allowed = allowances[owner][p.token][p.spender];
 
-                emit Permit(owner, p.token, p.spender, p.amount, p.transferOrExpiration, permits.nonce);
+                // Check if allowance is locked
+                if (allowed.expiration == LOCKED_ALLOWANCE && timestamp < allowed.timestamp) {
+                    revert AllowanceLocked();
+                }
+
+                if (p.transferOrExpiration == uint48(PermitType.Decrease)) {
+                    // Decrease allowance
+                    if (allowed.amount != MAX_ALLOWANCE || p.amountDelta == MAX_ALLOWANCE) {
+                        allowed.amount = p.amountDelta > allowed.amount ? 0 : allowed.amount - p.amountDelta;
+                    }
+                } else if (p.transferOrExpiration == uint48(PermitType.Lock)) {
+                    // Lockdown allowance
+                    allowed.amount = 0;
+                    allowed.expiration = LOCKED_ALLOWANCE;
+                    allowed.timestamp = timestamp;
+                } else {
+                    if (p.amountDelta > 0) {
+                        // Increase allowance
+                        if (allowed.amount != MAX_ALLOWANCE) {
+                            if (p.amountDelta == MAX_ALLOWANCE) {
+                                allowed.amount = MAX_ALLOWANCE;
+                            } else {
+                                allowed.amount += p.amountDelta;
+                            }
+                        }
+                    }
+
+                    if (timestamp > allowed.timestamp) {
+                        allowed.expiration = p.transferOrExpiration;
+                        allowed.timestamp = timestamp;
+                    }
+                }
+
+                emit Permit(owner, p.token, p.spender, allowed.amount, allowed.expiration, chain.nonce);
+
+                allowances[owner][p.token][p.spender] = allowed;
             }
         }
     }
@@ -131,7 +181,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                     permits.permits[i].transferOrExpiration,
                     permits.permits[i].token,
                     permits.permits[i].spender,
-                    permits.permits[i].amount
+                    permits.permits[i].amountDelta
                 )
             );
         }

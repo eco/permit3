@@ -68,7 +68,7 @@ contract NonceManagerTest is Test {
         noncesToInvalidate[1] = 2;
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 1, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
 
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
@@ -87,7 +87,7 @@ contract NonceManagerTest is Test {
         noncesToInvalidate[0] = 1;
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 1, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
 
         uint256 deadline = block.timestamp - 1;
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
@@ -104,7 +104,7 @@ contract NonceManagerTest is Test {
         noncesToInvalidate[0] = 1;
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 1, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
 
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
@@ -125,10 +125,7 @@ contract NonceManagerTest is Test {
         followingHashes[0] = keccak256("next chain hash");
 
         INonceManager.NoncesToInvalidate memory invalidations =
-                            INonceManager.NoncesToInvalidate({
-                chainId: 1,
-                noncesToInvalidate: noncesToInvalidate
-            });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
 
         INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
             preHash: keccak256("previous chain hash"),
@@ -148,15 +145,56 @@ contract NonceManagerTest is Test {
         assertTrue(nonceManager.isNonceUsed(owner, 2));
     }
 
+    function test_wrongChainIdSignedInvalidation() public {
+        uint48[] memory noncesToInvalidate = new uint48[](1);
+        noncesToInvalidate[0] = 1;
+
+        INonceManager.NoncesToInvalidate memory invalidations = INonceManager.NoncesToInvalidate({
+            chainId: 1, // Wrong chain ID
+            noncesToInvalidate: noncesToInvalidate
+        });
+
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
+        bytes32 digest = nonceManager.exposed_hashTypedDataV4(structHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, 31_337, 1));
+        nonceManager.invalidateNonces(owner, deadline, invalidations, signature);
+    }
+
+    function test_wrongChainIdCrossChainInvalidation() public {
+        uint48[] memory noncesToInvalidate = new uint48[](1);
+        noncesToInvalidate[0] = 1;
+
+        INonceManager.NoncesToInvalidate memory invalidations = INonceManager.NoncesToInvalidate({
+            chainId: 1, // Wrong chain ID
+            noncesToInvalidate: noncesToInvalidate
+        });
+
+        INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
+            preHash: keccak256("previous chain hash"),
+            invalidations: invalidations,
+            followingHashes: new bytes32[](0)
+        });
+
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 structHash = _getCrossChainInvalidationStructHash(owner, deadline, proof);
+        bytes32 digest = nonceManager.exposed_hashTypedDataV4(structHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, 31_337, 1));
+        nonceManager.invalidateNonces(owner, deadline, proof, signature);
+    }
+
     function test_crossChainNonceInvalidationExpired() public {
         uint48[] memory noncesToInvalidate = new uint48[](1);
         noncesToInvalidate[0] = 1;
 
         INonceManager.NoncesToInvalidate memory invalidations =
-                            INonceManager.NoncesToInvalidate({
-                chainId: 1,
-                noncesToInvalidate: noncesToInvalidate
-            });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
 
         INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
             preHash: keccak256("previous chain hash"),
@@ -179,10 +217,7 @@ contract NonceManagerTest is Test {
         noncesToInvalidate[0] = 1;
 
         INonceManager.NoncesToInvalidate memory invalidations =
-                            INonceManager.NoncesToInvalidate({
-                chainId: 1,
-                noncesToInvalidate: noncesToInvalidate
-            });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
 
         INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
             preHash: keccak256("previous chain hash"),
@@ -201,31 +236,21 @@ contract NonceManagerTest is Test {
     }
 
     function _getCrossChainInvalidationStructHash(
-        address owner,
+        address ownerAddress,
         uint256 deadline,
         INonceManager.CancelPermit3Proof memory proof
     ) internal view returns (bytes32) {
         bytes32 chainedInvalidationHashes = proof.preHash;
         chainedInvalidationHashes = keccak256(
-            abi.encodePacked(
-                chainedInvalidationHashes,
-                nonceManager.hashNoncesToInvalidate(proof.invalidations)
-            )
+            abi.encodePacked(chainedInvalidationHashes, nonceManager.hashNoncesToInvalidate(proof.invalidations))
         );
 
         for (uint256 i = 0; i < proof.followingHashes.length; i++) {
-            chainedInvalidationHashes = keccak256(
-                abi.encodePacked(chainedInvalidationHashes, proof.followingHashes[i])
-            );
+            chainedInvalidationHashes = keccak256(abi.encodePacked(chainedInvalidationHashes, proof.followingHashes[i]));
         }
 
         return keccak256(
-            abi.encode(
-                nonceManager.SIGNED_CANCEL_PERMIT3_TYPEHASH(),
-                owner,
-                deadline,
-                chainedInvalidationHashes
-            )
+            abi.encode(nonceManager.SIGNED_CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, chainedInvalidationHashes)
         );
     }
 
@@ -235,22 +260,15 @@ contract NonceManagerTest is Test {
         noncesToInvalidate[1] = 2;
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 1, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
 
         bytes32 hash = nonceManager.hashNoncesToInvalidate(invalidations);
         assertTrue(hash != bytes32(0));
     }
 
     function test_eIP712DomainSeparator() public view {
-        (
-             ,
-            string memory name,
-            string memory version,
-            uint256 chainId,
-            address verifyingContract,
-             ,
-
-        ) = nonceManager.eip712Domain();
+        (, string memory name, string memory version, uint256 chainId, address verifyingContract,,) =
+            nonceManager.eip712Domain();
 
         assertEq(name, "MockNonceManager");
         assertEq(version, "1.0.0");
@@ -259,14 +277,14 @@ contract NonceManagerTest is Test {
     }
 
     function _getInvalidationStructHash(
-        address owner,
+        address ownerAddress,
         uint256 deadline,
         INonceManager.NoncesToInvalidate memory invalidations
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
                 nonceManager.SIGNED_CANCEL_PERMIT3_TYPEHASH(),
-                owner,
+                ownerAddress,
                 deadline,
                 nonceManager.hashNoncesToInvalidate(invalidations)
             )

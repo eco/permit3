@@ -16,7 +16,7 @@ interface INonceManager {
     error NonceAlreadyUsed();
 
     /// @notice Thrown when a chain ID is invalid
-    error WrongChainId();
+    error WrongChainId(uint256 expected, uint64 provided);
 
     /**
      * @notice Nonce invalidation parameters for a specific chain
@@ -42,7 +42,7 @@ interface INonceManager {
 
     /**
      * @notice Export EIP-712 domain separator
-    * @return bytes32 domain separator hash
+     * @return bytes32 domain separator hash
      */
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 
