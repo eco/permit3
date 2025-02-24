@@ -20,16 +20,15 @@ The Permit3 protocol introduces a new standard for managing token transfers and 
 Let's understand why we need Permit3:
 
 1. Right now, if you want to use your tokens on three different chains:
-    - You sign three different permissions
+    - You sign three different permissions from your wallet
     - You wait for each one to be processed
-    - You pay fees on each chain
 
 2. This is like having three different keys for three different doors, when you could just have one master key.
 
 3. Also, the current system (Permit2) has some limitations:
-    - You can't set permissions on multiple chains at once
+    - You can't set multiple permissions on one chain at once
     - You can't easily cancel all permissions if something goes wrong
-    - You have to do things in a specific order, which can be slow
+    - You have to do things in a specific order, which can slow down wallets with multiple asynchronous operations
 
 ## Specification
 
