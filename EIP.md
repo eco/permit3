@@ -13,7 +13,9 @@ requires: 20, 712, 2612
 
 ## Abstract
 
-The Permit3 protocol introduces a new standard for managing token transfers and approvals across multiple blockchains. While maintaining compatibility with Permit2's transfer functions, it enables single-signature cross-chain operations and provides advanced features for asynchronous allowance management, timestamped updates, and account security controls.multiple wallets on different blockchains, and you want to give someone permission to use your tokens. Currently, you need to sign separate permissions for each chain. This EIP introduces Permit3, which lets you sign just once to give permissions across all chains. It works with all your existing token permissions (Permit2) and adds new features to make everything safer and easier.
+The Permit3 protocol introduces a new standard for managing token transfers and approvals across multiple blockchains. While maintaining compatibility with Permit2's transfer functions, it enables single-signature cross-chain operations and provides advanced features for asynchronous allowance management, timestamped updates, and account security controls.
+
+Imagine you have multiple wallets on different blockchains, and you want to give someone permission to use your tokens. Currently, you need to sign separate permissions for each chain. This EIP introduces Permit3, which lets you sign just once to give permissions across all chains. It works with all your existing token permissions (Permit2) and adds new features to make everything safer and easier.
 
 ## Motivation
 
@@ -303,14 +305,12 @@ A possible way to avoid the need for the expected position variable is to use a 
     
         bytes32 optimismContractHash = keccak256(abi.encode(contractData));
 
-        // This function unpacks the witness bytes by splitting them into an array of bytes32, secessively hashes them, and computes the final witness hash. It returns the witness hash and the last bytes32 split from the in the array, which corresponds to the chain specific data hash for this chain.
-        bytes32 chainHash, witness = unpackAndVerifyWitnessBytes(witnessesBytes); 
+        // This function unpacks the witness bytes by splitting them into an array of bytes32, successively hashes them, and computes the final witness hash. It returns the witness hash and the last bytes32 split from the in the array, which corresponds to the chain specific data hash for this chain.
+        bytes32 chainHash, bytes32 witness = unpackAndVerifyWitnessBytes(witnessesBytes); 
 
         require(chainHash == optimismContractHash, "Invalid witness position");
 
         require(contractData.chainId == 10, "Invalid chain ID");
-
-        bytes32 witnessHash = keccak256(abi.encodePacked(witnesses));
         
         // Verify and consume the permit
         IPermit3(permit3Address).permitWithWitness(
@@ -385,7 +385,7 @@ function testEmergencyLockdown() {
 
 ## Reference Implementation
 
-The complete implementation is available at: [Permit3 Repository]
+The complete implementation is available at: [Permit3 Repository](https://github.com/eco/permit3)
 
 ## Security Considerations
 
