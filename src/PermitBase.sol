@@ -19,8 +19,10 @@ contract PermitBase is IPermit {
     /// @dev Maximum value for uint160
     uint160 internal constant MAX_ALLOWANCE = type(uint160).max;
 
-    /// @dev Core data structure for tracking token permissions
-    /// Maps: owner => token => spender => {amount, expiration, nonce}
+    /**
+     * @dev Core data structure for tracking token permissions
+     * Maps: owner => token => spender => {amount, expiration, timestamp}
+     */
     mapping(address => mapping(address => mapping(address => Allowance))) internal allowances;
 
     /**

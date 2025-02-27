@@ -9,8 +9,8 @@ import "../src/NonceManager.sol";
 contract MockNonceManager is NonceManager {
     constructor() NonceManager("MockNonceManager", "1.0.0") { }
 
-    function exposed_useNonce(address owner, uint48 nonce) public {
-        _useNonce(owner, nonce);
+    function exposed_useNonce(address owner, bytes32 salt) public {
+        _useNonce(owner, salt);
     }
 
     function exposed_hashTypedDataV4(
@@ -36,39 +36,39 @@ contract NonceManagerTest is Test {
     }
 
     function test_nonceInitiallyUnused() public view {
-        assertFalse(nonceManager.isNonceUsed(owner, 1));
+        assertFalse(nonceManager.isNonceUsed(owner, bytes32(uint256(1))));
     }
 
     function test_useNonce() public {
-        nonceManager.exposed_useNonce(owner, 1);
-        assertTrue(nonceManager.isNonceUsed(owner, 1));
+        nonceManager.exposed_useNonce(owner, bytes32(uint256(1)));
+        assertTrue(nonceManager.isNonceUsed(owner, bytes32(uint256(1))));
     }
 
     function test_cannotReuseNonce() public {
-        nonceManager.exposed_useNonce(owner, 1);
+        nonceManager.exposed_useNonce(owner, bytes32(uint256(1)));
         vm.expectRevert(INonceManager.NonceAlreadyUsed.selector);
-        nonceManager.exposed_useNonce(owner, 1);
+        nonceManager.exposed_useNonce(owner, bytes32(uint256(1)));
     }
 
     function test_directNonceInvalidation() public {
-        uint48[] memory nonces = new uint48[](2);
-        nonces[0] = 1;
-        nonces[1] = 2;
+        bytes32[] memory salts = new bytes32[](2);
+        salts[0] = bytes32(uint256(1));
+        salts[1] = bytes32(uint256(2));
 
         vm.prank(owner);
-        nonceManager.invalidateNonces(nonces);
+        nonceManager.invalidateNonces(salts);
 
-        assertTrue(nonceManager.isNonceUsed(owner, 1));
-        assertTrue(nonceManager.isNonceUsed(owner, 2));
+        assertTrue(nonceManager.isNonceUsed(owner, bytes32(uint256(1))));
+        assertTrue(nonceManager.isNonceUsed(owner, bytes32(uint256(2))));
     }
 
     function test_signedNonceInvalidation() public {
-        uint48[] memory noncesToInvalidate = new uint48[](2);
-        noncesToInvalidate[0] = 1;
-        noncesToInvalidate[1] = 2;
+        bytes32[] memory salts = new bytes32[](2);
+        salts[0] = bytes32(uint256(1));
+        salts[1] = bytes32(uint256(2));
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, salts: salts });
 
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
@@ -78,16 +78,16 @@ contract NonceManagerTest is Test {
 
         nonceManager.invalidateNonces(owner, deadline, invalidations, signature);
 
-        assertTrue(nonceManager.isNonceUsed(owner, 1));
-        assertTrue(nonceManager.isNonceUsed(owner, 2));
+        assertTrue(nonceManager.isNonceUsed(owner, bytes32(uint256(1))));
+        assertTrue(nonceManager.isNonceUsed(owner, bytes32(uint256(2))));
     }
 
     function test_signedNonceInvalidationExpired() public {
-        uint48[] memory noncesToInvalidate = new uint48[](1);
-        noncesToInvalidate[0] = 1;
+        bytes32[] memory salts = new bytes32[](1);
+        salts[0] = bytes32(uint256(1));
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, salts: salts });
 
         uint256 deadline = block.timestamp - 1;
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
@@ -100,11 +100,11 @@ contract NonceManagerTest is Test {
     }
 
     function test_signedNonceInvalidationWrongSigner() public {
-        uint48[] memory noncesToInvalidate = new uint48[](1);
-        noncesToInvalidate[0] = 1;
+        bytes32[] memory salts = new bytes32[](1);
+        salts[0] = bytes32(uint256(1));
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, salts: salts });
 
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
@@ -117,15 +117,15 @@ contract NonceManagerTest is Test {
     }
 
     function test_crossChainNonceInvalidation() public {
-        uint48[] memory noncesToInvalidate = new uint48[](2);
-        noncesToInvalidate[0] = 1;
-        noncesToInvalidate[1] = 2;
+        bytes32[] memory salts = new bytes32[](2);
+        salts[0] = bytes32(uint256(1));
+        salts[1] = bytes32(uint256(2));
 
         bytes32[] memory followingHashes = new bytes32[](1);
         followingHashes[0] = keccak256("next chain hash");
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, salts: salts });
 
         INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
             preHash: keccak256("previous chain hash"),
@@ -141,17 +141,17 @@ contract NonceManagerTest is Test {
 
         nonceManager.invalidateNonces(owner, deadline, proof, signature);
 
-        assertTrue(nonceManager.isNonceUsed(owner, 1));
-        assertTrue(nonceManager.isNonceUsed(owner, 2));
+        assertTrue(nonceManager.isNonceUsed(owner, bytes32(uint256(1))));
+        assertTrue(nonceManager.isNonceUsed(owner, bytes32(uint256(2))));
     }
 
     function test_wrongChainIdSignedInvalidation() public {
-        uint48[] memory noncesToInvalidate = new uint48[](1);
-        noncesToInvalidate[0] = 1;
+        bytes32[] memory salts = new bytes32[](1);
+        salts[0] = bytes32(uint256(1));
 
         INonceManager.NoncesToInvalidate memory invalidations = INonceManager.NoncesToInvalidate({
             chainId: 1, // Wrong chain ID
-            noncesToInvalidate: noncesToInvalidate
+            salts: salts
         });
 
         uint256 deadline = block.timestamp + 1 hours;
@@ -165,12 +165,12 @@ contract NonceManagerTest is Test {
     }
 
     function test_wrongChainIdCrossChainInvalidation() public {
-        uint48[] memory noncesToInvalidate = new uint48[](1);
-        noncesToInvalidate[0] = 1;
+        bytes32[] memory salts = new bytes32[](1);
+        salts[0] = bytes32(uint256(1));
 
         INonceManager.NoncesToInvalidate memory invalidations = INonceManager.NoncesToInvalidate({
             chainId: 1, // Wrong chain ID
-            noncesToInvalidate: noncesToInvalidate
+            salts: salts
         });
 
         INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
@@ -190,11 +190,11 @@ contract NonceManagerTest is Test {
     }
 
     function test_crossChainNonceInvalidationExpired() public {
-        uint48[] memory noncesToInvalidate = new uint48[](1);
-        noncesToInvalidate[0] = 1;
+        bytes32[] memory salts = new bytes32[](1);
+        salts[0] = bytes32(uint256(1));
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, salts: salts });
 
         INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
             preHash: keccak256("previous chain hash"),
@@ -213,11 +213,11 @@ contract NonceManagerTest is Test {
     }
 
     function test_crossChainNonceInvalidationWrongSigner() public {
-        uint48[] memory noncesToInvalidate = new uint48[](1);
-        noncesToInvalidate[0] = 1;
+        bytes32[] memory salts = new bytes32[](1);
+        salts[0] = bytes32(uint256(1));
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, salts: salts });
 
         INonceManager.CancelPermit3Proof memory proof = INonceManager.CancelPermit3Proof({
             preHash: keccak256("previous chain hash"),
@@ -255,12 +255,12 @@ contract NonceManagerTest is Test {
     }
 
     function test_hashNoncesToInvalidate() public view {
-        uint48[] memory noncesToInvalidate = new uint48[](2);
-        noncesToInvalidate[0] = 1;
-        noncesToInvalidate[1] = 2;
+        bytes32[] memory salts = new bytes32[](2);
+        salts[0] = bytes32(uint256(1));
+        salts[1] = bytes32(uint256(2));
 
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: 31_337, noncesToInvalidate: noncesToInvalidate });
+            INonceManager.NoncesToInvalidate({ chainId: 31_337, salts: salts });
 
         bytes32 hash = nonceManager.hashNoncesToInvalidate(invalidations);
         assertTrue(hash != bytes32(0));

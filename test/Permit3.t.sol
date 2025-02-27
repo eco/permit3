@@ -27,6 +27,7 @@ contract Permit3Test is Test {
     address spender;
     address recipient;
 
+    bytes32 constant SALT = bytes32(uint256(0));
     uint160 constant AMOUNT = 1000;
     uint48 constant EXPIRATION = 1000;
     uint48 constant NOW = 1000;
@@ -49,23 +50,22 @@ contract Permit3Test is Test {
     function test_immediateTransfer() public {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: 0, // Immediate transfer
+            modeOrExpiration: 0, // Immediate transfer
             token: address(token),
-            spender: recipient,
+            account: recipient,
             amountDelta: AMOUNT
         });
 
-        IPermit3.ChainPermits memory chainPermits =
-            IPermit3.ChainPermits({ chainId: 31_337, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 31_337, permits: permits });
 
         uint256 deadline = block.timestamp + 1 hours;
         uint48 timestamp = uint48(block.timestamp);
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, SALT, deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, signature);
 
         assertEq(token.balanceOf(recipient), AMOUNT);
     }
@@ -73,37 +73,37 @@ contract Permit3Test is Test {
     function test_wrongChainId() public {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: EXPIRATION,
+            modeOrExpiration: EXPIRATION,
             token: address(token),
-            spender: spender,
+            account: spender,
             amountDelta: AMOUNT
         });
 
         // Use wrong chain ID (1 instead of 31337)
-        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 1, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 1, permits: permits });
 
         uint256 deadline = block.timestamp + 1 hours;
         uint48 timestamp = uint48(block.timestamp);
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, SALT, deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
         vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, 31_337, 1));
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, signature);
     }
 
     function test_wrongChainIdWithProof() public {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: EXPIRATION,
+            modeOrExpiration: EXPIRATION,
             token: address(token),
-            spender: spender,
+            account: spender,
             amountDelta: AMOUNT
         });
 
         // Use wrong chain ID
-        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 1, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 1, permits: permits });
 
         bytes32[] memory followingHashes = new bytes32[](1);
         followingHashes[0] = bytes32(uint256(1));
@@ -119,64 +119,62 @@ contract Permit3Test is Test {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, 31_337, 1));
-        permit3.permit(owner, deadline, timestamp, proof, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, proof, signature);
     }
 
     function test_permitExpired() public {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: EXPIRATION,
+            modeOrExpiration: EXPIRATION,
             token: address(token),
-            spender: spender,
+            account: spender,
             amountDelta: AMOUNT
         });
 
-        IPermit3.ChainPermits memory chainPermits =
-            IPermit3.ChainPermits({ chainId: 31_337, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 31_337, permits: permits });
 
         uint256 deadline = block.timestamp - 1;
         uint48 timestamp = uint48(block.timestamp);
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, SALT, deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
         vm.expectRevert(INonceManager.SignatureExpired.selector);
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, signature);
     }
 
     function test_invalidSignature() public {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: EXPIRATION,
+            modeOrExpiration: EXPIRATION,
             token: address(token),
-            spender: spender,
+            account: spender,
             amountDelta: AMOUNT
         });
 
-        IPermit3.ChainPermits memory chainPermits =
-            IPermit3.ChainPermits({ chainId: 31_337, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 31_337, permits: permits });
 
         uint256 deadline = block.timestamp + 1 hours;
         uint48 timestamp = uint48(block.timestamp);
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, SALT, deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x5678, digest); // Wrong private key
         bytes memory signature = abi.encodePacked(r, s, v);
 
         vm.expectRevert(INonceManager.InvalidSignature.selector);
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, signature);
     }
 
     function test_permitAllowanceIncrease() public {
         // First approval
         uint48 timestamp1 = uint48(block.timestamp);
-        _createPermit(3000, AMOUNT, timestamp1);
+        _createPermit(bytes32(uint256(1)), 3000, AMOUNT, timestamp1);
 
         // Second approval with later timestamp
         vm.warp(block.timestamp + 1 hours);
         uint48 timestamp2 = uint48(block.timestamp);
-        _createPermit(3000, AMOUNT, timestamp2);
+        _createPermit(bytes32(uint256(2)), 3000, AMOUNT, timestamp2);
 
         (uint160 allowance,,) = permit3.allowance(owner, address(token), spender);
         assertEq(allowance, AMOUNT * 2, "Allowance should increase");
@@ -186,34 +184,32 @@ contract Permit3Test is Test {
         // Setup two immediate transfer permits
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: 0, // Immediate transfer
+            modeOrExpiration: 0, // Immediate transfer
             token: address(token),
-            spender: recipient,
+            account: recipient,
             amountDelta: AMOUNT
         });
 
         // First transfer
-        IPermit3.ChainPermits memory chainPermits =
-            IPermit3.ChainPermits({ chainId: 31_337, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 31_337, permits: permits });
 
         uint256 deadline = block.timestamp + 1 hours;
         uint48 timestamp = uint48(block.timestamp);
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, bytes32(uint256(1)), deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, bytes32(uint256(1)), deadline, timestamp, chainPermits, signature);
 
         // Second transfer with different nonce
-        chainPermits.nonce = 2;
         timestamp = uint48(block.timestamp + 1);
-        structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        structHash = _getPermitStructHash(owner, bytes32(uint256(2)), deadline, timestamp, chainPermits);
         digest = _getDigest(structHash);
         (v, r, s) = vm.sign(ownerPrivateKey, digest);
         signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, bytes32(uint256(2)), deadline, timestamp, chainPermits, signature);
 
         assertEq(token.balanceOf(recipient), AMOUNT * 2, "Both transfers should succeed");
     }
@@ -225,22 +221,21 @@ contract Permit3Test is Test {
         // Create permit for approval
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: 3000,
+            modeOrExpiration: 3000,
             token: address(token),
-            spender: spender,
+            account: spender,
             amountDelta: AMOUNT
         });
 
-        IPermit3.ChainPermits memory chainPermits =
-            IPermit3.ChainPermits({ chainId: 31_337, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 31_337, permits: permits });
 
         uint256 deadline = block.timestamp + 1 hours;
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, SALT, deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, signature);
 
         (uint160 allowance,,) = permit3.allowance(owner, address(token), spender);
         assertEq(allowance, AMOUNT);
@@ -271,22 +266,21 @@ contract Permit3Test is Test {
         uint48 timestamp = uint48(block.timestamp);
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: 3000,
+            modeOrExpiration: 3000,
             token: address(token),
-            spender: spender,
+            account: spender,
             amountDelta: type(uint160).max
         });
 
-        IPermit3.ChainPermits memory chainPermits =
-            IPermit3.ChainPermits({ chainId: 31_337, nonce: 1, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 31_337, permits: permits });
 
         uint256 deadline = block.timestamp + 1 hours;
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, SALT, deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, signature);
 
         vm.startPrank(spender);
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
@@ -299,34 +293,36 @@ contract Permit3Test is Test {
 
     function _getPermitStructHash(
         address ownerAddress,
+        bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
         IPermit3.ChainPermits memory permits
     ) internal view returns (bytes32) {
         return keccak256(
-            abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), ownerAddress, deadline, timestamp, _hashChainPermits(permits))
+            abi.encode(
+                permit3.SIGNED_PERMIT3_TYPEHASH(), ownerAddress, salt, deadline, timestamp, _hashChainPermits(permits)
+            )
         );
     }
 
-    function _createPermit(uint48 expiration, uint160 amount, uint48 timestamp) internal {
+    function _createPermit(bytes32 salt, uint48 expiration, uint160 amount, uint48 timestamp) internal {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            transferOrExpiration: expiration,
+            modeOrExpiration: expiration,
             token: address(token),
-            spender: spender,
+            account: spender,
             amountDelta: amount
         });
 
-        IPermit3.ChainPermits memory chainPermits =
-            IPermit3.ChainPermits({ chainId: 31_337, nonce: timestamp, permits: permits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: 31_337, permits: permits });
 
         uint256 deadline = block.timestamp + 1 hours;
-        bytes32 structHash = _getPermitStructHash(owner, deadline, timestamp, chainPermits);
+        bytes32 structHash = _getPermitStructHash(owner, salt, deadline, timestamp, chainPermits);
         bytes32 digest = _getDigest(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, salt, deadline, timestamp, chainPermits, signature);
     }
 
     function _getMultiChainPermitStructHash(
@@ -354,21 +350,16 @@ contract Permit3Test is Test {
         for (uint256 i = 0; i < permits.permits.length; i++) {
             permitHashes[i] = keccak256(
                 abi.encode(
-                    permits.permits[i].transferOrExpiration,
+                    permits.permits[i].modeOrExpiration,
                     permits.permits[i].token,
-                    permits.permits[i].spender,
+                    permits.permits[i].account,
                     permits.permits[i].amountDelta
                 )
             );
         }
 
         return keccak256(
-            abi.encode(
-                permit3.CHAIN_PERMITS_TYPEHASH(),
-                permits.chainId,
-                permits.nonce,
-                keccak256(abi.encodePacked(permitHashes))
-            )
+            abi.encode(permit3.CHAIN_PERMITS_TYPEHASH(), permits.chainId, keccak256(abi.encodePacked(permitHashes)))
         );
     }
 
