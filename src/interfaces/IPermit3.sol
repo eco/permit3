@@ -18,18 +18,20 @@ interface IPermit3 is IPermit, INonceManager {
     enum PermitType {
         Transfer,
         Decrease,
-        Lock
+        Lock,
+        Unlock
     }
 
     /**
      * @notice Represents a token allowance modification or transfer operation
-     * @param transferOrExpiration Mode indicators:
-     *        - 0: Execute immediate transfer
-     *        - 1: Decrease allowance
-     *        - 2: Lock allowance
-     *        - >2: Increase allowance, expiration for allowance if the timestamp is recent
+     * @param modeOrExpiration Mode indicators:
+     *        = 0: Immediate transfer mode
+     *        = 1: Decrease allowance mode
+     *        = 2: Lock allowance mode
+     *        = 3: UnLock allowance mode
+     *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
      * @param token Address of the ERC20 token
-     * @param spender Transfer recipient (for mode 1) or approved spender (for allowance)
+     * @param account Transfer recipient (for mode 0) or approved spender (for allowance)
      * @param amountDelta Allowance change or transfer amount:
      *        - For transfer mode: Amount to transfer
      *        - For allowance mode: Increases or decreases allowance
@@ -37,27 +39,25 @@ interface IPermit3 is IPermit, INonceManager {
      *           - type(uint160).max: Unlimited approval or decrease to 0.
      */
     struct AllowanceOrTransfer {
-        uint48 transferOrExpiration;
+        uint48 modeOrExpiration;
         address token;
-        address spender;
+        address account;
         uint160 amountDelta;
     }
 
     /**
      * @notice Struct grouping permits for a specific chain
      * @param chainId Target chain identifier
-     * @param nonce Random nonce value (not sequential)
      * @param permits Array of permit operations for this chain
      */
     struct ChainPermits {
-        uint64 chainId;
-        uint48 nonce;
+        uint256 chainId;
         AllowanceOrTransfer[] permits;
     }
 
     /**
      * @notice Struct containing proof data for cross-chain permit operations
-     * @param preHash Hash of previous chain operations, chained as:
+     * @param preHash Hash of previous chain operations, as an unbalanced merkle tree root:
      *                keccak256(keccak256(keccak256(chain1), chain2), chain3)
      * @param permits Permit operations for the current chain
      * @param followingHashes Hashes of subsequent chain operations
@@ -79,6 +79,7 @@ interface IPermit3 is IPermit, INonceManager {
      */
     function permit(
         address owner,
+        bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
         ChainPermits memory chain,
@@ -95,6 +96,7 @@ interface IPermit3 is IPermit, INonceManager {
      */
     function permit(
         address owner,
+        bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
         Permit3Proof memory proof,

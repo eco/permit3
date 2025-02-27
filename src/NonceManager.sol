@@ -20,17 +20,17 @@ abstract contract NonceManager is INonceManager, EIP712 {
     /// @notice Maps owner address to their used nonces
     /// @dev Status values: 0 = unused, 1 = used
     /// @dev Non-sequential nonces allow parallel operations without conflicts
-    mapping(address => mapping(uint48 => uint256)) internal usedNonces;
+    mapping(address => mapping(bytes32 => uint256)) internal usedNonces;
 
     /// @notice EIP-712 typehash for nonce invalidation
     /// @dev Includes chainId for cross-chain replay protection
     bytes32 public constant NONCES_TO_INVALIDATE_TYPEHASH =
-        keccak256("NoncesToInvalidate(uint64 chainId,uint48[] noncesToInvalidate)");
+        keccak256("NoncesToInvalidate(uint256 chainId,bytes32[] salts)");
 
     /// @notice EIP-712 typehash for invalidation signatures
-    /// @dev Includes owner, deadline, and chained hashes for batch operations
+    /// @dev Includes owner, deadline, and unbalanced merkle root for batch operations
     bytes32 public constant SIGNED_CANCEL_PERMIT3_TYPEHASH =
-        keccak256("SignedCancelPermit3(address owner,uint256 deadline,bytes32 chainedInvalidationHashes)");
+        keccak256("SignedCancelPermit3(address owner,uint256 deadline,bytes32 unbalancedInvalidationRoot)");
 
     /**
      * @notice Initialize EIP-712 domain separator
@@ -49,22 +49,24 @@ abstract contract NonceManager is INonceManager, EIP712 {
     /**
      * @notice Check if a specific nonce has been used
      * @param owner The address to check nonces for
-     * @param nonce The nonce value to verify
+     * @param salt The salt value to verify
      * @return True if nonce has been used, false otherwise
      */
-    function isNonceUsed(address owner, uint48 nonce) external view returns (bool) {
-        return usedNonces[owner][nonce] == 1;
+    function isNonceUsed(address owner, bytes32 salt) external view returns (bool) {
+        return usedNonces[owner][salt] == 1;
     }
 
     /**
      * @notice Directly invalidate multiple nonces without signature
-     * @param noncesToInvalidate Array of nonces to mark as used
+     * @param salts Array of salts to mark as used
      */
     function invalidateNonces(
-        uint48[] calldata noncesToInvalidate
+        bytes32[] calldata salts
     ) external {
-        for (uint256 i = 0; i < noncesToInvalidate.length; i++) {
-            usedNonces[msg.sender][noncesToInvalidate[i]] = 1;
+        uint256 length = salts.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            usedNonces[msg.sender][salts[i]] = 1;
         }
     }
 
@@ -111,16 +113,17 @@ abstract contract NonceManager is INonceManager, EIP712 {
         require(block.timestamp <= deadline, SignatureExpired());
         require(proof.invalidations.chainId == block.chainid, WrongChainId(block.chainid, proof.invalidations.chainId));
 
-        bytes32 chainedInvalidationHashes = proof.preHash;
-        chainedInvalidationHashes =
-            keccak256(abi.encodePacked(chainedInvalidationHashes, hashNoncesToInvalidate(proof.invalidations)));
+        bytes32 unbalancedInvalidationRoot = proof.preHash;
+        unbalancedInvalidationRoot =
+            keccak256(abi.encodePacked(unbalancedInvalidationRoot, hashNoncesToInvalidate(proof.invalidations)));
 
         for (uint256 i = 0; i < proof.followingHashes.length; i++) {
-            chainedInvalidationHashes = keccak256(abi.encodePacked(chainedInvalidationHashes, proof.followingHashes[i]));
+            unbalancedInvalidationRoot =
+                keccak256(abi.encodePacked(unbalancedInvalidationRoot, proof.followingHashes[i]));
         }
 
         bytes32 signedHash =
-            keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, chainedInvalidationHashes));
+            keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, unbalancedInvalidationRoot));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());
@@ -136,9 +139,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function hashNoncesToInvalidate(
         NoncesToInvalidate memory invalidations
     ) public pure returns (bytes32) {
-        return keccak256(
-            abi.encode(NONCES_TO_INVALIDATE_TYPEHASH, invalidations.chainId, invalidations.noncesToInvalidate)
-        );
+        return keccak256(abi.encode(NONCES_TO_INVALIDATE_TYPEHASH, invalidations.chainId, invalidations.salts));
     }
 
     /**
@@ -148,8 +149,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @param invalidations Nonces to invalidate with chain ID
      */
     function _processNonceInvalidation(address owner, NoncesToInvalidate memory invalidations) internal {
-        for (uint256 i = 0; i < invalidations.noncesToInvalidate.length; i++) {
-            usedNonces[owner][invalidations.noncesToInvalidate[i]] = 1;
+        uint256 length = invalidations.salts.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            usedNonces[owner][invalidations.salts[i]] = 1;
         }
     }
 
@@ -157,10 +160,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice Consume a nonce, marking it as used
      * @dev Reverts if nonce is already used
      * @param owner Token owner using the nonce
-     * @param nonce Nonce value to consume
+     * @param salt Salt value to consume
      */
-    function _useNonce(address owner, uint48 nonce) internal {
-        require(usedNonces[owner][nonce] == 0, NonceAlreadyUsed());
-        usedNonces[owner][nonce] = 1;
+    function _useNonce(address owner, bytes32 salt) internal {
+        require(usedNonces[owner][salt] == 0, NonceAlreadyUsed());
+        usedNonces[owner][salt] = 1;
     }
 }

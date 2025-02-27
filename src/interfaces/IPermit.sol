@@ -80,7 +80,7 @@ interface IPermit {
      * @param spender The approved spender
      * @param amount The approved amount
      * @param expiration When the approval expires
-     * @param nonce The nonce used in the permit signature
+     * @param timestamp The nonce used in the permit signature
      */
     event Permit(
         address indexed owner,
@@ -88,7 +88,7 @@ interface IPermit {
         address indexed spender,
         uint160 amount,
         uint48 expiration,
-        uint48 nonce
+        uint48 timestamp
     );
 
     /**

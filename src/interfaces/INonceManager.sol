@@ -16,16 +16,16 @@ interface INonceManager {
     error NonceAlreadyUsed();
 
     /// @notice Thrown when a chain ID is invalid
-    error WrongChainId(uint256 expected, uint64 provided);
+    error WrongChainId(uint256 expected, uint256 provided);
 
     /**
      * @notice Nonce invalidation parameters for a specific chain
      * @param chainId Target chain identifier
-     * @param noncesToInvalidate Array of nonces to mark as used
+     * @param salts Array of salts to mark as used
      */
     struct NoncesToInvalidate {
         uint64 chainId;
-        uint48[] noncesToInvalidate;
+        bytes32[] salts;
     }
 
     /**
@@ -49,17 +49,17 @@ interface INonceManager {
     /**
      * @notice Check if a nonce has been used
      * @param owner Address that owns the nonce
-     * @param nonce Nonce value to check
+     * @param salt Salt value to check
      * @return true if nonce has been used
      */
-    function isNonceUsed(address owner, uint48 nonce) external view returns (bool);
+    function isNonceUsed(address owner, bytes32 salt) external view returns (bool);
 
     /**
      * @notice Mark multiple nonces as used
-     * @param noncesToInvalidate Array of nonces to invalidate
+     * @param salts Array of salts to invalidate
      */
     function invalidateNonces(
-        uint48[] calldata noncesToInvalidate
+        bytes32[] calldata salts
     ) external;
 
     /**

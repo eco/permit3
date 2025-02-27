@@ -72,10 +72,14 @@ struct AllowanceOrTransfer {
 3. **Lock Mode** (`transferOrExpiration = 2`)
     - Enters special locked state
     - Blocks increases/transfers
-    - Allows only decreases
-    - Tracks lock timestamp
+    - Rejects all operations until unlocked
 
-4. **Increase Mode** (`transferOrExpiration > 2`)
+4. **Unlock Mode** (`transferOrExpiration = 3`)
+    - Cancels locked state
+    - Tracks unlock timestamp
+    - Sets allowance to provided amount
+
+5. **Increase Mode** (`transferOrExpiration > 3`)
     - Value acts as expiration timestamp
     - Updates if timestamp is newer
     - `amountDelta`: increase amount
@@ -101,9 +105,9 @@ struct Allowance {
 ### Account Locking
 
 Locked accounts have special restrictions:
-- Cannot increase allowances
+- Cannot increase/decrease allowances
 - Cannot execute transfers
-- Must pass timestamp validation to unlock
+- Must submit unlock command with timestamp validation to disable
 - Provides emergency security control
 
 ## Integration
