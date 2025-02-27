@@ -17,18 +17,24 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 abstract contract NonceManager is INonceManager, EIP712 {
     using ECDSA for bytes32;
 
-    /// @notice Maps owner address to their used nonces
-    /// @dev Status values: 0 = unused, 1 = used
-    /// @dev Non-sequential nonces allow parallel operations without conflicts
+    /**
+     * @notice Maps owner address to their used nonces
+     * @dev Status values: 0 = unused, 1 = used
+     * @dev Non-sequential nonces allow parallel operations without conflicts
+     */
     mapping(address => mapping(bytes32 => uint256)) internal usedNonces;
 
-    /// @notice EIP-712 typehash for nonce invalidation
-    /// @dev Includes chainId for cross-chain replay protection
+    /**
+     * @notice EIP-712 typehash for nonce invalidation
+     * @dev Includes chainId for cross-chain replay protection
+     */
     bytes32 public constant NONCES_TO_INVALIDATE_TYPEHASH =
         keccak256("NoncesToInvalidate(uint256 chainId,bytes32[] salts)");
 
-    /// @notice EIP-712 typehash for invalidation signatures
-    /// @dev Includes owner, deadline, and unbalanced merkle root for batch operations
+    /**
+     * @notice EIP-712 typehash for invalidation signatures
+     * @dev Includes owner, deadline, and unbalanced merkle root for batch operations
+     */
     bytes32 public constant SIGNED_CANCEL_PERMIT3_TYPEHASH =
         keccak256("SignedCancelPermit3(address owner,uint256 deadline,bytes32 unbalancedInvalidationRoot)");
 
