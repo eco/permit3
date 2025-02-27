@@ -75,7 +75,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @notice Process token approvals across multiple chains
      * @dev Handles complex cross-chain permit batches using hash chaining
      * @param owner Token owner authorizing the operations
-     * @param salt Asyncronous identifier to prevent replay attacks across different permit batches
+     * @param salt Asynchronous identifier to prevent replay attacks across different permit batches
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
      * @param proof Contains:
