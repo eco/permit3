@@ -15,7 +15,7 @@ The Permit3 protocol enables cross-chain token approvals and transfers while mai
 
 ## Permit2 Compatibility
 
-Permit3 implements IPermit for Permit2 trasfer compatibility:
+Permit3 implements IPermit for Permit2 transfer compatibility:
 
 ```solidity
 // Existing Permit2 contracts work without changes
@@ -178,7 +178,7 @@ const arbPermits = {
 // Generate and chain hashes
 const ethHash = hashChainPermits(ethPermits);
 const arbHash = hashChainPermits(arbPermits);
-const finalHash = keccak256(ethHash, arbHash);
+const finalHash = keccak256(abi.encodePacked(ethHash, arbHash));
 
 // Create and sign proof
 const signature = signPermit3(owner, deadline, finalHash);
