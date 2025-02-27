@@ -106,6 +106,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         _processChainPermits(owner, timestamp, proof.permits);
     }
 
+    //TODO: Add witness permit functions
+    // function permitWitness()
+
     /**
      * @dev Core permit processing logic
      * @param owner Token owner
