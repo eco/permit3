@@ -77,15 +77,15 @@ interface IPermit {
      * @dev Emitted when permissions are set through a permit signature
      * @param owner The token owner
      * @param token The token contract address
-     * @param spender The approved spender
+     * @param account The approved account
      * @param amount The approved amount
      * @param expiration When the approval expires
-     * @param timestamp The nonce used in the permit signature
+     * @param timestamp The timestamp used in the permit signature
      */
     event Permit(
         address indexed owner,
         address indexed token,
-        address indexed spender,
+        address indexed account,
         uint160 amount,
         uint48 expiration,
         uint48 timestamp

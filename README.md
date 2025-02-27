@@ -73,6 +73,7 @@ struct AllowanceOrTransfer {
     - Enters special locked state
     - Blocks increases/transfers
     - Rejects all operations until unlocked
+    - Sets approval to 0 for that token/spender pair
 
 4. **Unlock Mode** (`transferOrExpiration = 3`)
     - Cancels locked state

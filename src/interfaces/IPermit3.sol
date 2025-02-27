@@ -28,7 +28,7 @@ interface IPermit3 is IPermit, INonceManager {
      *        = 0: Immediate transfer mode
      *        = 1: Decrease allowance mode
      *        = 2: Lock allowance mode
-     *        = 3: UnLock allowance mode
+     *        = 3: Unlock allowance mode
      *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
      * @param token Address of the ERC20 token
      * @param account Transfer recipient (for mode 0) or approved spender (for allowance)

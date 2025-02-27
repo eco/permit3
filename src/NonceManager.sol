@@ -70,8 +70,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32[] calldata salts
     ) external {
         uint256 length = salts.length;
-
-        for (uint256 i = 0; i < length; i++) {
+        // TODO: use ++i instead of i++ in rest of loops in this contract
+        for (uint256 i = 0; i < length; ++i) {
             usedNonces[msg.sender][salts[i]] = 1;
         }
     }

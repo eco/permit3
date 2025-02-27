@@ -27,7 +27,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * Used in cross-chain signature verification
      */
     bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
-        "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 transferOrExpiration,address token,address spender,uint160 amountDelta)"
+        "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
     );
 
     /**
@@ -75,6 +75,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @notice Process token approvals across multiple chains
      * @dev Handles complex cross-chain permit batches using hash chaining
      * @param owner Token owner authorizing the operations
+     * @param salt Asyncronous identifier to prevent replay attacks across different permit batches
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
      * @param proof Contains:
@@ -113,9 +114,13 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @dev Core permit processing logic
      * @param owner Token owner
      * @param chain Bundle of permit operations to process
-     * @notice Handles two types of operations:
-     * 1. Immediate transfers (transferOrExpiration = 1)
-     * 2. Allowance updates (transferOrExpiration = future timestamp)
+     * @notice Handles multiple types of operations:
+     * @param modeOrExpiration Mode indicators:
+     *        = 0: Immediate transfer mode
+     *        = 1: Decrease allowance mode
+     *        = 2: Lock allowance mode
+     *        = 3: Unlock allowance mode
+     *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
      */
     function _processChainPermits(address owner, bytes32 salt, uint48 timestamp, ChainPermits memory chain) internal {
         _useNonce(owner, salt);
@@ -129,6 +134,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                 Allowance memory allowed = allowances[owner][p.token][p.account];
 
                 // Check if allowance is locked
+                // TODO: decide if locks can be extended in a single call
+                // currently not allowed in a single operation but allowed via an unlock / lock multicall
                 if (
                     allowed.expiration == LOCKED_ALLOWANCE
                         && (p.modeOrExpiration != uint48(PermitType.Unlock) || timestamp <= allowed.timestamp)
