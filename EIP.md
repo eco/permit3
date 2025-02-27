@@ -20,16 +20,16 @@ The Permit3 protocol introduces a new standard for managing token transfers and 
 Let's understand why we need Permit3:
 
 1. Right now, if you want to use your tokens on three different chains:
-    - You sign three different permissions
-    - You wait for each one to be processed
-    - You pay fees on each chain
+
+   - You sign three different permissions from your wallet
+   - You wait for each one to be processed
 
 2. This is like having three different keys for three different doors, when you could just have one master key.
 
 3. Also, the current system (Permit2) has some limitations:
-    - You can't set permissions on multiple chains at once
-    - You can't easily cancel all permissions if something goes wrong
-    - You have to do things in a specific order, which can be slow
+   - You can't set multiple permissions on one chain at once
+   - You can't easily cancel all permissions if something goes wrong
+   - You have to do things in a specific order, which can slow down wallets with multiple asynchronous operations
 
 ## Specification
 
@@ -66,16 +66,19 @@ struct Permit3Proof {
 The `transferOrExpiration` field defines four distinct operation types:
 
 1. **Transfer** (`value = 0`)
+
    - Direct token transfer execution
    - `spender` = recipient address
    - `amountDelta` = transfer amount
 
 2. **Decrease** (`value = 1`)
+
    - Reduces allowance
    - Normal: decrease by `amountDelta`
    - Special: `type(uint160).max` sets to zero
 
 3. **Lock** (`value = 2`)
+
    - Activates account security mode
    - Sets allowance to zero
    - Records timestamp for future validations
@@ -85,12 +88,13 @@ The `transferOrExpiration` field defines four distinct operation types:
    - Timestamp-based expiration
    - Updates allowance if timestamp is newer
    - Special cases:
-      - `amountDelta = 0`: Updates expiration only
-      - `amountDelta = type(uint160).max`: Unlimited approval
+     - `amountDelta = 0`: Updates expiration only
+     - `amountDelta = type(uint160).max`: Unlimited approval
 
 ### State Management
 
 #### Timestamp Control
+
 ```solidity
 // Update rules
 if (timestamp > allowed.timestamp) {
@@ -99,13 +103,14 @@ if (timestamp > allowed.timestamp) {
 }
 
 // Lock validation
-if (allowed.expiration == LOCKED_ALLOWANCE && 
+if (allowed.expiration == LOCKED_ALLOWANCE &&
     timestamp < allowed.timestamp) {
     revert AllowanceLocked();
 }
 ```
 
 #### Asynchronous Processing
+
 - Operations can arrive in any order
 - Most recent timestamp takes precedence in expiration updates
 - Prevents cross-chain race conditions
@@ -114,14 +119,12 @@ if (allowed.expiration == LOCKED_ALLOWANCE &&
 ### Cross-Chain Operations
 
 #### Hash Chain Construction
+
 ```javascript
 // Example: Three-chain operation
 const finalHash = keccak256(
-    keccak256(
-        keccak256(chainAHash),
-        chainBHash
-    ),
-    chainCHash
+  keccak256(keccak256(chainAHash), chainBHash),
+  chainCHash
 );
 ```
 
@@ -130,6 +133,7 @@ const finalHash = keccak256(
 Imagine you want to give permissions on three chains: Ethereum, Arbitrum, and Optimism.
 
 1. **Step 1: Create Your Permissions**
+
 ```javascript
 // On Ethereum:
 {
@@ -157,18 +161,20 @@ Imagine you want to give permissions on three chains: Ethereum, Arbitrum, and Op
 ```
 
 2. **Step 2: Link Them Together**
+
 ```
 Ethereum Permission → Arbitrum Permission → Optimism Permission
 ```
 
 3. **Step 3: Create One Master Signature**
-    - Takes all permissions
-    - Links them together with special math (hashing)
-    - Creates one secure signature that works everywhere
+   - Takes all permissions
+   - Links them together with special math (hashing)
+   - Creates one secure signature that works everywhere
 
 ### Special Features
 
 1. **Works with Old Systems**
+
 ```solidity
 // If you already use Permit2, this still works:
 function approve(address token, address spender, uint160 amount) external;
@@ -176,12 +182,14 @@ function transferFrom(address from, address to, uint160 amount) external;
 ```
 
 2. **Emergency Stop Button**
+
 ```solidity
 // Cancel all permissions everywhere with one signature
 function lockdownAcrossChains(address owner, CancelProof proof) external;
 ```
 
 3. **Flexible Timing**
+
 ```solidity
 // You can:
 transferOrExpiration = 1;         // Use tokens right now
@@ -194,6 +202,7 @@ transferOrExpiration = timestamp; // Expires at a specific time
 Here's how we link permissions across chains securely:
 
 1. **Making the Chain**
+
 ```solidity
 // Take three permissions:
 hash1 = hash(EthereumPermission);
@@ -205,6 +214,7 @@ finalHash = hash(hash(hash1 + hash2) + hash3);
 ```
 
 2. **Using the Chain**
+
 ```solidity
 // On Arbitrum, you prove:
 {
@@ -213,26 +223,130 @@ finalHash = hash(hash(hash1 + hash2) + hash3);
     "whatComesNext": [hash3]
 }
 ```
+### Multichain Witnesses
+
+The system is still compatible with witness style signatures, but the witness data is now a bit different. Since a single signature can now be used on multiple chains, the witness data needs to be constructed from a hash of the chain specific data for each chain. Below is an example of how this might work, but details of how witnesses are constructed are left to each contract implementation.
+
+For example for a permit with one action on OP, Base and Arbitrum might construct the witness like this: 
+```solidity
+struct OptimismContractData {
+    uint256 chainId;
+    bytes32 otherData1;
+    bytes32 otherData2;
+    // ... other fields
+}
+
+// Hash each chain's specific data
+bytes32 optimismDataHash = keccak256(abi.encode(optimismContractData));
+bytes32 baseDataHash = keccak256(abi.encode(baseContractData));
+bytes32 arbitrumDataHash = keccak256(abi.encode(arbitrumContractData));
+
+// Create witness array and compute final hash
+bytes32[] memory witnesses = [optimismDataHash, baseDataHash, arbitrumDataHash];
+bytes32 witness = keccak256(abi.encodePacked(witnesses));
+```
+
+A contract on optimism might consume the witness like this:
+
+```solidity
+    function consumePermit(
+        address owner,
+        uint256 deadline,
+        uint48 timestamp,
+        Permit3Proof memory proof,
+        bytes calldata signature,
+        bytes32[] memory witnesses, // array of data hashes
+        uint32 expectedPosition, // position of data for this chain in array
+        OptimismContractData calldata contractData
+    ) external {
+    
+        bytes32 optimismContractHash = keccak256(abi.encode(contractData));
+
+        require(witnesses[expectedPosition] == optimismContractHash, "Invalid witness position");
+
+        require(contractData.chainId == 10, "Invalid chain ID");
+
+        bytes32 witness = keccak256(abi.encodePacked(witnesses));
+        
+        // Verify and consume the permit
+        IPermit3(permit3Address).permitWithWitness(
+            owner,
+            deadline,
+            timestamp,
+            proof,
+            signature,
+            witness
+        );
+
+        // Do something with permit and witness data
+        // e.g. transfer tokens based on contractData
+    }
+```
+
+A possible way to avoid the need for the expected position variable is to use a traditional merkle tree or the Permit3 Unhinged Merkle tree (if one chain gas cost >>>> the others) for the witness hash. For the Permit3 style hash, the resulting function would look something like this:
+
+```solidity
+    bytes32 innerHash = keccak256(ArbitrumDataHash + BaseDataHash);
+    bytes witnessBytes = abi.encodePacked(innerHash, OptimismDataHash);
+    bytes32 witness = keccak256(witnessBytes);
+
+    // The contract would consume the permit like this:
+    function consumePermit(
+        address owner,
+        uint256 deadline,
+        uint48 timestamp,
+        Permit3Proof memory proof,
+        bytes calldata signature,
+        bytes memory witnessesBytes,
+        OptimismContractData calldata contractData
+    ) external {
+    
+        bytes32 optimismContractHash = keccak256(abi.encode(contractData));
+
+        // This function unpacks the witness bytes by splitting them into an array of bytes32, secessively hashes them, and computes the final witness hash. It returns the witness hash and the last bytes32 split from the in the array, which corresponds to the chain specific data hash for this chain.
+        bytes32 chainHash, witness = unpackAndVerifyWitnessBytes(witnessesBytes); 
+
+        require(chainHash == optimismContractHash, "Invalid witness position");
+
+        require(contractData.chainId == 10, "Invalid chain ID");
+
+        bytes32 witnessHash = keccak256(abi.encodePacked(witnesses));
+        
+        // Verify and consume the permit
+        IPermit3(permit3Address).permitWithWitness(
+            owner,
+            deadline,
+            timestamp,
+            proof,
+            signature,
+            witness
+        );
+```
+
+This approach ensures that each chain's data must appear last in the merkleBytes, eliminating the need for an explicit position parameter while maintaining the same security properties.
 
 ## Security
 
 Important safety features:
 
 1. **Can't Be Copied**
-    - Each permission works only on its intended chain
-    - You can't copy a permission from one chain to another
+
+   - Each permission works only on its intended chain
+   - You can't copy a permission from one chain to another
 
 2. **Time Limits**
-    - All permissions can have expiration dates
-    - After expiration, they stop working automatically
+
+   - All permissions can have expiration dates
+   - After expiration, they stop working automatically
 
 3. **Emergency Controls**
-    - You can cancel all permissions with one signature
-    - Works across all chains at once
+
+   - You can cancel all permissions with one signature
+   - Works across all chains at once
 
 4. **No Order Required**
-    - Use permissions in any order
-    - If one fails, others still work
+   - Use permissions in any order
+   - If one fails, others still work
 
 ## Backwards Compatibility
 
@@ -255,7 +369,7 @@ Here are examples showing how it works:
 function testCrossChainPermit() {
     // Give permission on Ethereum
     ChainPermits memory ethPermits = createEthPermits();
-    
+
     // Use it on Arbitrum
     Permit3Proof memory proof = createProof(ethPermits);
     permit3.permit(owner, deadline, proof, signature);
