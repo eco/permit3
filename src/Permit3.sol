@@ -118,7 +118,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param owner Token owner
      * @param chain Bundle of permit operations to process
      * @notice Handles multiple types of operations:
-     * @param modeOrExpiration Mode indicators:
+     * @notice modeOrExpiration Mode indicators:
      *        = 0: Immediate transfer mode
      *        = 1: Decrease allowance mode
      *        = 2: Lock allowance mode
