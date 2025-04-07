@@ -17,6 +17,12 @@ interface INonceManager {
 
     /// @notice Thrown when a chain ID is invalid
     error WrongChainId(uint256 expected, uint256 provided);
+    
+    /// @notice Thrown when a witness type string is invalid
+    error InvalidWitnessTypeString();
+    
+    /// @notice Thrown when a witness signature is invalid
+    error InvalidWitnessSignature();
 
     /**
      * @notice Nonce invalidation parameters for a specific chain
@@ -29,15 +35,13 @@ interface INonceManager {
     }
 
     /**
-     * @notice Struct for cross-chain nonce invalidation proof
-     * @param preHash Hash of previous chain invalidations
+     * @notice Struct for unhinged nonce invalidation proof
      * @param invalidations Current chain invalidation data
-     * @param followingHashes Subsequent chain invalidation hashes
+     * @param unhingedProof UnhingedProof structure for verification
      */
-    struct CancelPermit3Proof {
-        bytes32 preHash;
+    struct UnhingedCancelPermitProof {
         NoncesToInvalidate invalidations;
-        bytes32[] followingHashes;
+        bytes32 unhingedRoot;
     }
 
     /**
@@ -73,6 +77,20 @@ interface INonceManager {
         address owner,
         uint256 deadline,
         NoncesToInvalidate memory invalidations,
+        bytes calldata signature
+    ) external;
+    
+    /**
+     * @notice Cross-chain nonce invalidation using the Unhinged Merkle Tree approach
+     * @param owner Token owner address
+     * @param deadline Signature expiration timestamp
+     * @param proof Unhinged invalidation proof
+     * @param signature EIP-712 signature authorizing the invalidation
+     */
+    function invalidateNonces(
+        address owner,
+        uint256 deadline,
+        UnhingedCancelPermitProof memory proof,
         bytes calldata signature
     ) external;
 
