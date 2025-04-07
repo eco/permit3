@@ -59,7 +59,7 @@ Comprehensive documentation is available in the [docs](./docs) directory:
 
 ## Permit2 Compatibility
 
-Permit3 implements IPermit for Permit2 trasfer compatibility:
+Permit3 implements IPermit for Permit2 transfer compatibility:
 
 ```solidity
 // Existing Permit2 contracts work without changes
@@ -117,6 +117,7 @@ struct AllowanceOrTransfer {
     - Enters special locked state
     - Blocks increases/transfers
     - Rejects all operations until unlocked
+    - Sets approval to 0 for that token/spender pair
 
 4. **Unlock Mode** (`transferOrExpiration = 3`)
     - Cancels locked state
