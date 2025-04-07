@@ -9,7 +9,19 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 ## Key Features
 
 - **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
-- **Unhinged Merkle Trees**: Optimized cross-chain proof structure combining balanced subtrees with hash chaining
+- **Unhinged Merkle Trees**: A novel two-part data structure that combines:
+  ```
+               [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
+            /      \      \      \
+          [BR]    [D5]   [D6]   [D7]      ← Additional chain data
+         /     \
+     [BH1]     [BH2]                      ← Balanced tree (bottom part)
+    /    \     /    \
+  [D1]  [D2] [D3]  [D4]                   ← Leaf data
+  ```
+  - Bottom part: Standard balanced tree for efficient membership proofs within a chain
+  - Top part: Sequential hash chain incorporating the balanced root and cross-chain data
+  - Benefits: Optimal gas usage by processing only what each chain needs
 - **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
 - **Flexible Allowance Management**:
     - Increase/decrease allowances asynchronously

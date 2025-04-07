@@ -4,10 +4,10 @@ Unhinged Merkle Trees are a key innovation in Permit3 that enables efficient cro
 
 ## What are Unhinged Merkle Trees?
 
-Unhinged Merkle Trees are a hybrid data structure that combines two proven cryptographic patterns:
+Unhinged Merkle Trees are a hybrid data structure that combines two proven cryptographic patterns in a specific, two-part structure:
 
-1. **Balanced Merkle Trees** at the bottom level for efficient inclusion proofs within a single chain
-2. **Sequential Hash Chaining** at the top level for efficient cross-chain linking
+1. **Balanced Merkle Trees** for a subset of nodes (typically operations within a single chain)
+2. **Sequential Hash Chaining** for efficiently linking multiple subtree roots across chains
 
 This approach was specifically designed to solve the problem of cross-chain proofs while optimizing for gas efficiency, where each blockchain only needs to process what's relevant to it.
 
@@ -15,37 +15,62 @@ This approach was specifically designed to solve the problem of cross-chain proo
 
 The name "Unhinged" refers to the deliberate deviation from traditional balanced Merkle trees at the top level. Unlike classic Merkle trees that maintain balance throughout, Unhinged Merkle Trees use an "unhinged" (sequential) structure at the top level to optimize for cross-chain verifications.
 
-## Structure and Components
+## Key Structure: A Two-Part Design
 
-An Unhinged Merkle Tree consists of:
-
-### 1. Balanced Subtrees
-
-At the bottom level, each chain has its own balanced Merkle tree of operations:
+The key insight of the Unhinged Merkle Tree is its two-part structure:
 
 ```
-           Root
-          /    \
-         /      \
-      Node1    Node2
-     /   \     /   \
-   Leaf1 Leaf2 Leaf3 Leaf4
+               [H1] → [H2] → [H3] → ROOT
+            /      \      \      \
+          [BR]    [D5]   [D6]   [D7]  
+         /     \
+     [BH1]     [BH2]
+    /    \     /    \
+[D1]    [D2] [D3]  [D4]
 ```
 
-These follow standard Merkle tree construction rules where leaf nodes are paired and hashed recursively until a single root hash is obtained.
+This diagram clearly shows the two distinct parts:
 
-### 2. Unhinged Chain
+1. **Bottom Part (Balanced Tree)**:
+   - A standard balanced Merkle tree with:
+   - Leaf data points [D1], [D2], [D3], [D4]
+   - Intermediate balanced hash nodes [BH1], [BH2]
+   - Balanced root [BR]
+   
+2. **Top Part (Sequential Chain)**:
+   - A linear hash chain that:
+   - Starts with the balanced root [BR]
+   - Sequentially incorporates additional data [D5], [D6], [D7]
+   - Forms hash chain [H1] → [H2] → [H3] → ROOT
 
-The roots of the balanced subtrees are then chained sequentially through iterative hashing:
+This hybrid approach gives us the benefits of both structures:
+- Efficient membership proofs from the balanced part 
+- Sequential processing efficiency from the chain part
+- Ability to include both tree-structured and sequential data in one root
 
-```
-Chain1Root → Chain2Root → Chain3Root → ... → ChainNRoot
-```
+## How the Two Parts Work Together
 
-Where each arrow represents a hash operation:
-```solidity
-result = keccak256(abi.encodePacked(result, nextChainRoot));
-```
+1. **Balanced Subtree**:
+   - Operations within a single chain are organized in a balanced Merkle tree
+   - This provides efficient inclusion proofs with O(log n) complexity
+   - The root of this tree ([H1'] in the diagram) serves as the anchor point
+   
+2. **Unhinged Chain**:
+   - The balanced subtree root is the starting point
+   - Additional hashes ([H1], [H2], [H3]) are appended sequentially
+   - Each hash represents data that should be included but doesn't need the efficiency of a balanced tree
+   - The final hash in the chain is the Unhinged Root that gets signed
+
+## Applied to Cross-Chain Use Cases
+
+In the cross-chain context:
+- The **balanced subtree** contains operations for the current chain (requiring efficient proofs)
+- The **unhinged chain** contains hashes representing operations on other chains (sequential for efficiency)
+
+This allows each chain to:
+1. Efficiently verify its own operations (balanced tree part)
+2. Include other chains' operations in the overall signed root (unhinged chain part)
+3. Minimize gas usage by only processing what's relevant to the current chain
 
 ## Proof Structure
 

@@ -13,7 +13,7 @@ requires: 712
 
 ## Abstract
 
-This EIP proposes a standardized method for creating and verifying proofs across multiple blockchain networks using a hybrid tree structure that combines balanced Merkle trees with sequential hash chaining. This structure, named "Unhinged Merkle Tree," enables efficient and compact proofs for cross-chain operations while maintaining security guarantees.
+This EIP proposes a standardized method for creating and verifying proofs across multiple blockchain networks using a hybrid tree structure with a clear two-part design: a balanced Merkle tree for efficient membership proofs combined with sequential hash chaining for linking across chains. This structure, named "Unhinged Merkle Tree," enables efficient and compact proofs for cross-chain operations while maintaining security guarantees.
 
 ## Motivation
 
@@ -26,7 +26,7 @@ Common challenges in cross-chain operations include:
 4. Lack of standardization in cross-chain proof formats
 
 The Unhinged Merkle Tree structure addresses these challenges by:
-1. Minimizing per-chain proof size through a hybrid approach
+1. Minimizing per-chain proof size through its hybrid two-part approach
 2. Allowing a single signature to authorize operations across an arbitrary number of chains
 3. Providing a standardized format for cross-chain proofs
 4. Maintaining security guarantees while optimizing for gas efficiency
@@ -41,9 +41,37 @@ The Unhinged Merkle Tree structure addresses these challenges by:
 - **Subtree Root**: The root hash of a balanced Merkle tree for a single chain
 - **Unhinged Root**: The final hash resulting from the sequential chaining of subtree roots
 
-### Structure
+### Two-Part Structure
 
-The Unhinged Merkle Tree consists of two complementary components:
+The key insight of the Unhinged Merkle Tree is its distinct two-part structure:
+
+```
+               [H1] → [H2] → [H3] → ROOT
+            /      \      \      \
+          [BR]    [D5]   [D6]   [D7]  
+         /     \
+     [BH1]     [BH2]
+    /    \     /    \
+[D1]    [D2] [D3]  [D4]
+```
+
+Where:
+- **Bottom Part**: A standard balanced Merkle tree for efficient membership proofs
+  - [BR] is the balanced root
+  - [BH1], [BH2] are balanced hash nodes
+  - [D1]-[D4] are the leaf data points
+  
+- **Top Part**: A sequential hash chain for efficiently linking across chains
+  - Starts with the balanced root [BR]
+  - Incorporates additional data points [D5], [D6], [D7]
+  - Creates the hash chain [H1] → [H2] → [H3] → ROOT
+
+This hybrid approach combines the benefits of both structures:
+- Efficient membership proofs from the balanced part (O(log n) complexity) 
+- Minimal gas usage from the sequential chain part
+- Flexibility to include both tree-structured data and sequential data in a single signed root
+
+The Unhinged Merkle Tree consists of:
 
 1. **Balanced Subtrees**: Each chain has its own balanced Merkle tree of operations. These follow standard Merkle tree construction rules where leaf nodes are paired and hashed recursively until a single root hash is obtained.
 
