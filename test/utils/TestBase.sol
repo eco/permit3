@@ -62,11 +62,7 @@ contract TestBase is Test {
         return keccak256(abi.encodePacked("\x19\x01", permit3.DOMAIN_SEPARATOR(), structHash));
     }
 
-    function _hashChainPermits(
-        IPermit3.ChainPermits memory chainPermits
-    ) internal view returns (bytes32) {
-        return Permit3TestUtils.hashChainPermits(permit3, chainPermits);
-    }
+    // Use permit3.hashChainPermits directly instead of this function
 
     // Create a basic transfer permit
     function _createBasicTransferPermit() internal view returns (IPermit3.ChainPermits memory) {
@@ -80,7 +76,7 @@ contract TestBase is Test {
         uint48 timestamp,
         bytes32 salt
     ) internal view returns (bytes memory) {
-        bytes32 permitDataHash = _hashChainPermits(chainPermits);
+        bytes32 permitDataHash = IPermit3(address(permit3)).hashChainPermits(chainPermits);
 
         bytes32 signedHash =
             keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, permitDataHash));
@@ -117,7 +113,7 @@ contract TestBase is Test {
         UnhingedSignParams memory params;
 
         // Calculate the unhinged root the same way the contract would
-        params.currentChainHash = _hashChainPermits(proof.permits);
+        params.currentChainHash = IPermit3(address(permit3)).hashChainPermits(proof.permits);
 
         // Extract counts from packed data using the new format
         uint256 value = uint256(proof.unhingedProof.counts);

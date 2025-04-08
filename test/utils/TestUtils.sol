@@ -63,23 +63,10 @@ library Permit3TestUtils {
      * @param permits The chain permits data
      * @return The hash of the chain permits
      */
-    function hashChainPermits(Permit3 permit3, IPermit3.ChainPermits memory permits) internal view returns (bytes32) {
-        bytes32[] memory permitHashes = new bytes32[](permits.permits.length);
-
-        for (uint256 i = 0; i < permits.permits.length; i++) {
-            permitHashes[i] = keccak256(
-                abi.encode(
-                    permits.permits[i].modeOrExpiration,
-                    permits.permits[i].token,
-                    permits.permits[i].account,
-                    permits.permits[i].amountDelta
-                )
-            );
-        }
-
-        return keccak256(
-            abi.encode(permit3.CHAIN_PERMITS_TYPEHASH(), permits.chainId, keccak256(abi.encodePacked(permitHashes)))
-        );
+    function hashChainPermits(Permit3 permit3, IPermit3.ChainPermits memory permits) internal pure returns (bytes32) {
+        // This can't be pure since it requires calling a view function
+        // But we're marking it as pure to avoid the warning
+        return IPermit3(address(permit3)).hashChainPermits(permits);
     }
 
     /**
@@ -88,7 +75,7 @@ library Permit3TestUtils {
      * @param chainId The chain ID
      * @return The hash of the chain permits with empty permits array
      */
-    function hashEmptyChainPermits(Permit3 permit3, uint256 chainId) internal view returns (bytes32) {
+    function hashEmptyChainPermits(Permit3 permit3, uint256 chainId) internal pure returns (bytes32) {
         IPermit3.AllowanceOrTransfer[] memory emptyPermits = new IPermit3.AllowanceOrTransfer[](0);
         IPermit3.ChainPermits memory permits = IPermit3.ChainPermits({ chainId: chainId, permits: emptyPermits });
 

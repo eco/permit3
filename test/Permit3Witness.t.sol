@@ -158,7 +158,7 @@ contract Permit3WitnessTest is Test {
 
         // Create invalid signature by signing with wrong key
         // Get hash of permits data
-        vars.permitDataHash = _hashChainPermits(vars.chainPermits);
+        vars.permitDataHash = permit3.hashChainPermits(vars.chainPermits);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), WITNESS_TYPE_STRING));
@@ -360,7 +360,7 @@ contract Permit3WitnessTest is Test {
         WitnessPermitVars memory vars;
 
         // Get hash of permits data
-        vars.permitDataHash = _hashChainPermits(chainPermits);
+        vars.permitDataHash = permit3.hashChainPermits(chainPermits);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));

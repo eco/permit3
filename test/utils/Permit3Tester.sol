@@ -44,9 +44,5 @@ contract Permit3Tester is Permit3 {
     /**
      * @notice Exposes the internal hashChainPermits function for testing
      */
-    function hashChainPermits(
-        ChainPermits memory permits
-    ) external pure returns (bytes32) {
-        return _hashChainPermits(permits);
-    }
+    // Function removed as it's now directly available from Permit3
 }
