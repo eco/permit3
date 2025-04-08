@@ -27,30 +27,6 @@ interface IUnhingedMerkleTree {
     }
 
     /**
-     * @notice Helper function to extract counts from packed bytes32
-     * @param counts The packed counts value
-     * @return subtreeProofCount Number of nodes in the subtree proof
-     * @return followingHashesCount Number of nodes in the following hashes
-     * @return hasPreHash Flag indicating if preHash is present (true) or not (false)
-     */
-    function extractCounts(
-        bytes32 counts
-    ) external pure returns (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash);
-
-    /**
-     * @notice Helper function to pack counts into a single bytes32
-     * @param subtreeProofCount Number of nodes in the subtree proof
-     * @param followingHashesCount Number of nodes in the following hashes
-     * @param hasPreHash Flag indicating if preHash is present or not
-     * @return counts The packed counts value
-     */
-    function packCounts(
-        uint120 subtreeProofCount,
-        uint120 followingHashesCount,
-        bool hasPreHash
-    ) external pure returns (bytes32 counts);
-
-    /**
      * @notice Error when the subtree proof verification fails
      */
     error InvalidSubtreeProof();
@@ -82,51 +58,4 @@ interface IUnhingedMerkleTree {
      *      hasPreHash optimization and may indicate an error in proof construction.
      */
     error InconsistentPreHashFlag(bool hasPreHash, bytes32 preHashValue);
-
-    /**
-     * @notice Verifies a leaf is part of an unhinged merkle tree
-     * @param leaf The leaf node data to verify
-     * @param proof The proof containing all necessary verification components
-     * @param unhingedRoot The root of the entire unhinged merkle tree
-     * @return bool True if the proof is valid, false otherwise
-     */
-    function verify(bytes32 leaf, UnhingedProof calldata proof, bytes32 unhingedRoot) external pure returns (bool);
-
-    /**
-     * @notice Verifies a leaf is part of a balanced merkle subtree
-     * @param leaf The leaf node data to verify
-     * @param proof The array of sibling hashes needed for verification
-     * @return bytes32 The calculated root of the balanced subtree
-     */
-    function verifyBalancedSubtree(bytes32 leaf, bytes32[] calldata proof) external pure returns (bytes32);
-
-    /**
-     * @notice Creates an unhinged root from a list of balanced subtree roots
-     * @param subtreeRoots Array of balanced subtree roots in sequential order
-     * @return bytes32 The calculated unhinged root
-     */
-    function createUnhingedRoot(
-        bytes32[] calldata subtreeRoots
-    ) external pure returns (bytes32);
-
-    /**
-     * @notice Combines two hashes to form a single hash in the unhinged chain
-     * @param previousHash The hash of previous operations
-     * @param currentHash The hash to append
-     * @return bytes32 The combined hash
-     */
-    function hashLink(bytes32 previousHash, bytes32 currentHash) external pure returns (bytes32);
-
-    /**
-     * @notice Helper function to create an optimized proof from component parts
-     * @param preHash Previous hashes combined (can be zero to indicate no preHash)
-     * @param subtreeProof The balanced merkle proof
-     * @param followingHashes The array of following hashes
-     * @return The compact proof structure
-     */
-    function createOptimizedProof(
-        bytes32 preHash,
-        bytes32[] calldata subtreeProof,
-        bytes32[] calldata followingHashes
-    ) external pure returns (UnhingedProof memory);
 }

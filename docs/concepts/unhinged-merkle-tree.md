@@ -151,18 +151,18 @@ The following functions are provided:
 // Verify a leaf is included in the unhinged merkle tree
 function verify(
     bytes32 leaf,
-    UnhingedProof memory proof,
+    UnhingedProof calldata proof,
     bytes32 unhingedRoot
 ) internal pure returns (bool)
 
 // Verify a leaf is part of a balanced merkle subtree
 function verifyBalancedSubtree(
     bytes32 leaf,
-    bytes32[] memory proof
+    bytes32[] calldata proof
 ) internal pure returns (bytes32)
 
 // Create an unhinged root from a list of balanced subtree roots
-function createUnhingedRoot(bytes32[] memory subtreeRoots) internal pure returns (bytes32)
+function createUnhingedRoot(bytes32[] calldata subtreeRoots) internal pure returns (bytes32)
 
 // Helper for extracting/packing counts
 function extractCounts(bytes32 counts) internal pure returns (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash)

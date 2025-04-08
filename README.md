@@ -229,6 +229,7 @@ const arbRoot = hashSubtree(arbPermits);
 // Create unhinged root and proof
 const unhingedRoot = createUnhingedRoot([ethRoot, arbRoot]);
 const unhingedProof = createUnhingedProof(ethRoot, arbRoot);
+// Note: Implementation uses calldata for optimal gas efficiency
 
 // Create and sign with the unhinged root
 const signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);

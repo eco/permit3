@@ -246,7 +246,7 @@ library UnhingedMerkleTree {
      */
     function verify(
         bytes32 leaf,
-        UnhingedProof memory proof,
+        UnhingedProof calldata proof,
         bytes32 unhingedRoot
     ) internal pure returns (bool) {
         // Extract counts from packed data
@@ -356,7 +356,7 @@ library UnhingedMerkleTree {
      */
     function verifyBalancedSubtree(
         bytes32 leaf,
-        bytes32[] memory proof
+        bytes32[] calldata proof
     ) internal pure returns (bytes32) {
         bytes32 computedHash = leaf;
         
@@ -380,7 +380,7 @@ library UnhingedMerkleTree {
      * @param subtreeRoots Array of balanced subtree roots in canonical order
      * @return The unhinged root hash
      */
-    function createUnhingedRoot(bytes32[] memory subtreeRoots) internal pure returns (bytes32) {
+    function createUnhingedRoot(bytes32[] calldata subtreeRoots) internal pure returns (bytes32) {
         if (subtreeRoots.length == 0) {
             return bytes32(0);
         }
@@ -406,6 +406,7 @@ library UnhingedMerkleTree {
         bytes32[] memory subtreeProof,
         bytes32[] memory followingHashes
     ) internal pure returns (UnhingedProof memory optimizedProof) {
+        // Note: This function still uses memory parameters as it creates a new memory struct
         // Check if preHash is present (non-zero)
         bool hasPreHash = preHash != bytes32(0);
         

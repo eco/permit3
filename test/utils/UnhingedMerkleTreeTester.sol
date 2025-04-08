@@ -17,7 +17,7 @@ contract UnhingedMerkleTreeTester {
      * @notice Creates an unhinged root from chain hashes
      */
     function createUnhingedRoot(
-        bytes32[] memory hashes
+        bytes32[] calldata hashes
     ) external pure returns (bytes32) {
         return UnhingedMerkleTree.createUnhingedRoot(hashes);
     }
@@ -84,7 +84,7 @@ contract UnhingedMerkleTreeTester {
      */
     function verify(
         bytes32 leaf,
-        IUnhingedMerkleTree.UnhingedProof memory proof,
+        IUnhingedMerkleTree.UnhingedProof calldata proof,
         bytes32 expectedRoot
     ) external pure returns (bool) {
         return proof.verify(expectedRoot, leaf);
@@ -96,7 +96,7 @@ contract UnhingedMerkleTreeTester {
      * @param proof The balanced Merkle proof for the leaf
      * @return The calculated subtree root
      */
-    function verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) external pure returns (bytes32) {
+    function verifyBalancedSubtree(bytes32 leaf, bytes32[] calldata proof) external pure returns (bytes32) {
         return proof.verifyBalancedSubtree(leaf);
     }
 

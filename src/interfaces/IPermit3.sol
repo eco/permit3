@@ -111,7 +111,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
-        UnhingedPermitProof memory proof,
+        UnhingedPermitProof calldata proof,
         bytes calldata signature
     ) external;
 
@@ -153,7 +153,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
-        UnhingedPermitProof memory proof,
+        UnhingedPermitProof calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature

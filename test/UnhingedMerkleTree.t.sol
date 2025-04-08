@@ -104,7 +104,7 @@ contract UnhingedMerkleTreeTest is Test {
         expectedRoot = keccak256(abi.encodePacked(expectedRoot, followingHashes[0]));
 
         // Verify the proof
-        bool result = proof.verify(expectedRoot, leaf);
+        bool result = tester.verify(leaf, proof, expectedRoot);
         assert(result == true);
     }
 
@@ -123,7 +123,7 @@ contract UnhingedMerkleTreeTest is Test {
         bytes32 expectedRoot = keccak256(abi.encodePacked(preHash, leaf));
 
         // Verify the proof
-        bool result = proof.verify(expectedRoot, leaf);
+        bool result = tester.verify(leaf, proof, expectedRoot);
         assert(result == true);
     }
 
@@ -181,7 +181,7 @@ contract UnhingedMerkleTreeTest is Test {
         bytes32 incorrectRoot = bytes32(uint256(correctRoot) + 1);
 
         // Verify the proof with incorrect root - should fail
-        bool result = proof.verify(incorrectRoot, leaf);
+        bool result = tester.verify(leaf, proof, incorrectRoot);
         assert(result == false);
     }
 
@@ -254,12 +254,12 @@ contract UnhingedMerkleTreeTest is Test {
         }
 
         // Verify the proof with the correct unhinged root - should pass
-        bool result = proof.verify(unhingedRoot, targetLeaf);
+        bool result = tester.verify(targetLeaf, proof, unhingedRoot);
         assert(result == true);
 
         // Verify with an incorrect root - should fail
         bytes32 incorrectRoot = bytes32(uint256(unhingedRoot) + 1);
-        bool failResult = proof.verify(incorrectRoot, targetLeaf);
+        bool failResult = tester.verify(targetLeaf, proof, incorrectRoot);
         assert(failResult == false);
     }
 

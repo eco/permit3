@@ -160,7 +160,7 @@ function permit(
     bytes32 salt,
     uint256 deadline,
     uint48 timestamp,
-    Permit3Proof memory proof,
+    Permit3Proof calldata proof,
     bytes calldata signature
 ) external;
 ```
@@ -223,7 +223,7 @@ function permitWitnessTransferFrom(
     bytes32 salt,
     uint256 deadline,
     uint48 timestamp,
-    Permit3Proof memory proof,
+    Permit3Proof calldata proof,
     bytes32 witness,
     string calldata witnessTypeString,
     bytes calldata signature

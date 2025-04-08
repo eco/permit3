@@ -19,7 +19,7 @@ contract Permit3Tester is Permit3 {
 
     function calculateUnhingedRoot(
         bytes32 leaf,
-        IUnhingedMerkleTree.UnhingedProof memory proof
+        IUnhingedMerkleTree.UnhingedProof calldata proof
     ) external pure returns (bytes32) {
         return proof.calculateRoot(leaf);
     }
@@ -29,7 +29,7 @@ contract Permit3Tester is Permit3 {
      */
     function verifyUnhingedProof(
         bytes32, // leaf: unused but kept for API compatibility with tests
-        IUnhingedMerkleTree.UnhingedProof memory proof
+        IUnhingedMerkleTree.UnhingedProof calldata proof
     ) external pure returns (bool) {
         return proof.verifyProofStructure();
     }
@@ -37,7 +37,7 @@ contract Permit3Tester is Permit3 {
     /**
      * @notice Exposes the UnhingedMerkleTree.verifyBalancedSubtree function for testing
      */
-    function verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) external pure returns (bytes32) {
+    function verifyBalancedSubtree(bytes32 leaf, bytes32[] calldata proof) external pure returns (bytes32) {
         return proof.verifyBalancedSubtree(leaf);
     }
 

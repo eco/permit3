@@ -117,7 +117,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
-        UnhingedPermitProof memory proof,
+        UnhingedPermitProof calldata proof,
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
@@ -322,7 +322,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
-        UnhingedPermitProof memory proof,
+        UnhingedPermitProof calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
