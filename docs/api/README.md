@@ -1,5 +1,7 @@
 # 🔏 Permit3 API Reference 📋
 
+🧭 [Home](/docs/README.md) > API Reference
+
 This section provides comprehensive API documentation for Permit3.
 
 ## 📚 Available Documentation
@@ -69,3 +71,9 @@ Functions for handling nonces to prevent replay attacks.
 ## 🚀 Using the API
 
 For practical examples of using the Permit3 API, see the [💻 Examples](../examples/README.md) section.
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Home](/docs/README.md) | [Home](/docs/README.md) | [API Reference](/docs/api/api-reference.md) |

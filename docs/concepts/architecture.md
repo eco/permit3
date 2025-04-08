@@ -1,5 +1,7 @@
 # 🔏 Permit3 Architecture 🏛️
 
+🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Architecture
+
 This document provides a comprehensive overview of the Permit3 architecture, explaining how its components work together to enable cross-chain token approvals and transfers.
 
 ## 🔍 Overview
@@ -317,3 +319,9 @@ Permit3 is designed for seamless integration:
 The Permit3 architecture provides a flexible, secure, and gas-efficient system for cross-chain token approvals and transfers. By extending Permit2 with advanced features like witness functionality and non-sequential nonces, it enables new use cases while maintaining backward compatibility.
 
 The modular design with separate components for allowance management, nonce handling, and core functionality creates a clean architecture that can be extended and maintained efficiently.
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Allowance System](/docs/concepts/allowance-system.md) | [Concepts](/docs/concepts/README.md) | [Cross-Chain Operations](/docs/concepts/cross-chain-operations.md) |

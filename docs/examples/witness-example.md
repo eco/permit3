@@ -1,5 +1,7 @@
 # 🔏 Permit3 Witness Functionality Example 🧩
 
+🧭 [Home](/docs/README.md) > [Examples](/docs/examples/README.md) > Witness Example
+
 This example demonstrates how to implement and use Permit3's witness functionality in a decentralized exchange scenario.
 
 ## 📊 Use Case: Orderbook DEX with Witness Data
@@ -713,3 +715,9 @@ Witness functionality enables many advanced DeFi use cases:
 - Metadata inclusion
 
 By leveraging Permit3's witness functionality, you can create more secure and sophisticated token permission systems while maintaining gas efficiency and user experience.
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Examples](/docs/examples/README.md) | [Examples](/docs/examples/README.md) | [Cross-Chain Example](/docs/examples/cross-chain-example.md) |

@@ -1,5 +1,7 @@
 # 🔏 Permit3 Quick Start Guide 🚀
 
+🧭 [Home](/docs/README.md) > [Guides](/docs/guides/README.md) > Quick Start
+
 This guide will help you quickly integrate Permit3 into your application, enabling cross-chain token approvals and transfers with witness functionality.
 
 ## 📋 Prerequisites
@@ -403,3 +405,9 @@ const permitData = {
 - Verify witness type string is properly formatted (must end with ')')
 - Ensure witness data matches expected values
 - Check EIP-712 type definitions are consistent across frontend and contracts
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Guides](/docs/guides/README.md) | [Guides](/docs/guides/README.md) | [Witness Integration](/docs/guides/witness-integration.md) |

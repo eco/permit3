@@ -1,5 +1,7 @@
 # 🔏 Permit3: Unhinged Merkle Trees 🌲
 
+🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Unhinged Merkle Trees
+
 Unhinged Merkle Trees are a key innovation in Permit3 that enables efficient cross-chain proofs while minimizing gas costs. This document explains what they are, how they work, and how they're used within the Permit3 system.
 
 ## 🤔 What are Unhinged Merkle Trees?
@@ -260,3 +262,9 @@ Unhinged Merkle Trees have applications beyond token approvals:
 Unhinged Merkle Trees represent a significant innovation in cross-chain cryptographic proof systems. By combining the strengths of balanced Merkle trees and sequential hash chaining, they provide an optimal solution for cross-chain operations within Permit3.
 
 The structure enables a future where users can seamlessly authorize operations across the entire blockchain ecosystem with a single signature, while maintaining security and minimizing gas costs.
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Nonce Management](/docs/concepts/nonce-management.md) | [Concepts](/docs/concepts/README.md) | [Witness Functionality](/docs/concepts/witness-functionality.md) |

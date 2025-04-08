@@ -1,5 +1,7 @@
 # 🔏 Permit3 Core Concepts 🏗️
 
+🧭 [Home](/docs/README.md) > Concepts
+
 This section provides in-depth explanations of the core concepts behind Permit3.
 
 ## 📚 Available Documentation
@@ -48,3 +50,9 @@ Permit3 uses a bitmap-based nonce system for gas-efficient replay protection, en
 ### 🔄 Flexible Allowance Management
 
 The allowance system supports multiple operation modes, including transfers, increases, decreases, locking, and unlocking.
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Home](/docs/README.md) | [Home](/docs/README.md) | [Architecture](/docs/concepts/architecture.md) |

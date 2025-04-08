@@ -1,5 +1,7 @@
 # 🔏 Permit3 Guides 📚
 
+🧭 [Home](/docs/README.md) > Guides
+
 This section provides step-by-step guides for common Permit3 use cases.
 
 ## 📖 Available Guides
@@ -51,3 +53,9 @@ IPermit3.AllowanceOrTransfer memory permitData = IPermit3.AllowanceOrTransfer({
 ### 🔧 Advanced Use Cases
 
 For more advanced use cases like witness functionality and cross-chain operations, refer to the specific guides in this section.
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Home](/docs/README.md) | [Home](/docs/README.md) | [Quick Start](/docs/guides/quick-start.md) |

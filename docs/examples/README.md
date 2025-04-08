@@ -1,5 +1,7 @@
 # 🔏 Permit3 Examples 💻
 
+🧭 [Home](/docs/README.md) > Examples
+
 This section provides practical examples of implementing and using Permit3.
 
 ## 📚 Available Examples
@@ -41,3 +43,9 @@ Each example includes:
 5. 🔧 **Advanced Variations**: More complex variations of the basic example
 
 These examples are designed to be practical starting points for your own implementations of Permit3.
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [Home](/docs/README.md) | [Home](/docs/README.md) | [Witness Example](/docs/examples/witness-example.md) |

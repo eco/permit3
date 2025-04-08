@@ -1,5 +1,7 @@
 # 🔏 Permit3 API Reference 📘
 
+🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > API Reference
+
 This document provides a comprehensive reference for the Permit3 API, including all public interfaces, function signatures, and data structures.
 
 ## 🔌 Interfaces
@@ -648,3 +650,9 @@ This approach:
 - **Account Locking**: Understand implications of locked state
 - **Timestamp Ordering**: Be aware of timestamp-based operation ordering
 - **Allowance Management**: Monitor allowance changes across chains
+
+---
+
+| ⬅️ Previous | 🏠 Section | ➡️ Next |
+|:-----------|:----------:|------------:|
+| [API Reference](/docs/api/README.md) | [API Reference](/docs/api/README.md) | [Data Structures](/docs/api/data-structures.md) |
