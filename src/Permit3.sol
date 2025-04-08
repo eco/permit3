@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import { IPermit3 } from "./interfaces/IPermit3.sol";
-import { IUnhingedMerkleTree } from "./interfaces/IUnhingedMerkleTree.sol";
 import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
 
 import { NonceManager } from "./NonceManager.sol";
@@ -24,7 +23,7 @@ import { PermitBase } from "./PermitBase.sol";
 contract Permit3 is IPermit3, PermitBase, NonceManager {
     using ECDSA for bytes32;
     using UnhingedMerkleTree for bytes32;
-    using UnhingedMerkleTree for IUnhingedMerkleTree.UnhingedProof;
+    using UnhingedMerkleTree for UnhingedProof;
 
     /**
      * @dev EIP-712 typehash for bundled chain permits
@@ -136,7 +135,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Calculate the unhinged root from the proof components
         // First verify the proof structure is valid (boolean return value function)
         if (!proof.unhingedProof.verifyProofStructure()) {
-            revert IUnhingedMerkleTree.InvalidUnhingedProof();
+            revert InvalidUnhingedProof();
         }
 
         // If verification succeeds, calculate the root (reverts on errors)
@@ -351,7 +350,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Calculate the unhinged root
         // First verify the proof structure is valid (boolean return value function)
         if (!proof.unhingedProof.verifyProofStructure()) {
-            revert IUnhingedMerkleTree.InvalidUnhingedProof();
+            revert InvalidUnhingedProof();
         }
 
         // If verification succeeds, calculate the root (reverts on errors)

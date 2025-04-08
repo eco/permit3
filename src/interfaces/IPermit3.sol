@@ -9,7 +9,7 @@ import { IUnhingedMerkleTree } from "./IUnhingedMerkleTree.sol";
  * @title IPermit3
  * @notice Interface for the Permit3 cross-chain token approval and transfer system using UnhingedProofs
  */
-interface IPermit3 is IPermit, INonceManager {
+interface IPermit3 is IPermit, INonceManager, IUnhingedMerkleTree {
     /**
      * @notice Enum representing the type of permit operation
      * @param Transfer Execute immediate transfer
@@ -64,7 +64,7 @@ interface IPermit3 is IPermit, INonceManager {
      */
     struct UnhingedPermitProof {
         ChainPermits permits;
-        IUnhingedMerkleTree.UnhingedProof unhingedProof;
+        UnhingedProof unhingedProof;
     }
 
     /**
