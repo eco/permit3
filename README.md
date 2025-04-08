@@ -22,6 +22,8 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
   - 🔽 Bottom part: Standard balanced tree for efficient membership proofs within a chain
   - 🔼 Top part: Sequential hash chain incorporating the balanced root and cross-chain data
   - 🎯 Benefits: Optimal gas usage by processing only what each chain needs
+  - 💰 Calldata Optimization: Chains should be ordered by calldata cost (cheapest first, most expensive last)
+  - ⚡ Gas Efficiency: Expensive chains (like Ethereum) only need to verify a minimal preHash value
 - 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
 - 🔄 **Flexible Allowance Management**:
     - ⬆️ Increase/decrease allowances asynchronously
@@ -45,7 +47,7 @@ Comprehensive documentation is available in the [docs](./docs) directory:
 
 | Section | Description | Quick Links |
 |---------|-------------|-------------|
-| [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#-getting-started) |
+| [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#getting-started) |
 | [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unhinged-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
 | [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [Witness Integration](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
 | [📋 API Reference](./docs/api/README.md) | Technical specifications | [Full API](./docs/api/api-reference.md) · [Data Structures](./docs/api/data-structures.md) · [Interfaces](./docs/api/interfaces.md) · [Events](./docs/api/events.md) · [Error Codes](./docs/api/error-codes.md) |

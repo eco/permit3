@@ -20,11 +20,12 @@ This documentation will guide you through understanding and implementing Permit3
 
 | Section | Description |
 |---------|-------------|
-| [Core Concepts](#-core-concepts) | Foundational understanding of Permit3's architecture and functionality |
-| [Guides](#-guides) | Step-by-step tutorials for common use cases |
-| [API Reference](#-api-reference) | Complete API documentation and function references |
-| [Examples](#-examples) | Code examples demonstrating practical implementations |
+| [Core Concepts](#core-concepts) | Foundational understanding of Permit3's architecture and functionality |
+| [Guides](#guides) | Step-by-step tutorials for common use cases |
+| [API Reference](#api-reference) | Complete API documentation and function references |
+| [Examples](#examples) | Code examples demonstrating practical implementations |
 
+<a id="core-concepts"></a>
 ## 🏗️ Core Concepts
 
 Learn about the core concepts that power Permit3's functionality:
@@ -38,6 +39,7 @@ Learn about the core concepts that power Permit3's functionality:
 
 [View all concepts →](./concepts/README.md)
 
+<a id="guides"></a>
 ## 📚 Guides
 
 Follow our step-by-step guides to implement Permit3 in your projects:
@@ -50,6 +52,7 @@ Follow our step-by-step guides to implement Permit3 in your projects:
 
 [View all guides →](./guides/README.md)
 
+<a id="api-reference"></a>
 ## 📋 API Reference
 
 Detailed technical documentation for Permit3's interfaces and functions:
@@ -62,6 +65,7 @@ Detailed technical documentation for Permit3's interfaces and functions:
 
 [View all API docs →](./api/README.md)
 
+<a id="examples"></a>
 ## 💻 Examples
 
 Practical examples demonstrating Permit3 implementation:
@@ -74,6 +78,7 @@ Practical examples demonstrating Permit3 implementation:
 
 [View all examples →](./examples/README.md)
 
+<a id="getting-started"></a>
 ## 🚀 Getting Started
 
 ### Begin Your Cross-Chain Journey
@@ -103,8 +108,8 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 ## 🔧 Additional Resources
 
 - [GitHub Repository](https://github.com/permit3/permit3)
-- [Contract Deployments](./api/api-reference.md#-contract-deployments)
-- [Security Audits](./concepts/architecture.md#-security-audits)
+- [Contract Deployments](./api/api-reference.md#contract-deployments)
+- [Security Audits](./concepts/architecture.md#security-audits)
 - [License](../LICENSE)
 
 ## 🌐 The Future is Cross-Chain

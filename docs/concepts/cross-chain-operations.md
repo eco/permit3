@@ -417,14 +417,36 @@ await permit3.permitWitnessTransferFrom(
 );
 ```
 
-## Chain Ordering and Optimization
+## Chain Ordering and Gas Optimization
 
-The order of chains in the hash chain matters for gas optimization. The most efficient approach is to order chains by the cost of calldata or blob gas:
+The order of chains in the Unhinged Merkle Tree structure is critically important for gas optimization. To minimize overall transaction costs across all chains, you should order chains strategically based on their calldata costs:
 
-1. **Lowest Cost Chains First**: Put chains with the lowest calldata/blob gas cost first in the hash chain
-2. **Highest Cost Chains Last**: Put chains with the highest calldata/blob gas cost last in the hash chain
+### Strategic Chain Ordering
 
-This minimizes the total gas cost across all chains, as earlier chains in the hash chain require more data in their proofs.
+1. **Lowest Cost Chains First**: Place chains with the lowest calldata/blob gas cost (typically L2s like Arbitrum, Optimism, etc.) at the beginning of the hash chain
+2. **Highest Cost Chains Last**: Place chains with the highest calldata/blob gas cost (like Ethereum mainnet) at the end of the hash chain
+
+### Why This Ordering Matters
+
+This ordering strategy provides significant gas savings because:
+
+- **Proof Size vs. Chain Position**: Earlier chains in the sequence require more data in their proofs (followingHashes), while later chains require less (just a preHash)
+- **Minimal Calldata on Expensive Chains**: Chains at the end of the sequence only need to verify a single preHash value, requiring minimal calldata on the most expensive networks
+- **Larger Proofs on Cheaper Chains**: The larger proof requirements for chains at the beginning of the sequence are more affordable on networks with lower calldata costs
+
+### Example Gas Savings
+
+Consider a scenario with operations on Ethereum (high calldata cost) and two L2s (lower calldata cost):
+
+**Inefficient Ordering (Ethereum First):**
+- Ethereum: No preHash, but two followingHashes (64+ bytes of expensive calldata)
+- L2s: Larger preHash data, but on cheaper networks
+
+**Efficient Ordering (Ethereum Last):**
+- L2s: More proof data, but on cheaper networks
+- Ethereum: Single preHash value (32 bytes of expensive calldata)
+
+The efficient ordering could save 50% or more on the total gas cost for cross-chain operations, making previously uneconomical cross-chain interactions viable.
 
 ## Security Considerations
 

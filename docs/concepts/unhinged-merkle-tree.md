@@ -74,6 +74,21 @@ This allows each chain to:
 2. Include other chains' operations in the overall signed root (unhinged chain part)
 3. Minimize gas usage by only processing what's relevant to the current chain
 
+### Gas Optimization Through Chain Ordering
+
+A critical aspect of Unhinged Merkle Trees for cross-chain operations is the strategic ordering of chains based on their calldata costs:
+
+- **Expensive Chains Last**: Chains with higher calldata costs (like Ethereum mainnet) should be positioned at the end of the unhinged chain
+- **Cheap Chains First**: Chains with lower calldata costs (like most L2s) should be positioned earlier in the chain sequence
+
+This ordering strategy provides substantial gas savings because:
+
+1. **Minimal Proof Size for Expensive Chains**: Chains at the end of the sequence only need a simple preHash value for verification, minimizing expensive calldata
+2. **Larger Proofs on Cheaper Chains**: Chains at the beginning of the sequence require more proof data, but this is more affordable on networks with lower calldata costs
+3. **Optimized Distribution**: The balanced subtree portion can contain many operations on cheaper chains, while expensive chains can have their operations be minimal
+
+By ordering chains according to their calldata costs, a single signature can authorize operations across multiple networks while ensuring optimal gas efficiency on each chain.
+
 ## Proof Structure
 
 Permits3 uses an optimized proof structure for Unhinged Merkle Trees:
