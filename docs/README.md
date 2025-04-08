@@ -98,7 +98,7 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 | **Flexible Allowance System** | Comprehensive tools for managing token permissions with different modes and expirations |
 | **Gas Optimization** | Efficient designs for minimizing gas costs across all operations |
 | **Security Controls** | Robust security features including account locking and permission revocation |
-| **Permit2 Compatibility** | Backwards compatibility with existing Permit2 integrations |
+| **Permit2 Compatibility** | Compatibility with contracts that are already using Permit2 for transfers, allowing them to work with Permit3 without any changes |
 
 ## 🔧 Additional Resources
 

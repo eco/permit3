@@ -30,8 +30,9 @@ forge install username/permit3
 ### 1️⃣  Initialize Permit3 Interface
 
 ```solidity
-// For Permit2 compatibility
+// Existing contracts integrated with Permit2 can work with Permit3 without any changes
 IPermit permit = IPermit(PERMIT3_ADDRESS);
+permit.transferFrom(from, to, amount, token);
 
 // For Permit3 features
 IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);

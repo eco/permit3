@@ -300,9 +300,9 @@ Permit3 implements several gas optimization strategies:
 Permit3 is designed for seamless integration:
 
 1. **Permit2 Compatibility**:
-   - Implements IPermit interface
-   - Maintains backward compatibility
-   - Supports existing integration patterns
+   - Implements IPermit interface for compatibility with contracts that are already using Permit2 for transfers
+   - Existing contracts integrated with Permit2 can work with Permit3 without any changes
+   - Maintains backward compatibility while offering enhanced functionality
 
 2. **ERC20 Token Interaction**:
    - Works with any ERC20 token

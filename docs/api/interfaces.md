@@ -234,7 +234,7 @@ The main contracts implementing these interfaces are:
 
 - 📄 **Permit3.sol**: Implements IPermit3, providing the complete functionality
 - 🔢 **NonceManager.sol**: Implements INonceManager for replay protection
-- 📃 **PermitBase.sol**: Implements IPermit for Permit2 compatibility
+- 📃 **PermitBase.sol**: Implements IPermit for compatibility with contracts that are already using Permit2 for transfers
 - 🌲 **UnhingedMerkleTree.sol**: Library implementing IUnhingedMerkleTree functionality
 
 These interfaces provide a flexible and extensible foundation for the Permit3 system, allowing for future upgrades and extensions while maintaining compatibility with existing systems.

@@ -18,11 +18,12 @@ interface IPermit3 is IPermit, INonceManager {
 
 ### 📃 IPermit
 
-Interface for backwards compatibility with Permit2.
+Interface for compatibility with contracts that are already using Permit2 for transfers.
 
 ```solidity
 interface IPermit {
-    // Functions for standard permits and transfers
+    // Functions for standard permits and transfers that maintain compatibility with Permit2
+    // Existing contracts integrated with Permit2 can work with Permit3 without any changes
 }
 ```
 
