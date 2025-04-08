@@ -33,10 +33,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
     /**
      * @notice EIP-712 typehash for invalidation signatures
-     * @dev Includes owner, deadline, and unbalanced merkle root for batch operations
+     * @dev Includes owner, deadline, and unhinged root for batch operations
      */
     bytes32 public constant SIGNED_CANCEL_PERMIT3_TYPEHASH =
-        keccak256("SignedCancelPermit3(address owner,uint256 deadline,bytes32 unbalancedInvalidationRoot)");
+        keccak256("SignedCancelPermit3(address owner,uint256 deadline,bytes32 unhingedRoot)");
 
     /**
      * @notice Initialize EIP-712 domain separator
@@ -70,8 +70,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32[] calldata salts
     ) external {
         uint256 length = salts.length;
-        // TODO: use ++i instead of i++ in rest of loops in this contract
-        for (uint256 i = 0; i < length; ++i) {
+
+        for (uint256 i = 0; i < length; i++) {
             usedNonces[msg.sender][salts[i]] = 1;
         }
     }
@@ -103,33 +103,22 @@ abstract contract NonceManager is INonceManager, EIP712 {
     }
 
     /**
-     * @notice Cross-chain nonce invalidation
-     * @dev Similar to cross-chain permits but for nonce invalidation
+     * @notice Cross-chain nonce invalidation using the Unhinged Merkle Tree approach
      * @param owner Token owner
      * @param deadline Signature expiration
-     * @param proof Cross-chain invalidation proof
+     * @param proof Unhinged Merkle Tree invalidation proof
      * @param signature Authorization signature
      */
     function invalidateNonces(
         address owner,
         uint256 deadline,
-        CancelPermit3Proof memory proof,
+        UnhingedCancelPermitProof memory proof,
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
         require(proof.invalidations.chainId == block.chainid, WrongChainId(block.chainid, proof.invalidations.chainId));
 
-        bytes32 unbalancedInvalidationRoot = proof.preHash;
-        unbalancedInvalidationRoot =
-            keccak256(abi.encodePacked(unbalancedInvalidationRoot, hashNoncesToInvalidate(proof.invalidations)));
-
-        for (uint256 i = 0; i < proof.followingHashes.length; i++) {
-            unbalancedInvalidationRoot =
-                keccak256(abi.encodePacked(unbalancedInvalidationRoot, proof.followingHashes[i]));
-        }
-
-        bytes32 signedHash =
-            keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, unbalancedInvalidationRoot));
+        bytes32 signedHash = keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, proof.unhingedRoot));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());
