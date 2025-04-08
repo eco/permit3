@@ -1,17 +1,61 @@
-# Permit3
+# Permit3: One-Click Cross-Chain Token Permissions
 
-The Permit3 protocol enables cross-chain token approvals and transfers while maintaining Permit2-compatible transfer functions. It adds cross-chain capabilities through hash chaining and non-sequential nonces.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
+Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through innovative UnhingedProofs and non-sequential nonces, while maintaining Permit2 compatibility.
+
+> **"Permit3 unlocks a one-click/signature cross-chain future."**
 
 ## Key Features
 
-- Cross-chain token transfers and approvals with single signature
-- Flexible allowance management system
+- **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
+- **Unhinged Merkle Trees**: A novel two-part data structure that combines:
+  ```
+               [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
+            /      \      \      \
+          [BR]    [D5]   [D6]   [D7]      ← Additional chain data
+         /     \
+     [BH1]     [BH2]                      ← Balanced tree (bottom part)
+    /    \     /    \
+  [D1]  [D2] [D3]  [D4]                   ← Leaf data
+  ```
+  - Bottom part: Standard balanced tree for efficient membership proofs within a chain
+  - Top part: Sequential hash chain incorporating the balanced root and cross-chain data
+  - Benefits: Optimal gas usage by processing only what each chain needs
+- **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
+- **Flexible Allowance Management**:
     - Increase/decrease allowances asynchronously
     - Time-bound permissions with automatic expiration
     - Account locking for enhanced security
-- Non-sequential nonces for concurrent operations
-- Emergency cross-chain revocation system
-- Transfer functions compatible with Permit2
+- **Gas-Optimized Design**:
+    - Non-sequential nonces for concurrent operations
+    - Bitmap-based nonce tracking for efficient gas usage
+    - UnhingedProofs for efficient and secure cross-chain verification
+- **Emergency Security Controls**:
+    - Cross-chain revocation system
+    - Account locking mechanism
+    - Time-bound permissions
+- **Full Permit2 Compatibility**:
+    - Implements all Permit2 interfaces
+    - Drop-in replacement for existing integrations
+
+## Documentation
+
+Comprehensive documentation is available in the [docs](./docs) directory:
+
+- [Overview and Getting Started](./docs/README.md)
+- [Core Concepts](./docs/concepts/index.md)
+    - [Architecture](./docs/concepts/architecture.md)
+    - [Witness Functionality](./docs/concepts/witness-functionality.md)
+    - [Cross-Chain Operations](./docs/concepts/cross-chain-operations.md)
+    - [Unhinged Merkle Trees](./docs/concepts/unhinged-merkle-tree.md)
+    - [Nonce Management](./docs/concepts/nonce-management.md)
+- [Guides](./docs/guides/index.md)
+    - [Quick Start Guide](./docs/guides/quick-start.md)
+- [API Reference](./docs/api/index.md)
+    - [Complete API Reference](./docs/api/api-reference.md)
+- [Examples](./docs/examples/index.md)
+    - [Witness Example](./docs/examples/witness-example.md)
 
 ## Permit2 Compatibility
 
@@ -154,13 +198,12 @@ permitData.permits.push(AllowanceOrTransfer({
 }));
 ```
 
-### Cross-Chain Usage
+### Cross-Chain Usage with UnhingedProofs
 
 ```javascript
 // Create permits for each chain
 const ethPermits = {
     chainId: 1,
-    nonce: generateNonce(),
     permits: [{
         transferOrExpiration: futureTimestamp,
         token: USDC_ETH,
@@ -171,7 +214,6 @@ const ethPermits = {
 
 const arbPermits = {
     chainId: 42161,
-    nonce: generateNonce(),
     permits: [{
         transferOrExpiration: 1, // Decrease mode
         token: USDC_ARB,
@@ -180,13 +222,17 @@ const arbPermits = {
     }]
 };
 
-// Generate and chain hashes
-const ethHash = hashChainPermits(ethPermits);
-const arbHash = hashChainPermits(arbPermits);
-const finalHash = keccak256(abi.encodePacked(ethHash, arbHash));
+// Generate subtree roots for each chain
+const ethRoot = hashSubtree(ethPermits);
+const arbRoot = hashSubtree(arbPermits);
 
-// Create and sign proof
-const signature = signPermit3(owner, deadline, finalHash);
+// Create unhinged root and proof
+const unhingedRoot = createUnhingedRoot([ethRoot, arbRoot]);
+const unhingedProof = createUnhingedProof(ethRoot, arbRoot);
+// Note: Implementation uses calldata for optimal gas efficiency
+
+// Create and sign with the unhinged root
+const signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);
 ```
 
 ## Security Guidelines

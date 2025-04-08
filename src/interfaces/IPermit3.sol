@@ -3,10 +3,11 @@ pragma solidity ^0.8.0;
 
 import { INonceManager } from "./INonceManager.sol";
 import { IPermit } from "./IPermit.sol";
+import { IUnhingedMerkleTree } from "./IUnhingedMerkleTree.sol";
 
 /**
  * @title IPermit3
- * @notice Interface for the Permit3 cross-chain token approval and transfer system
+ * @notice Interface for the Permit3 cross-chain token approval and transfer system using UnhingedProofs
  */
 interface IPermit3 is IPermit, INonceManager {
     /**
@@ -14,6 +15,7 @@ interface IPermit3 is IPermit, INonceManager {
      * @param Transfer Execute immediate transfer
      * @param Decrease Decrease allowance
      * @param Lock Lock allowance
+     * @param Unlock Unlock previously locked allowance
      */
     enum PermitType {
         Transfer,
@@ -28,7 +30,7 @@ interface IPermit3 is IPermit, INonceManager {
      *        = 0: Immediate transfer mode
      *        = 1: Decrease allowance mode
      *        = 2: Lock allowance mode
-     *        = 3: Unlock allowance mode
+     *        = 3: UnLock allowance mode
      *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
      * @param token Address of the ERC20 token
      * @param account Transfer recipient (for mode 0) or approved spender (for allowance)
@@ -56,22 +58,31 @@ interface IPermit3 is IPermit, INonceManager {
     }
 
     /**
-     * @notice Struct containing proof data for cross-chain permit operations
-     * @param preHash Hash of previous chain operations, as an unbalanced merkle tree root:
-     *                keccak256(keccak256(keccak256(chain1), chain2), chain3)
+     * @notice Proof format using Unhinged Merkle Tree structure for cross-chain operations
      * @param permits Permit operations for the current chain
-     * @param followingHashes Hashes of subsequent chain operations
-     * @dev Chain batches should be ordered by calldata/blob gas cost
+     * @param unhingedProof Unhinged Merkle Tree proof structure
      */
-    struct Permit3Proof {
-        bytes32 preHash;
+    struct UnhingedPermitProof {
         ChainPermits permits;
-        bytes32[] followingHashes;
+        IUnhingedMerkleTree.UnhingedProof unhingedProof;
     }
+
+    /**
+     * @notice Returns the witness typehash stub for EIP-712 signature verification
+     * @return The stub string for witness permit typehash
+     */
+    function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
+
+    /**
+     * @notice Returns the batch witness typehash stub for EIP-712 signature verification
+     * @return The stub string for batch witness permit typehash
+     */
+    function PERMIT_BATCH_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
 
     /**
      * @notice Process permit for single chain token approvals
      * @param owner Token owner address
+     * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
      * @param chain Chain-specific permit data
@@ -87,11 +98,12 @@ interface IPermit3 is IPermit, INonceManager {
     ) external;
 
     /**
-     * @notice Process permit for multi-chain token approvals
+     * @notice Process permit for multi-chain token approvals using Unhinged Merkle Tree
      * @param owner Token owner address
+     * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data
+     * @param proof Cross-chain proof data using Unhinged Merkle Tree
      * @param signature EIP-712 signature authorizing the batch
      */
     function permit(
@@ -99,7 +111,51 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
-        Permit3Proof memory proof,
+        UnhingedPermitProof calldata proof,
+        bytes calldata signature
+    ) external;
+
+    /**
+     * @notice Process permit with additional witness data for single chain operations
+     * @param owner Token owner address
+     * @param salt Unique salt for replay protection
+     * @param deadline Signature expiration timestamp
+     * @param timestamp Timestamp of the permit
+     * @param chain Chain-specific permit data
+     * @param witness Additional data to include in signature verification
+     * @param witnessTypeString EIP-712 type definition for witness data
+     * @param signature EIP-712 signature authorizing the permits
+     */
+    function permitWitnessTransferFrom(
+        address owner,
+        bytes32 salt,
+        uint256 deadline,
+        uint48 timestamp,
+        ChainPermits memory chain,
+        bytes32 witness,
+        string calldata witnessTypeString,
+        bytes calldata signature
+    ) external;
+
+    /**
+     * @notice Process permit with additional witness data for cross-chain operations
+     * @param owner Token owner address
+     * @param salt Unique salt for replay protection
+     * @param deadline Signature expiration timestamp
+     * @param timestamp Timestamp of the permit
+     * @param proof Cross-chain proof data using Unhinged Merkle Tree
+     * @param witness Additional data to include in signature verification
+     * @param witnessTypeString EIP-712 type definition for witness data
+     * @param signature EIP-712 signature authorizing the batch
+     */
+    function permitWitnessTransferFrom(
+        address owner,
+        bytes32 salt,
+        uint256 deadline,
+        uint48 timestamp,
+        UnhingedPermitProof calldata proof,
+        bytes32 witness,
+        string calldata witnessTypeString,
         bytes calldata signature
     ) external;
 }
