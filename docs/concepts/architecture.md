@@ -223,7 +223,7 @@ This approach:
 ```solidity
 // Chain permit hashes together
 bytes32 unbalancedPermitsRoot = proof.preHash;
-unbalancedPermitsRoot = keccak256(abi.encodePacked(unbalancedPermitsRoot, _hashChainPermits(proof.permits)));
+unbalancedPermitsRoot = keccak256(abi.encodePacked(unbalancedPermitsRoot, permit3.hashChainPermits(proof.permits)));
 
 for (uint256 i = 0; i < proof.followingHashes.length; i++) {
     unbalancedPermitsRoot = keccak256(abi.encodePacked(unbalancedPermitsRoot, proof.followingHashes[i]));

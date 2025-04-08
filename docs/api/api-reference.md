@@ -79,13 +79,12 @@ struct ChainPermits {
 }
 ```
 
-#### Permit3Proof
+#### UnhingedPermitProof
 
 ```solidity
-struct Permit3Proof {
-    bytes32 preHash;          // Hash of previous chain operations
+struct UnhingedPermitProof {
     ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] followingHashes; // Hashes of subsequent chain operations
+    IUnhingedMerkleTree.UnhingedProof unhingedProof; // Unhinged Merkle Tree proof structure
 }
 ```
 
@@ -93,11 +92,15 @@ struct Permit3Proof {
 
 ```solidity
 bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
-    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 transferOrExpiration,address token,address spender,uint160 amountDelta)"
+    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
 );
 
 bytes32 public constant SIGNED_PERMIT3_TYPEHASH = keccak256(
-    "SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unbalancedPermitsRoot)"
+    "SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)"
+);
+
+bytes32 public constant SIGNED_UNHINGED_PERMIT3_TYPEHASH = keccak256(
+    "SignedUnhingedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)"
 );
 
 // Witness type hash stubs
@@ -106,6 +109,9 @@ string private constant _PERMIT_WITNESS_TYPEHASH_STUB =
     
 string private constant _PERMIT_BATCH_WITNESS_TYPEHASH_STUB = 
     "PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
+    
+string private constant _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
+    "PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,";
 ```
 
 ## Custom Errors
@@ -160,7 +166,7 @@ function permit(
     bytes32 salt,
     uint256 deadline,
     uint48 timestamp,
-    Permit3Proof calldata proof,
+    UnhingedPermitProof calldata proof,
     bytes calldata signature
 ) external;
 ```
@@ -170,14 +176,15 @@ function permit(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data
+- `proof`: Cross-chain proof data using UnhingedMerkleTree
 - `signature`: EIP-712 signature authorizing the batch
 
 **Behavior:**
 - Verifies signature has not expired
 - Checks chain ID matches current chain
-- Chains all permit hashes for verification
-- Validates signature against owner and combined hash
+- Verifies the UnhingedProof structure
+- Calculates the unhinged root from the proof components
+- Validates signature against owner and unhinged root
 - Processes permits for current chain only
 
 ### Witness Permit Functions
@@ -223,7 +230,7 @@ function permitWitnessTransferFrom(
     bytes32 salt,
     uint256 deadline,
     uint48 timestamp,
-    Permit3Proof calldata proof,
+    UnhingedPermitProof calldata proof,
     bytes32 witness,
     string calldata witnessTypeString,
     bytes calldata signature
@@ -235,7 +242,7 @@ function permitWitnessTransferFrom(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data
+- `proof`: Cross-chain proof data using UnhingedMerkleTree
 - `witness`: Additional data to include in signature verification
 - `witnessTypeString`: EIP-712 type definition for witness data
 - `signature`: EIP-712 signature authorizing the batch
@@ -244,9 +251,10 @@ function permitWitnessTransferFrom(
 - Verifies signature has not expired
 - Checks chain ID matches current chain
 - Validates witness type string format
-- Chains all permit hashes for verification
+- Verifies the UnhingedProof structure
+- Calculates the unhinged root from the proof components
 - Constructs type hash with witness data
-- Validates signature against owner, combined hash, and witness
+- Validates signature against owner, unhinged root, and witness
 - Processes permits for current chain only
 
 ### Witness TypeHash Helper Functions
@@ -262,6 +270,12 @@ function PERMIT_BATCH_WITNESS_TYPEHASH_STUB() external pure returns (string memo
 ```
 
 **Returns:** The stub string for batch witness permit typehash
+
+```solidity
+function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
+```
+
+**Returns:** The stub string for unhinged witness permit typehash
 
 ### Permit2 Compatibility Functions
 
@@ -438,16 +452,19 @@ const domain = {
 ### Standard Permit
 
 ```
-SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unbalancedPermitsRoot)
+SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)
+SignedUnhingedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)
 ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)
-AllowanceOrTransfer(uint48 transferOrExpiration,address token,address spender,uint160 amountDelta)
+AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)
 ```
 
 ### Witness Permit
 
 ```
-// Base type stub (incomplete)
+// Base type stubs (incomplete)
 PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,
+PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,
+PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,
 
 // Completed by custom witness type string, for example:
 bytes32 witnessData)
@@ -489,6 +506,67 @@ permit3.permit(
     chainPermits,
     signature
 );
+```
+
+### Cross-Chain Permit
+
+```solidity
+// Create permits for each chain
+IPermit3.ChainPermits memory ethPermits = IPermit3.ChainPermits({
+    chainId: 1, // Ethereum
+    permits: [
+        IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: futureTimestamp,
+            token: USDC_ETH,
+            account: DEX_ETH,
+            amountDelta: 1000e6
+        })
+    ]
+});
+
+IPermit3.ChainPermits memory arbPermits = IPermit3.ChainPermits({
+    chainId: 42161, // Arbitrum
+    permits: [
+        IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: 1, // Decrease mode
+            token: USDC_ARB,
+            account: DEX_ARB,
+            amountDelta: 500e6
+        })
+    ]
+});
+
+// Generate roots for each chain
+bytes32 ethRoot = permit3.hashChainPermits(ethPermits);
+bytes32 arbRoot = permit3.hashChainPermits(arbPermits);
+
+// Create unhinged root and sign
+bytes32 unhingedRoot = UnhingedMerkleTree.hashLink(ethRoot, arbRoot);
+bytes memory signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);
+
+// Execute on Ethereum chain
+IPermit3.UnhingedPermitProof memory ethProof = IPermit3.UnhingedPermitProof({
+    permits: ethPermits,
+    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
+        bytes32(0), // No prehash for first chain
+        new bytes32[](0), // No subtree proof
+        [arbRoot] // Following chain root
+    )
+});
+
+permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
+
+// Execute on Arbitrum chain
+IPermit3.UnhingedPermitProof memory arbProof = IPermit3.UnhingedPermitProof({
+    permits: arbPermits,
+    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
+        ethRoot, // Prehash is the Ethereum root
+        new bytes32[](0), // No subtree proof
+        new bytes32[](0) // No following hashes
+    )
+});
+
+permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
 ```
 
 ### Witness Permit

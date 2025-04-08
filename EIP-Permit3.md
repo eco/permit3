@@ -249,12 +249,12 @@ Here's how we link permissions across chains securely using UnhingedProofs:
 1. **Building the Unhinged Merkle Tree**
 ```solidity
 // Take three permissions:
-root1 = hashSubtree(EthereumPermissions);
-root2 = hashSubtree(ArbitrumPermissions);
-root3 = hashSubtree(OptimismPermissions);
+root1 = permit3.hashChainPermits(EthereumPermissions);
+root2 = permit3.hashChainPermits(ArbitrumPermissions);
+root3 = permit3.hashChainPermits(OptimismPermissions);
 
 // Create the unhinged root:
-unhingedRoot = UnhingedMerkleTree.createUnhingedRoot([root1, root2, root3]);
+unhingedRoot = UnhingedMerkleTree.hashLink(UnhingedMerkleTree.hashLink(root1, root2), root3);
 ```
 
 2. **Using UnhingedProofs**
@@ -316,7 +316,6 @@ function testCrossChainPermit() {
     UnhingedPermitProof memory proof = UnhingedMerkleTree.createOptimizedProof(
         preHash,
         subtreeProof,
-        0, // unused parameter
         followingHashes
     );
     permit3.permit(owner, salt, deadline, timestamp, proof, signature);
@@ -328,7 +327,6 @@ function testEmergencyLockdown() {
     UnhingedCancelPermitProof memory proof = UnhingedMerkleTree.createOptimizedProof(
         preHash,
         subtreeProof,
-        0, // unused parameter
         followingHashes
     );
     permit3.invalidateNonces(owner, proof, signature);

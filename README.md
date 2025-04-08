@@ -94,37 +94,37 @@ The protocol centers around the `AllowanceOrTransfer` structure:
 
 ```solidity
 struct AllowanceOrTransfer {
-    uint48 transferOrExpiration;  // Operation mode/expiration
-    address token;               // Token address
-    address spender;            // Approved spender/recipient
+    uint48 modeOrExpiration;    // Operation mode/expiration
+    address token;              // Token address
+    address account;            // Approved spender/recipient
     uint160 amountDelta;        // Amount change/transfer amount
 }
 ```
 
 #### Operation Modes
 
-1. **Transfer Mode** (`transferOrExpiration = 0`)
+1. **Transfer Mode** (`modeOrExpiration = 0`)
     - Executes immediate token transfer
-    - `spender` is recipient
+    - `account` is recipient
     - `amountDelta` is transfer amount
 
-2. **Decrease Mode** (`transferOrExpiration = 1`)
+2. **Decrease Mode** (`modeOrExpiration = 1`)
     - Reduces existing allowance
     - `amountDelta`: regular decrease amount
     - Special: `type(uint160).max` resets to 0
 
-3. **Lock Mode** (`transferOrExpiration = 2`)
+3. **Lock Mode** (`modeOrExpiration = 2`)
     - Enters special locked state
     - Blocks increases/transfers
     - Rejects all operations until unlocked
-    - Sets approval to 0 for that token/spender pair
+    - Sets approval to 0 for that token/account pair
 
-4. **Unlock Mode** (`transferOrExpiration = 3`)
+4. **Unlock Mode** (`modeOrExpiration = 3`)
     - Cancels locked state
     - Tracks unlock timestamp
     - Sets allowance to provided amount
 
-5. **Increase Mode** (`transferOrExpiration > 3`)
+5. **Increase Mode** (`modeOrExpiration > 3`)
     - Value acts as expiration timestamp
     - Updates if timestamp is newer
     - `amountDelta`: increase amount
@@ -172,28 +172,27 @@ IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
 // 1. Increase Allowance
 ChainPermits memory permitData = ChainPermits({
     chainId: block.chainid,
-    nonce: generateNonce(),
     permits: [AllowanceOrTransfer({
-        transferOrExpiration: block.timestamp + 1 days,
+        modeOrExpiration: block.timestamp + 1 days,
         token: USDC,
-        spender: DEX,
+        account: DEX,
         amountDelta: 1000e6
     })]
 });
 
 // 2. Lock Account
 permitData.permits.push(AllowanceOrTransfer({
-    transferOrExpiration: 2,
+    modeOrExpiration: 2,
     token: USDC,
-    spender: address(0),
+    account: address(0),
     amountDelta: 0
 }));
 
 // 3. Execute Transfer
 permitData.permits.push(AllowanceOrTransfer({
-    transferOrExpiration: 0,
+    modeOrExpiration: 0,
     token: USDC,
-    spender: recipient,
+    account: recipient,
     amountDelta: 500e6
 }));
 ```
@@ -205,9 +204,9 @@ permitData.permits.push(AllowanceOrTransfer({
 const ethPermits = {
     chainId: 1,
     permits: [{
-        transferOrExpiration: futureTimestamp,
+        modeOrExpiration: futureTimestamp,
         token: USDC_ETH,
-        spender: DEX_ETH,
+        account: DEX_ETH,
         amountDelta: 1000e6
     }]
 };
@@ -215,20 +214,20 @@ const ethPermits = {
 const arbPermits = {
     chainId: 42161,
     permits: [{
-        transferOrExpiration: 1, // Decrease mode
+        modeOrExpiration: 1, // Decrease mode
         token: USDC_ARB,
-        spender: DEX_ARB,
+        account: DEX_ARB,
         amountDelta: 500e6
     }]
 };
 
 // Generate subtree roots for each chain
-const ethRoot = hashSubtree(ethPermits);
-const arbRoot = hashSubtree(arbPermits);
+const ethRoot = permit3.hashChainPermits(ethPermits);
+const arbRoot = permit3.hashChainPermits(arbPermits);
 
-// Create unhinged root and proof
-const unhingedRoot = createUnhingedRoot([ethRoot, arbRoot]);
-const unhingedProof = createUnhingedProof(ethRoot, arbRoot);
+// Create unhinged root and proof using UnhingedMerkleTree library
+const unhingedRoot = UnhingedMerkleTree.hashLink(ethRoot, arbRoot);
+const unhingedProof = UnhingedMerkleTree.createOptimizedProof(ethRoot, [], [arbRoot]);
 // Note: Implementation uses calldata for optimal gas efficiency
 
 // Create and sign with the unhinged root

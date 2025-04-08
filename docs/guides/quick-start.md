@@ -83,7 +83,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint256' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unbalancedPermitsRoot', type: 'bytes32' }
+        { name: 'unhingedRoot', type: 'bytes32' }
     ],
     ChainPermits: [
         { name: 'chainId', type: 'uint256' },
@@ -105,7 +105,7 @@ const value = {
     salt: permitData.salt,
     deadline: permitData.deadline,
     timestamp: permitData.timestamp,
-    unbalancedPermitsRoot: permitsHash
+    unhingedRoot: permitsHash
 };
 
 const signature = await signer._signTypedData(domain, types, value);
@@ -265,53 +265,53 @@ const optPermits = {
 ### 2. Generate and Chain Hashes
 
 ```javascript
-// Hash each chain's permits
-const ethHash = hashChainPermits(ethPermits);
-const arbHash = hashChainPermits(arbPermits);
-const optHash = hashChainPermits(optPermits);
+// Generate root for each chain's permits
+const ethRoot = permit3.hashChainPermits(ethPermits);
+const arbRoot = permit3.hashChainPermits(arbPermits);
+const optRoot = permit3.hashChainPermits(optPermits);
 
-// Chain the hashes together
-const chainedHash = keccak256(
-    keccak256(
-        keccak256(ethHash),
-        arbHash
-    ),
-    optHash
-);
+// Create the unhinged root using utility functions from UnhingedMerkleTree library
+const unhingedRoot = UnhingedMerkleTree.hashLink(UnhingedMerkleTree.hashLink(ethRoot, arbRoot), optRoot);
 ```
 
 ### 3. Sign and Execute on Each Chain
 
 ```javascript
 // Sign the combined hash
-const signature = signPermit3(owner, deadline, chainedHash);
+const signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);
 
 // On Ethereum
 const ethProof = {
-    preHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
     permits: ethPermits,
-    followingHashes: [hashChainPermits(arbPermits), hashChainPermits(optPermits)]
+    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
+        ethRoot, // The current chain's root
+        [], // Subtree proof nodes (empty for the first chain)
+        [arbRoot, optRoot] // Following hashes (roots of other chains)
+    )
 };
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 
 // On Arbitrum
 const arbProof = {
-    preHash: hashChainPermits(ethPermits),
     permits: arbPermits,
-    followingHashes: [hashChainPermits(optPermits)]
+    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
+        ethRoot, // Pre-hash (root of Ethereum chain)
+        [], // Subtree proof nodes
+        [optRoot] // Following hashes (root of Optimism chain)
+    )
 };
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
 
 // On Optimism
 const optProof = {
-    preHash: keccak256(
-        keccak256(hashChainPermits(ethPermits)), 
-        hashChainPermits(arbPermits)
-    ),
     permits: optPermits,
-    followingHashes: []
+    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
+        UnhingedMerkleTree.hashLink(ethRoot, arbRoot), // Pre-hash (combined hash of Ethereum and Arbitrum)
+        [], // Subtree proof nodes
+        [] // No following hashes for the last chain
+    )
 };
 
 permit3.permit(owner, salt, deadline, timestamp, optProof, signature);

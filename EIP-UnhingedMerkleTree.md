@@ -77,11 +77,11 @@ The Unhinged Merkle Tree consists of:
 
 2. **Unhinged Chain**: The roots of these balanced subtrees are chained sequentially to form the "unhinged chain" through iterative hashing:
    ```
-   result = hash(subtreeRoot1)
-   result = hash(result || subtreeRoot2)
-   result = hash(result || subtreeRoot3)
+   result = subtreeRoot1
+   result = hashLink(result, subtreeRoot2)
+   result = hashLink(result, subtreeRoot3)
    ...
-   result = hash(result || subtreeRootN)
+   result = hashLink(result, subtreeRootN)
    ```
 
 The final `result` is the Unhinged Root that can be signed using EIP-712 or other signature schemes.

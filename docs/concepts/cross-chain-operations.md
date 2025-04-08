@@ -142,7 +142,7 @@ const optPermits = {
 // Helper function to hash chain permits
 function hashChainPermits(permits) {
     // Implementation details would depend on your environment
-    // This should match the contract's _hashChainPermits function
+    // This should match the contract's hashChainPermits function
     return ethers.utils.keccak256(/* implementation */);
 }
 
