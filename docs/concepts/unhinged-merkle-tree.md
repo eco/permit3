@@ -1,21 +1,21 @@
-# Unhinged Merkle Trees
+# 🌲 Unhinged Merkle Trees
 
 Unhinged Merkle Trees are a key innovation in Permit3 that enables efficient cross-chain proofs while minimizing gas costs. This document explains what they are, how they work, and how they're used within the Permit3 system.
 
-## What are Unhinged Merkle Trees?
+## 🤔 What are Unhinged Merkle Trees?
 
 Unhinged Merkle Trees are a hybrid data structure that combines two proven cryptographic patterns in a specific, two-part structure:
 
-1. **Balanced Merkle Trees** for a subset of nodes (typically operations within a single chain)
-2. **Sequential Hash Chaining** for efficiently linking multiple subtree roots across chains
+1. 🔶 **Balanced Merkle Trees** for a subset of nodes (typically operations within a single chain)
+2. ⛓️ **Sequential Hash Chaining** for efficiently linking multiple subtree roots across chains
 
 This approach was specifically designed to solve the problem of cross-chain proofs while optimizing for gas efficiency, where each blockchain only needs to process what's relevant to it.
 
-## Why "Unhinged"?
+## 🏷️ Why "Unhinged"?
 
 The name "Unhinged" refers to the deliberate deviation from traditional balanced Merkle trees at the top level. Unlike classic Merkle trees that maintain balance throughout, Unhinged Merkle Trees use an "unhinged" (sequential) structure at the top level to optimize for cross-chain verifications.
 
-## Key Structure: A Two-Part Design
+## 🧩 Key Structure: A Two-Part Design
 
 The key insight of the Unhinged Merkle Tree is its two-part structure:
 
@@ -31,13 +31,13 @@ The key insight of the Unhinged Merkle Tree is its two-part structure:
 
 This diagram clearly shows the two distinct parts:
 
-1. **Bottom Part (Balanced Tree)**:
+1. 🔽 **Bottom Part (Balanced Tree)**:
    - A standard balanced Merkle tree with:
    - Leaf data points [D1], [D2], [D3], [D4]
    - Intermediate balanced hash nodes [BH1], [BH2]
    - Balanced root [BR]
    
-2. **Top Part (Sequential Chain)**:
+2. 🔼 **Top Part (Sequential Chain)**:
    - A linear hash chain that:
    - Starts with the balanced root [BR]
    - Sequentially incorporates additional data [D5], [D6], [D7]

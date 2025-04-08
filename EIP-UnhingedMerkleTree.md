@@ -464,4 +464,4 @@ Unhinged Merkle Trees have applications in various cross-chain scenarios:
 
 ## Copyright
 
-Copyright and related rights waived via [CC0](../LICENSE.md).
+Copyright and related rights waived via [CC0](./LICENSE).

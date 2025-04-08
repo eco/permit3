@@ -1,10 +1,10 @@
-# Permit3 API Reference
+# 📘 Permit3 API Reference
 
 This document provides a comprehensive reference for the Permit3 API, including all public interfaces, function signatures, and data structures.
 
-## Interfaces
+## 🔌 Interfaces
 
-### IPermit3
+### 📄 IPermit3
 
 The main interface for Permit3, extending IPermit and INonceManager.
 
@@ -14,7 +14,7 @@ interface IPermit3 is IPermit, INonceManager {
 }
 ```
 
-### IPermit
+### 📃 IPermit
 
 Interface for backwards compatibility with Permit2.
 
@@ -24,7 +24,7 @@ interface IPermit {
 }
 ```
 
-### INonceManager
+### 🧮 INonceManager
 
 Interface for nonce management and signature validation.
 
@@ -34,9 +34,9 @@ interface INonceManager {
 }
 ```
 
-## Data Structures
+## 🧰 Data Structures
 
-### Enums
+### 🔖 Enums
 
 ```solidity
 enum PermitType {
@@ -47,9 +47,9 @@ enum PermitType {
 }
 ```
 
-### Structs
+### 📋 Structs
 
-#### Allowance
+#### ✅ Allowance
 
 ```solidity
 struct Allowance {
@@ -59,7 +59,7 @@ struct Allowance {
 }
 ```
 
-#### AllowanceOrTransfer
+#### 🔄 AllowanceOrTransfer
 
 ```solidity
 struct AllowanceOrTransfer {
@@ -70,7 +70,7 @@ struct AllowanceOrTransfer {
 }
 ```
 
-#### ChainPermits
+#### 🌐 ChainPermits
 
 ```solidity
 struct ChainPermits {
@@ -79,7 +79,7 @@ struct ChainPermits {
 }
 ```
 
-#### UnhingedPermitProof
+#### 🌲 UnhingedPermitProof
 
 ```solidity
 struct UnhingedPermitProof {

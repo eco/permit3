@@ -1,15 +1,15 @@
-# Permit3 Quick Start Guide
+# 🚀 Permit3 Quick Start Guide
 
 This guide will help you quickly integrate Permit3 into your application, enabling cross-chain token approvals and transfers with witness functionality.
 
-## Prerequisites
+## 📋 Prerequisites
 
-- An Ethereum development environment (Hardhat, Foundry, etc.)
-- Basic understanding of EIP-712 signatures
-- Familiarity with ERC20 tokens
-- Access to the Permit3 contract address on your target chain(s)
+- 💻 An Ethereum development environment (Hardhat, Foundry, etc.)
+- 🔏 Basic understanding of EIP-712 signatures
+- 💰 Familiarity with ERC20 tokens
+- 🔌 Access to the Permit3 contract address on your target chain(s)
 
-## Installation
+## 📥 Installation
 
 ### Using npm
 
@@ -23,9 +23,9 @@ npm install @permit3/contracts
 forge install username/permit3
 ```
 
-## Basic Integration
+## 🔌 Basic Integration
 
-### 1. Initialize Permit3 Interface
+### 1️⃣  Initialize Permit3 Interface
 
 ```solidity
 // For Permit2 compatibility
@@ -35,7 +35,7 @@ IPermit permit = IPermit(PERMIT3_ADDRESS);
 IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
 ```
 
-### 2. User Setup
+### 2️⃣  User Setup
 
 Users need to approve Permit3 to spend their tokens (once per token):
 
@@ -44,9 +44,9 @@ Users need to approve Permit3 to spend their tokens (once per token):
 ERC20(token).approve(PERMIT3_ADDRESS, type(uint256).max);
 ```
 
-### 3. Creating and Signing Permits
+### 3️⃣  Creating and Signing Permits
 
-#### Simple Token Transfer
+#### 💸 Simple Token Transfer
 
 ```javascript
 // JavaScript (ethers.js)
@@ -379,7 +379,7 @@ const permitData = {
 - Learn about [Witness Functionality](../concepts/witness-functionality.md) in detail
 - Explore the [Architecture](../concepts/architecture.md) of Permit3
 - Check out the complete [API Reference](../api/api-reference.md)
-- See [Examples](../examples/index.md) for common implementation patterns
+- See [Examples](../examples/README.md) for common implementation patterns
 
 ## Troubleshooting
 

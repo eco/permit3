@@ -1,12 +1,12 @@
-# Witness Functionality Example
+# 🧩 Witness Functionality Example
 
 This example demonstrates how to implement and use Permit3's witness functionality in a decentralized exchange scenario.
 
-## Use Case: Orderbook DEX with Witness Data
+## 📊 Use Case: Orderbook DEX with Witness Data
 
 In this example, we'll create a decentralized exchange where orders are submitted off-chain and executed on-chain using Permit3's witness functionality to verify order parameters.
 
-### Step 1: Define Order Structure
+### 📝  Step 1: Define Order Structure
 
 First, we define the order structure that will be encoded in the witness data:
 
@@ -40,7 +40,7 @@ contract OrderBook {
 }
 ```
 
-### Step 2: Witness Data Encoding and Verification
+### 🔍  Step 2: Witness Data Encoding and Verification
 
 Next, we implement functions to encode and verify order data as witness:
 

@@ -1,47 +1,47 @@
-# Permit3 Architecture
+# 🏛️ Permit3 Architecture
 
 This document provides a comprehensive overview of the Permit3 architecture, explaining how its components work together to enable cross-chain token approvals and transfers.
 
-## Overview
+## 🔍 Overview
 
 Permit3 is a cross-chain token approval and transfer system that extends the functionality of Permit2 with advanced features:
 
-1. **Cross-Chain Operations**: Execute approvals and transfers across multiple blockchains with a single signature
-2. **Non-Sequential Nonces**: Enable concurrent operations and optimize gas usage
-3. **Flexible Allowance Management**: Support time-bound permissions with various operation modes
-4. **Witness Functionality**: Attach arbitrary data to permits for enhanced verification
-5. **EIP-712 Typed Signatures**: Secure signature verification with structured data
+1. 🌉 **Cross-Chain Operations**: Execute approvals and transfers across multiple blockchains with a single signature
+2. 🔢 **Non-Sequential Nonces**: Enable concurrent operations and optimize gas usage
+3. 🔄 **Flexible Allowance Management**: Support time-bound permissions with various operation modes
+4. 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification
+5. 🔏 **EIP-712 Typed Signatures**: Secure signature verification with structured data
 
-## Core Components
+## 🧱 Core Components
 
 The Permit3 system consists of three main components:
 
-### 1. Permit3 Contract
+### 1️⃣  Permit3 Contract
 
 The main contract that inherits from PermitBase and NonceManager, implementing the core functionality:
 
-- Processes permit signatures for approvals and transfers
-- Verifies EIP-712 signatures with standard and witness data
-- Handles cross-chain operations through hash chaining
-- Implements witness functionality for custom data verification
+- 📝 Processes permit signatures for approvals and transfers
+- ✅ Verifies EIP-712 signatures with standard and witness data
+- 🔗 Handles cross-chain operations through hash chaining
+- 🧩 Implements witness functionality for custom data verification
 
-### 2. PermitBase Contract
+### 2️⃣  PermitBase Contract
 
 Manages token approvals and transfers:
 
-- Tracks allowances with amounts and expiration times
-- Handles token transfers through approvals
-- Implements allowance modes (increase, decrease, lock, unlock)
-- Provides emergency account locking functionality
+- 📊 Tracks allowances with amounts and expiration times
+- 💸 Handles token transfers through approvals
+- 🔀 Implements allowance modes (increase, decrease, lock, unlock)
+- 🔒 Provides emergency account locking functionality
 
-### 3. NonceManager Contract
+### 3️⃣  NonceManager Contract
 
 Handles nonce management for replay protection:
 
-- Uses non-sequential nonces for gas efficiency
-- Supports cross-chain nonce invalidation
-- Implements salt-based signature replay protection
-- Provides domain separation for EIP-712 signatures
+- 🧮 Uses non-sequential nonces for gas efficiency
+- 🌐 Supports cross-chain nonce invalidation
+- 🧂 Implements salt-based signature replay protection
+- 🏷️ Provides domain separation for EIP-712 signatures
 
 ## Contract Inheritance Structure
 
@@ -218,15 +218,15 @@ This approach:
 - Validates chain ID to prevent cross-chain replay attacks
 - Supports witness data across chains
 
-### Hash Chaining Example
+### UnhingedMerkleTree Example
 
 ```solidity
-// Chain permit hashes together
-bytes32 unbalancedPermitsRoot = proof.preHash;
-unbalancedPermitsRoot = keccak256(abi.encodePacked(unbalancedPermitsRoot, permit3.hashChainPermits(proof.permits)));
+// Build unhinged root from permit hashes
+bytes32 unhingedRoot = proof.preHash;
+unhingedRoot = UnhingedMerkleTree.hashLink(unhingedRoot, permit3.hashChainPermits(proof.permits));
 
 for (uint256 i = 0; i < proof.followingHashes.length; i++) {
-    unbalancedPermitsRoot = keccak256(abi.encodePacked(unbalancedPermitsRoot, proof.followingHashes[i]));
+    unhingedRoot = UnhingedMerkleTree.hashLink(unhingedRoot, proof.followingHashes[i]);
 }
 
 // Verify signature against combined hash

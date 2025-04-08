@@ -151,13 +151,9 @@ const ethHash = hashChainPermits(ethPermits);
 const arbHash = hashChainPermits(arbPermits);
 const optHash = hashChainPermits(optPermits);
 
-// Chain the hashes together (unbalanced Merkle tree)
-const combinedHash1 = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'bytes32'], [ethHash, arbHash])
-);
-const rootHash = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'bytes32'], [combinedHash1, optHash])
-);
+// Create the unhinged merkle tree root
+const combinedHash1 = UnhingedMerkleTree.hashLink(ethHash, arbHash);
+const rootHash = UnhingedMerkleTree.hashLink(combinedHash1, optHash);
 ```
 
 #### Step 3A: Create and Sign Permit
@@ -187,7 +183,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint256' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unbalancedPermitsRoot', type: 'bytes32' }
+        { name: 'unhingedRoot', type: 'bytes32' }
     ]
 };
 
