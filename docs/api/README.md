@@ -1,4 +1,4 @@
-# 📋 Permit3 API Reference
+# 🔏 Permit3 API Reference 📋
 
 This section provides comprehensive API documentation for Permit3.
 

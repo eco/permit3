@@ -1,4 +1,4 @@
-# 📚 Permit3 Guides
+# 🔏 Permit3 Guides 📚
 
 This section provides step-by-step guides for common Permit3 use cases.
 

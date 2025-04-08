@@ -1,4 +1,4 @@
-# Witness Integration Guide
+# 🔏 Permit3 Witness Integration Guide 🧩
 
 This guide explains how to integrate Permit3's witness functionality into your application, allowing for enhanced verification and conditional permissions.
 

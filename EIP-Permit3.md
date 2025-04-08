@@ -1,6 +1,6 @@
 ---
 eip: TBD
-title: Permit3 - Cross-Chain Token Approvals and Transfers with Witness Data
+title: 🔏 Permit3 - Cross-Chain Token Approvals and Transfers with Witness Data
 description: Making token approvals work across multiple blockchains with a single signature, with support for arbitrary witness data verification
 author: Your Name (@your-github-handle)
 discussions-to: TBD

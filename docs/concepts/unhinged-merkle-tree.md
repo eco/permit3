@@ -1,4 +1,4 @@
-# 🌲 Unhinged Merkle Trees
+# 🔏 Permit3: Unhinged Merkle Trees 🌲
 
 Unhinged Merkle Trees are a key innovation in Permit3 that enables efficient cross-chain proofs while minimizing gas costs. This document explains what they are, how they work, and how they're used within the Permit3 system.
 

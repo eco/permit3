@@ -1,4 +1,4 @@
-# Permit3 Data Structures
+# 🔏 Permit3 Data Structures 📋
 
 This document provides a detailed reference of all data structures used in Permit3.
 

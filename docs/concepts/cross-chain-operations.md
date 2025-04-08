@@ -1,4 +1,4 @@
-# Cross-Chain Operations in Permit3
+# 🔏 Permit3 Cross-Chain Operations 🌉
 
 This document explains how Permit3 enables token operations across multiple blockchains with a single signature.
 

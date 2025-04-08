@@ -1,4 +1,4 @@
-# 🌉 Cross-Chain Example
+# 🔏 Permit3 Cross-Chain Example 🌉
 
 This example demonstrates how to use Permit3 to authorize token operations across multiple blockchains with a single signature.
 

@@ -1,4 +1,4 @@
-# 🌉 Cross-Chain Permit Guide
+# 🔏 Permit3 Cross-Chain Permit Guide 🌉
 
 This guide explains how to create and use cross-chain permits with Permit3, allowing users to authorize operations across multiple blockchains with a single signature.
 

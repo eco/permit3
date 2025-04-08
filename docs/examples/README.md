@@ -1,4 +1,4 @@
-# 💻 Permit3 Examples
+# 🔏 Permit3 Examples 💻
 
 This section provides practical examples of implementing and using Permit3.
 

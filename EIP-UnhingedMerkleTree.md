@@ -2,7 +2,7 @@
 eip: 9999
 title: Unhinged Merkle Trees for Cross-Chain Proofs
 description: A standardized method for creating and verifying proofs across multiple blockchain networks using a hybrid tree structure
-author: Permit3 Team (@permit3)
+author: 🔏 Permit3 Team (@permit3)
 discussions-to: https://ethereum-magicians.org/t/eip-9999-unhinged-merkle-trees
 status: Draft
 type: Standards Track

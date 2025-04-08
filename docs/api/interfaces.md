@@ -1,4 +1,4 @@
-# 🔌 Permit3 Interfaces
+# 🔏 Permit3 Interfaces 🔌
 
 This document provides a comprehensive reference of all interfaces in the Permit3 system.
 

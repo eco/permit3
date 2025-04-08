@@ -1,4 +1,4 @@
-# 🧩 Witness Functionality Example
+# 🔏 Permit3 Witness Functionality Example 🧩
 
 This example demonstrates how to implement and use Permit3's witness functionality in a decentralized exchange scenario.
 

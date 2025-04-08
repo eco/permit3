@@ -1,4 +1,4 @@
-# Permit3 Allowance System
+# 🔏 Permit3 Allowance System 🔑
 
 The allowance system is a core component of Permit3, providing flexible and secure management of token permissions across multiple chains. This document explains the underlying mechanics and advanced features of this system.
 

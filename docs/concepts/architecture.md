@@ -1,4 +1,4 @@
-# 🏛️ Permit3 Architecture
+# 🔏 Permit3 Architecture 🏛️
 
 This document provides a comprehensive overview of the Permit3 architecture, explaining how its components work together to enable cross-chain token approvals and transfers.
 

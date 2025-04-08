@@ -1,4 +1,4 @@
-# 🔐 Permit3: One-Click Cross-Chain Token Permissions
+# 🔏 Permit3: One-Click Cross-Chain Token Permissions
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 

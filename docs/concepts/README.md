@@ -1,4 +1,4 @@
-# 🏗️ Permit3 Core Concepts
+# 🔏 Permit3 Core Concepts 🏗️
 
 This section provides in-depth explanations of the core concepts behind Permit3.
 

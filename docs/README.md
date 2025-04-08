@@ -1,4 +1,4 @@
-# Permit3 Documentation
+# 🔏 Permit3 Documentation 📖
 
 Welcome to the comprehensive documentation for Permit3, a cross-chain token approval and transfer system extending Permit2 with advanced capabilities through UnhingedMerkleTree proofs and non-sequential nonces.
 

@@ -1,4 +1,4 @@
-# 🚀 Permit3 Quick Start Guide
+# 🔏 Permit3 Quick Start Guide 🚀
 
 This guide will help you quickly integrate Permit3 into your application, enabling cross-chain token approvals and transfers with witness functionality.
 

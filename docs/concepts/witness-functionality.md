@@ -1,4 +1,4 @@
-# Witness Functionality in Permit3
+# 🔏 Permit3 Witness Functionality 🧩
 
 Witness functionality is a powerful feature in Permit3 that enables smart contracts to include arbitrary data in EIP-712 signature verification. This guide provides a comprehensive explanation of how witness functionality works, its use cases, and how to implement it in your applications.
 

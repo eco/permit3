@@ -1,4 +1,4 @@
-# Nonce Management in Permit3
+# 🔏 Permit3 Nonce Management 🔢
 
 This document explains Permit3's approach to nonce management, which provides efficient replay protection for permits across multiple chains.
 

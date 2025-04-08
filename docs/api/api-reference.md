@@ -1,4 +1,4 @@
-# 📘 Permit3 API Reference
+# 🔏 Permit3 API Reference 📘
 
 This document provides a comprehensive reference for the Permit3 API, including all public interfaces, function signatures, and data structures.
 
