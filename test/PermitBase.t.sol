@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./utils/TestBase.sol";
 import "../src/interfaces/IPermit.sol";
+import "./utils/TestBase.sol";
 
 /**
  * @title PermitBaseTest
@@ -50,7 +50,7 @@ contract PermitBaseTest is TestBase {
 
         // Reset recipient balance
         deal(address(token), recipient, 0);
-        
+
         // Perform transfer
         vm.prank(spender);
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
@@ -72,23 +72,15 @@ contract PermitBaseTest is TestBase {
         address recipient2 = address(0x5);
         deal(address(token), recipient, 0);
         deal(address(token), recipient2, 0);
-        
+
         // Create transfer batch
         IPermit.AllowanceTransferDetails[] memory transfers = new IPermit.AllowanceTransferDetails[](2);
-        
-        transfers[0] = IPermit.AllowanceTransferDetails({
-            from: owner,
-            to: recipient,
-            amount: AMOUNT,
-            token: address(token)
-        });
-        
-        transfers[1] = IPermit.AllowanceTransferDetails({
-            from: owner,
-            to: recipient2,
-            amount: AMOUNT,
-            token: address(token)
-        });
+
+        transfers[0] =
+            IPermit.AllowanceTransferDetails({ from: owner, to: recipient, amount: AMOUNT, token: address(token) });
+
+        transfers[1] =
+            IPermit.AllowanceTransferDetails({ from: owner, to: recipient2, amount: AMOUNT, token: address(token) });
 
         // Perform batch transfer
         vm.prank(spender);
@@ -97,7 +89,7 @@ contract PermitBaseTest is TestBase {
         // Check balances
         assertEq(token.balanceOf(recipient), AMOUNT);
         assertEq(token.balanceOf(recipient2), AMOUNT);
-        
+
         // Batch transfer doesn't update allowance automatically
         (uint160 amount,,) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, AMOUNT * 2);
@@ -132,7 +124,7 @@ contract PermitBaseTest is TestBase {
 
         // Reset recipient balance
         deal(address(token), recipient, 0);
-        
+
         // Perform multiple transfers without reducing allowance
         vm.startPrank(spender);
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
@@ -142,7 +134,7 @@ contract PermitBaseTest is TestBase {
         // Check max allowance remains unchanged
         (uint160 amount,,) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, type(uint160).max);
-        
+
         // Check recipient received tokens
         assertEq(token.balanceOf(recipient), AMOUNT * 2);
     }
@@ -180,7 +172,7 @@ contract PermitBaseTest is TestBase {
 
     function test_multipleLockdowns() public {
         address spender2 = address(0x5);
-        
+
         // Setup multiple approvals
         vm.startPrank(owner);
         permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
@@ -199,24 +191,24 @@ contract PermitBaseTest is TestBase {
         assertEq(amount1, 0);
         assertEq(amount2, 0);
     }
-    
+
     function test_transferFromLockedAllowance() public {
         // Setup approval
         vm.prank(owner);
         permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
-        
+
         // Lock the allowance
         IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
         pairs[0] = IPermit.TokenSpenderPair({ token: address(token), spender: spender });
-        
+
         vm.prank(owner);
         permit3.lockdown(pairs);
-        
+
         // Attempt transfer should fail due to locked allowance
         vm.prank(spender);
         vm.expectRevert(IPermit.AllowanceLocked.selector);
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
-        
+
         // Verify allowance is still locked
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, 0);

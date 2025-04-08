@@ -38,10 +38,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @dev EIP-712 typehash for the primary permit signature
      * Binds owner, deadline, and permit data hash for signature verification
      */
-    bytes32 public constant SIGNED_PERMIT3_TYPEHASH = keccak256(
-        "SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)"
-    );
-    
+    bytes32 public constant SIGNED_PERMIT3_TYPEHASH =
+        keccak256("SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)");
+
     /**
      * @dev EIP-712 typehash for the unhinged merkle tree permit signature
      * Used for enhanced cross-chain operations
@@ -49,17 +48,17 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     bytes32 public constant SIGNED_UNHINGED_PERMIT3_TYPEHASH = keccak256(
         "SignedUnhingedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)"
     );
-    
+
     // Constants for witness type hash strings
-    string private constant _PERMIT_WITNESS_TYPEHASH_STUB = 
+    string private constant _PERMIT_WITNESS_TYPEHASH_STUB =
         "PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
-        
-    string private constant _PERMIT_BATCH_WITNESS_TYPEHASH_STUB = 
+
+    string private constant _PERMIT_BATCH_WITNESS_TYPEHASH_STUB =
         "PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
-        
-    string private constant _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB = 
+
+    string private constant _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
         "PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,";
-    
+
     /**
      * @dev Sets up EIP-712 domain separator with protocol identifiers
      * @notice Establishes the contract's domain for typed data signing
@@ -93,7 +92,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         _processChainPermits(owner, salt, timestamp, chain);
     }
 
-    
     // Helper struct to avoid stack-too-deep errors
     struct PermitParams {
         address owner;
@@ -103,7 +101,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 currentChainHash;
         bytes32 unhingedRoot;
     }
-    
+
     /**
      * @notice Process token approvals across multiple chains using Unhinged Merkle Tree
      * @param owner Token owner authorizing the operations
@@ -130,27 +128,27 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.salt = salt;
         params.deadline = deadline;
         params.timestamp = timestamp;
-        
+
         // Hash current chain's permits
         params.currentChainHash = _hashChainPermits(proof.permits);
-        
+
         // Calculate the unhinged root from the proof components
         // First verify the proof is valid using _verifyUnhingedProof (boolean return value function)
         if (!_verifyUnhingedProof(params.currentChainHash, proof.unhingedProof)) {
             revert IUnhingedMerkleTree.InvalidUnhingedProof();
         }
-        
+
         // If verification succeeds, calculate the root using _calculateUnhingedRoot (reverts on errors)
         params.unhingedRoot = _calculateUnhingedRoot(params.currentChainHash, proof.unhingedProof);
-        
+
         // Verify signature with unhinged root
         bytes32 signedHash = keccak256(
             abi.encode(
-                SIGNED_UNHINGED_PERMIT3_TYPEHASH, 
-                params.owner, 
-                params.salt, 
-                params.deadline, 
-                params.timestamp, 
+                SIGNED_UNHINGED_PERMIT3_TYPEHASH,
+                params.owner,
+                params.salt,
+                params.deadline,
+                params.timestamp,
                 params.unhingedRoot
             )
         );
@@ -256,7 +254,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
         return keccak256(abi.encode(CHAIN_PERMITS_TYPEHASH, permits.chainId, keccak256(abi.encodePacked(permitHashes))));
     }
-    
+
     /**
      * @dev Verifies an Unhinged Merkle Tree proof structure
      * @param leaf The leaf node being proven (unused in structural validation)
@@ -271,45 +269,46 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         IUnhingedMerkleTree.UnhingedProof memory proof
     ) internal pure returns (bool) {
         // Extract counts from packed data using the library's function
-        (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash) = 
+        (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash) =
             UnhingedMerkleTree.extractCounts(proof.counts);
-        
+
         // Validate the proof structure with basic checks
-        
+
         // If hasPreHash is true but no nodes are provided, this is invalid
         if (hasPreHash && proof.nodes.length == 0) {
             return false;
         }
-        
+
         // Calculate minimum required nodes
         uint256 minRequiredNodes = subtreeProofCount + followingHashesCount;
         if (hasPreHash) {
             minRequiredNodes += 1;
         }
-        
+
         // Check if we have enough nodes
         if (proof.nodes.length < minRequiredNodes) {
             return false;
         }
-        
+
         // Check for inconsistent hasPreHash flag
         if (hasPreHash && proof.nodes.length > 0 && proof.nodes[0] == bytes32(0)) {
             return false;
         }
-        
+
         // Check for excess nodes when hasPreHash is false
-        if (!hasPreHash && proof.nodes.length > (subtreeProofCount + followingHashesCount) && 
-            subtreeProofCount + followingHashesCount > 0) {
+        if (
+            !hasPreHash && proof.nodes.length > (subtreeProofCount + followingHashesCount)
+                && subtreeProofCount + followingHashesCount > 0
+        ) {
             return false;
         }
-        
+
         // Check subtree proof validity by calculating the root
         // If any errors occur in calculation, it's handled by the caller
         // All basic structural validation is already done
         return true;
     }
-    
-    
+
     /**
      * @dev Calculates the Unhinged Root from proof components
      * @param leaf The leaf node being proven
@@ -325,7 +324,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Delegate to the UnhingedMerkleTree library
         return UnhingedMerkleTree.calculateRoot(leaf, proof);
     }
-    
+
     /**
      * @dev Verifies a balanced Merkle subtree proof
      * @param leaf The leaf node being proven
@@ -333,10 +332,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @return The calculated root of the balanced subtree
      * @notice Delegates to the UnhingedMerkleTree library implementation
      */
-    function _verifyBalancedSubtree(
-        bytes32 leaf,
-        bytes32[] memory proof
-    ) internal pure returns (bytes32) {
+    function _verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) internal pure returns (bytes32) {
         // Delegate to the UnhingedMerkleTree library
         return UnhingedMerkleTree.verifyBalancedSubtree(leaf, proof);
     }
@@ -365,32 +361,21 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
         require(chain.chainId == block.chainid, WrongChainId(block.chainid, chain.chainId));
-        
+
         // Validate witness type string format
         _validateWitnessTypeString(witnessTypeString);
-        
+
         // Get hash of permits data
         bytes32 permitDataHash = _hashChainPermits(chain);
-        
+
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
-        bytes32 signedHash = keccak256(
-            abi.encode(
-                typeHash,
-                permitDataHash,
-                owner,
-                salt,
-                deadline,
-                timestamp,
-                witness
-            )
-        );
-        
+        bytes32 signedHash = keccak256(abi.encode(typeHash, permitDataHash, owner, salt, deadline, timestamp, witness));
+
         _verifySignature(owner, signedHash, signature);
         _processChainPermits(owner, salt, timestamp, chain);
     }
-    
-    
+
     // Helper struct to avoid stack-too-deep errors
     struct WitnessParams {
         address owner;
@@ -401,7 +386,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 currentChainHash;
         bytes32 unhingedRoot;
     }
-    
+
     /**
      * @notice Process permit with additional witness data for cross-chain operations
      * @param owner Token owner address
@@ -425,10 +410,10 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
         require(proof.permits.chainId == block.chainid, WrongChainId(block.chainid, proof.permits.chainId));
-        
+
         // Validate witness type string format
         _validateWitnessTypeString(witnessTypeString);
-        
+
         // Use a struct to avoid stack-too-deep errors
         WitnessParams memory params;
         params.owner = owner;
@@ -436,19 +421,19 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.deadline = deadline;
         params.timestamp = timestamp;
         params.witness = witness;
-        
+
         // Hash current chain's permits
         params.currentChainHash = _hashChainPermits(proof.permits);
-        
+
         // Calculate the unhinged root
         // First verify the proof is valid using _verifyUnhingedProof (boolean return value function)
         if (!_verifyUnhingedProof(params.currentChainHash, proof.unhingedProof)) {
             revert IUnhingedMerkleTree.InvalidUnhingedProof();
         }
-        
+
         // If verification succeeds, calculate the root using _calculateUnhingedRoot (reverts on errors)
         params.unhingedRoot = _calculateUnhingedRoot(params.currentChainHash, proof.unhingedProof);
-        
+
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getUnhingedWitnessTypeHash(witnessTypeString);
         bytes32 signedHash = keccak256(
@@ -462,54 +447,47 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                 params.witness
             )
         );
-        
+
         _verifySignature(params.owner, signedHash, signature);
         _processChainPermits(params.owner, params.salt, params.timestamp, proof.permits);
     }
-    
+
     /**
      * @dev Validates that a witness type string is properly formatted
      * @param witnessTypeString The EIP-712 type string to validate
      */
-    function _validateWitnessTypeString(string calldata witnessTypeString) internal pure {
+    function _validateWitnessTypeString(
+        string calldata witnessTypeString
+    ) internal pure {
         // Validate minimum length
         require(bytes(witnessTypeString).length > 0, InvalidWitnessTypeString());
-        
+
         // Validate proper ending with closing parenthesis
-        require(
-            bytes(witnessTypeString)[bytes(witnessTypeString).length - 1] == ')',
-            InvalidWitnessTypeString()
-        );
+        require(bytes(witnessTypeString)[bytes(witnessTypeString).length - 1] == ")", InvalidWitnessTypeString());
     }
-    
+
     /**
      * @dev Constructs a complete witness type hash from type string and stub
      * @param witnessTypeString The EIP-712 witness type string
      * @return bytes32 The complete type hash
      */
-    function _getWitnessTypeHash(string calldata witnessTypeString) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(
-                _PERMIT_WITNESS_TYPEHASH_STUB,
-                witnessTypeString
-            )
-        );
+    function _getWitnessTypeHash(
+        string calldata witnessTypeString
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_PERMIT_WITNESS_TYPEHASH_STUB, witnessTypeString));
     }
-    
+
     /**
      * @dev Constructs a complete unhinged witness type hash from type string and stub
      * @param witnessTypeString The EIP-712 witness type string
      * @return bytes32 The complete type hash for unhinged operations
      */
-    function _getUnhingedWitnessTypeHash(string memory witnessTypeString) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(
-                _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB,
-                witnessTypeString
-            )
-        );
+    function _getUnhingedWitnessTypeHash(
+        string memory witnessTypeString
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB, witnessTypeString));
     }
-    
+
     /**
      * @notice Returns the witness typehash stub for EIP-712 signature verification
      * @return The stub string for witness permit typehash
@@ -517,7 +495,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory) {
         return _PERMIT_WITNESS_TYPEHASH_STUB;
     }
-    
+
     /**
      * @notice Returns the batch witness typehash stub for EIP-712 signature verification
      * @return The stub string for batch witness permit typehash
@@ -525,7 +503,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function PERMIT_BATCH_WITNESS_TYPEHASH_STUB() external pure returns (string memory) {
         return _PERMIT_BATCH_WITNESS_TYPEHASH_STUB;
     }
-    
+
     /**
      * @notice Returns the unhinged witness typehash stub for EIP-712 signature verification
      * @return The stub string for unhinged witness permit typehash
@@ -533,7 +511,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory) {
         return _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB;
     }
-    
 
     /**
      * @dev Validate EIP-712 signature against expected signer

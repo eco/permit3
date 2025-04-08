@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Test, Vm } from "forge-std/Test.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../../src/Permit3.sol";
 import "../../src/interfaces/IPermit3.sol";
 import "../../src/interfaces/IUnhingedMerkleTree.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { Test, Vm } from "forge-std/Test.sol";
 
 /**
  * @title MockToken
@@ -29,10 +29,12 @@ library Permit3TestUtils {
      * @param permit3 The Permit3 contract
      * @return The domain separator
      */
-    function domainSeparator(Permit3 permit3) internal view returns (bytes32) {
+    function domainSeparator(
+        Permit3 permit3
+    ) internal view returns (bytes32) {
         return permit3.DOMAIN_SEPARATOR();
     }
-    
+
     /**
      * @notice Hash typed data according to EIP-712
      * @param permit3 The Permit3 contract
@@ -42,7 +44,7 @@ library Permit3TestUtils {
     function hashTypedDataV4(Permit3 permit3, bytes32 structHash) internal view returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator(permit3), structHash));
     }
-    
+
     /**
      * @notice Generate a signature for a digest
      * @param vm The Foundry VM instance
@@ -54,7 +56,7 @@ library Permit3TestUtils {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
         return abi.encodePacked(r, s, v);
     }
-    
+
     /**
      * @notice Hash chain permits data
      * @param permit3 The Permit3 contract
@@ -76,14 +78,10 @@ library Permit3TestUtils {
         }
 
         return keccak256(
-            abi.encode(
-                permit3.CHAIN_PERMITS_TYPEHASH(), 
-                permits.chainId, 
-                keccak256(abi.encodePacked(permitHashes))
-            )
+            abi.encode(permit3.CHAIN_PERMITS_TYPEHASH(), permits.chainId, keccak256(abi.encodePacked(permitHashes)))
         );
     }
-    
+
     /**
      * @notice Hash chain permits data with empty permits array
      * @param permit3 The Permit3 contract
@@ -92,14 +90,11 @@ library Permit3TestUtils {
      */
     function hashEmptyChainPermits(Permit3 permit3, uint256 chainId) internal view returns (bytes32) {
         IPermit3.AllowanceOrTransfer[] memory emptyPermits = new IPermit3.AllowanceOrTransfer[](0);
-        IPermit3.ChainPermits memory permits = IPermit3.ChainPermits({
-            chainId: chainId,
-            permits: emptyPermits
-        });
-        
+        IPermit3.ChainPermits memory permits = IPermit3.ChainPermits({ chainId: chainId, permits: emptyPermits });
+
         return hashChainPermits(permit3, permits);
     }
-    
+
     /**
      * @notice Create a basic transfer permit
      * @param token The token address
@@ -108,8 +103,8 @@ library Permit3TestUtils {
      * @return ChainPermits structure with transfer data
      */
     function createTransferPermit(
-        address token, 
-        address recipient, 
+        address token,
+        address recipient,
         uint160 amount
     ) internal view returns (IPermit3.ChainPermits memory) {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -119,28 +114,22 @@ library Permit3TestUtils {
             account: recipient,
             amountDelta: amount
         });
-        
-        return IPermit3.ChainPermits({
-            chainId: block.chainid,
-            permits: permits
-        });
+
+        return IPermit3.ChainPermits({ chainId: block.chainid, permits: permits });
     }
-    
+
     /**
      * @notice Verify balanced subtree
      * @param leaf The leaf to verify
      * @param proof The merkle proof
      * @return The calculated root
      */
-    function verifyBalancedSubtree(
-        bytes32 leaf,
-        bytes32[] memory proof
-    ) internal pure returns (bytes32) {
+    function verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) internal pure returns (bytes32) {
         bytes32 computedHash = leaf;
-        
+
         for (uint256 i = 0; i < proof.length; i++) {
             bytes32 proofElement = proof[i];
-            
+
             if (computedHash <= proofElement) {
                 // Hash(current computed hash + current element of the proof)
                 computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
@@ -149,7 +138,7 @@ library Permit3TestUtils {
                 computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
             }
         }
-        
+
         return computedHash;
     }
 }

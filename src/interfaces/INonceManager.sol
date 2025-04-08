@@ -17,10 +17,10 @@ interface INonceManager {
 
     /// @notice Thrown when a chain ID is invalid
     error WrongChainId(uint256 expected, uint256 provided);
-    
+
     /// @notice Thrown when a witness type string is invalid
     error InvalidWitnessTypeString();
-    
+
     /// @notice Thrown when a witness signature is invalid
     error InvalidWitnessSignature();
 
@@ -79,7 +79,7 @@ interface INonceManager {
         NoncesToInvalidate memory invalidations,
         bytes calldata signature
     ) external;
-    
+
     /**
      * @notice Cross-chain nonce invalidation using the Unhinged Merkle Tree approach
      * @param owner Token owner address

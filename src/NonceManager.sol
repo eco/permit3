@@ -118,8 +118,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         require(block.timestamp <= deadline, SignatureExpired());
         require(proof.invalidations.chainId == block.chainid, WrongChainId(block.chainid, proof.invalidations.chainId));
 
-        bytes32 signedHash =
-            keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, proof.unhingedRoot));
+        bytes32 signedHash = keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, proof.unhingedRoot));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());

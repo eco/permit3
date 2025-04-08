@@ -72,7 +72,7 @@ interface IPermit3 is IPermit, INonceManager {
      * @return The stub string for witness permit typehash
      */
     function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
-    
+
     /**
      * @notice Returns the batch witness typehash stub for EIP-712 signature verification
      * @return The stub string for batch witness permit typehash
@@ -97,7 +97,6 @@ interface IPermit3 is IPermit, INonceManager {
         bytes calldata signature
     ) external;
 
-    
     /**
      * @notice Process permit for multi-chain token approvals using Unhinged Merkle Tree
      * @param owner Token owner address
@@ -137,8 +136,7 @@ interface IPermit3 is IPermit, INonceManager {
         string calldata witnessTypeString,
         bytes calldata signature
     ) external;
-    
-    
+
     /**
      * @notice Process permit with additional witness data for cross-chain operations
      * @param owner Token owner address

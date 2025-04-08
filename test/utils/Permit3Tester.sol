@@ -18,7 +18,7 @@ contract Permit3Tester is Permit3 {
     ) external pure returns (bytes32) {
         return _calculateUnhingedRoot(leaf, proof);
     }
-    
+
     /**
      * @notice Exposes the internal verifyUnhingedProof function for testing
      */
@@ -28,17 +28,14 @@ contract Permit3Tester is Permit3 {
     ) external pure returns (bool) {
         return _verifyUnhingedProof(leaf, proof);
     }
-    
+
     /**
      * @notice Exposes the internal verifyBalancedSubtree function for testing
      */
-    function verifyBalancedSubtree(
-        bytes32 leaf,
-        bytes32[] memory proof
-    ) external pure returns (bytes32) {
+    function verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) external pure returns (bytes32) {
         return _verifyBalancedSubtree(leaf, proof);
     }
-    
+
     /**
      * @notice Exposes the internal hashChainPermits function for testing
      */

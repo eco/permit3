@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./utils/TestBase.sol";
 import "../src/interfaces/INonceManager.sol";
+import "./utils/TestBase.sol";
 
 /**
  * @title NonceManagerTest
@@ -109,8 +109,10 @@ contract NonceManagerTest is TestBase {
 
     function test_wrongChainIdSignedInvalidation() public {
         // Skip this test if we're on a chain with ID 1 (unlikely in tests)
-        if (block.chainid == 1) return;
-        
+        if (block.chainid == 1) {
+            return;
+        }
+
         bytes32[] memory salts = new bytes32[](1);
         salts[0] = bytes32(uint256(1));
 
@@ -131,8 +133,10 @@ contract NonceManagerTest is TestBase {
 
     function test_wrongChainIdCrossChainInvalidation() public {
         // Skip this test if we're on a chain with ID 1 (unlikely in tests)
-        if (block.chainid == 1) return;
-        
+        if (block.chainid == 1) {
+            return;
+        }
+
         bytes32[] memory salts = new bytes32[](1);
         salts[0] = bytes32(uint256(1));
 
@@ -224,7 +228,7 @@ contract NonceManagerTest is TestBase {
             bytes32 salt,
             uint256[] memory extensions
         ) = permit3.eip712Domain();
-        
+
         // Verify the results
         assertEq(fields, hex"0f"); // 01111 - indicates which fields are set
         assertEq(name, "Permit3");
@@ -238,53 +242,42 @@ contract NonceManagerTest is TestBase {
     function test_invalidateNoncesWithProof() public {
         WithProofParams memory p;
         p.testSalt = bytes32(uint256(5555));
-        
+
         // Set up invalidation parameters
         p.salts = new bytes32[](1);
         p.salts[0] = p.testSalt;
-        
-        p.invalidations = INonceManager.NoncesToInvalidate({
-            chainId: uint64(block.chainid),
-            salts: p.salts
-        });
-        
+
+        p.invalidations = INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: p.salts });
+
         // Set up unhinged proof
         p.unhingedRoot = bytes32(uint256(1000));
-        
-        p.proof = INonceManager.UnhingedCancelPermitProof({
-            invalidations: p.invalidations,
-            unhingedRoot: p.unhingedRoot
-        });
-        
+
+        p.proof =
+            INonceManager.UnhingedCancelPermitProof({ invalidations: p.invalidations, unhingedRoot: p.unhingedRoot });
+
         // Set up deadline
         p.deadline = block.timestamp + 1 hours;
-        
+
         // Calculate the invalidation hash and update the proof object
         p.invalidationsHash = permit3.hashNoncesToInvalidate(p.invalidations);
         p.unhingedRoot = keccak256(abi.encodePacked(p.invalidationsHash));
-        
+
         // Update the proof with the calculated unhingedRoot
         p.proof.unhingedRoot = p.unhingedRoot;
-        
+
         // Create the signature
-        p.signedHash = keccak256(
-            abi.encode(
-                permit3.SIGNED_CANCEL_PERMIT3_TYPEHASH(),
-                owner,
-                p.deadline,
-                p.unhingedRoot
-            )
-        );
+        p.signedHash =
+            keccak256(abi.encode(permit3.SIGNED_CANCEL_PERMIT3_TYPEHASH(), owner, p.deadline, p.unhingedRoot));
         p.digest = _getDigest(p.signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, p.digest);
         p.signature = abi.encodePacked(r, s, v);
-        
+
         // Ensure salt isn't used already
         assertFalse(permit3.isNonceUsed(owner, p.testSalt));
-        
+
         // Call the invalidateNonces function with proof
         permit3.invalidateNonces(owner, p.deadline, p.proof, p.signature);
-        
+
         // Verify salt is now used
         assertTrue(permit3.isNonceUsed(owner, p.testSalt));
     }
