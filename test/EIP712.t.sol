@@ -75,7 +75,7 @@ contract EIP712Test is Test {
         eip712LongName = new EIP712TestContract(longName, longVersion);
     }
 
-    function test_domainSeparator() public {
+    function test_domainSeparator() public view {
         bytes32 domainSeparator = eip712.domainSeparatorV4();
 
         // Calculate the expected domain separator
@@ -92,7 +92,7 @@ contract EIP712Test is Test {
         assertEq(domainSeparator, expectedDomainSeparator);
     }
 
-    function test_hashTypedDataV4() public {
+    function test_hashTypedDataV4() public view {
         bytes32 structHash = keccak256(abi.encode(keccak256("Test(uint256 value)"), uint256(123)));
         bytes32 digest = eip712.hashTypedDataV4(structHash);
 
@@ -101,7 +101,7 @@ contract EIP712Test is Test {
         assertEq(digest, expectedDigest);
     }
 
-    function test_eip712Domain() public {
+    function test_eip712Domain() public view {
         // Call the eip712Domain function to test it
         (
             bytes1 fields,
@@ -123,7 +123,7 @@ contract EIP712Test is Test {
         assertEq(extensions.length, 0);
     }
 
-    function test_longNameFallback() public {
+    function test_longNameFallback() public view {
         string memory longName =
             "This is a very long name that exceeds the ShortString limit and will require fallback storage in the contract implementation";
 
@@ -138,7 +138,7 @@ contract EIP712Test is Test {
         );
     }
 
-    function test_directEIP712Name() public {
+    function test_directEIP712Name() public view {
         string memory name = eip712.eip712Name();
         assertEq(name, "Test");
 
@@ -149,7 +149,7 @@ contract EIP712Test is Test {
         );
     }
 
-    function test_directEIP712Version() public {
+    function test_directEIP712Version() public view {
         string memory version = eip712.eip712Version();
         assertEq(version, "1");
 

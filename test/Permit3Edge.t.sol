@@ -374,7 +374,7 @@ contract Permit3EdgeTest is Test {
         permit3.approve(address(token), spender, 100, uint48(block.timestamp + 1 days));
 
         // Verify initial allowance
-        (uint160 initialAmount, uint48 initialExpiration,) = permit3.allowance(owner, address(token), spender);
+        (uint160 initialAmount,,) = permit3.allowance(owner, address(token), spender);
         assertEq(initialAmount, 100);
 
         // Create a permit with zero delta but newer timestamp (should only update expiration)
@@ -607,7 +607,7 @@ contract Permit3EdgeTest is Test {
         permit3Tester.calculateUnhingedRoot(leaf, invalidProof);
     }
 
-    function test_typehashStubs() public {
+    function test_typehashStubs() public view {
         // Test the view functions for typehash stubs
         string memory permitStub = permit3.PERMIT_WITNESS_TYPEHASH_STUB();
         string memory batchStub = permit3.PERMIT_BATCH_WITNESS_TYPEHASH_STUB();
@@ -1140,7 +1140,7 @@ contract Permit3EdgeTest is Test {
         assertEq(newAmount, 500); // 1000 - 500 = 500
     }
 
-    function test_emptyProofHandling() public {
+    function test_emptyProofHandling() public view {
         // Test with a proof that has no subtree elements and no following hashes,
         // but includes a preHash node with a non-zero value
         bytes32[] memory nodes = new bytes32[](1);

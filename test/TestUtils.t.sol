@@ -35,20 +35,20 @@ contract TestUtilsTest is Test {
         token.approve(address(permit3), type(uint256).max);
     }
 
-    function test_mockToken() public {
+    function test_mockToken() public view {
         // Test the MockToken implementation
         assertEq(token.name(), "Mock");
         assertEq(token.symbol(), "MOCK");
         assertEq(token.balanceOf(address(this)), 1_000_000 * 10 ** 18);
     }
 
-    function test_domainSeparator() public {
+    function test_domainSeparator() public view {
         // Test the domainSeparator function
         bytes32 separator = Permit3TestUtils.domainSeparator(permit3);
         assertEq(separator, permit3.DOMAIN_SEPARATOR());
     }
 
-    function test_hashTypedDataV4() public {
+    function test_hashTypedDataV4() public view {
         // Test the hashTypedDataV4 function
         bytes32 structHash = keccak256("test data");
         bytes32 domainSeparator = permit3.DOMAIN_SEPARATOR();
@@ -59,7 +59,7 @@ contract TestUtilsTest is Test {
         assertEq(utilHash, manualHash);
     }
 
-    function test_signDigest() public {
+    function test_signDigest() public view {
         // Test the signDigest function
         bytes32 digest = keccak256("test digest");
 
@@ -78,7 +78,7 @@ contract TestUtilsTest is Test {
         }
     }
 
-    function test_hashChainPermits() public {
+    function test_hashChainPermits() public view {
         // Create test permits
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](2);
         permits[0] = IPermit3.AllowanceOrTransfer({
@@ -118,7 +118,7 @@ contract TestUtilsTest is Test {
         assertEq(hash, expectedHash);
     }
 
-    function test_hashEmptyChainPermits() public {
+    function test_hashEmptyChainPermits() public view {
         // Test hashEmptyChainPermits function
         uint256 chainId = block.chainid;
         bytes32 emptyHash = Permit3TestUtils.hashEmptyChainPermits(permit3, chainId);
@@ -132,7 +132,7 @@ contract TestUtilsTest is Test {
         assertEq(emptyHash, manualHash);
     }
 
-    function test_createTransferPermit() public {
+    function test_createTransferPermit() public view {
         // Test createTransferPermit function
         address testToken = address(0xABC);
         address testRecipient = address(0xDEF);
@@ -150,7 +150,7 @@ contract TestUtilsTest is Test {
         assertEq(transferPermit.permits[0].amountDelta, testAmount);
     }
 
-    function test_verifyBalancedSubtree() public {
+    function test_verifyBalancedSubtree() public pure {
         // Test verifyBalancedSubtree function
         bytes32 leaf = bytes32(uint256(100));
         bytes32[] memory proof = new bytes32[](1);

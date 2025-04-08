@@ -17,9 +17,9 @@ library UnhingedMerkleTree {
      * @return True if the proof is valid, false otherwise
      */
     function verify(
-        bytes32 leaf,
         IUnhingedMerkleTree.UnhingedProof memory proof,
-        bytes32 unhingedRoot
+        bytes32 unhingedRoot,
+        bytes32 leaf
     ) internal pure returns (bool) {
         // Extract counts from packed data
         (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash) = extractCounts(proof.counts);
@@ -68,7 +68,7 @@ library UnhingedMerkleTree {
         }
 
         // First verify the balanced subtree proof
-        bytes32 subtreeRoot = verifyBalancedSubtree(leaf, subtreeProof);
+        bytes32 subtreeRoot = verifyBalancedSubtree(subtreeProof, leaf);
 
         // Then recalculate the unhinged chain
         if (hasPreHash) {
@@ -142,7 +142,7 @@ library UnhingedMerkleTree {
      * @param proof The Merkle proof (sibling hashes)
      * @return The calculated root of the balanced subtree
      */
-    function verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) internal pure returns (bytes32) {
+    function verifyBalancedSubtree(bytes32[] memory proof, bytes32 leaf) internal pure returns (bytes32) {
         bytes32 computedHash = leaf;
 
         for (uint256 i = 0; i < proof.length; i++) {
@@ -192,6 +192,53 @@ library UnhingedMerkleTree {
     }
 
     /**
+     * @dev Verifies an Unhinged Merkle Tree proof structure without reverting
+     * @param proof The unhinged proof structure
+     * @return True if the proof structure is valid, false otherwise
+     * @notice Performs validation checks on the proof structure and returns a boolean instead of reverting.
+     *         This makes it suitable for conditional verification. The actual root calculation
+     *         happens in calculateRoot after validation.
+     */
+    function verifyProofStructure(
+        IUnhingedMerkleTree.UnhingedProof memory proof
+    ) internal pure returns (bool) {
+        // Extract counts from packed data
+        (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash) = extractCounts(proof.counts);
+
+        // If hasPreHash is true but no nodes are provided, this is invalid
+        if (hasPreHash && proof.nodes.length == 0) {
+            return false;
+        }
+
+        // Calculate minimum required nodes
+        uint256 minRequiredNodes = subtreeProofCount + followingHashesCount;
+        if (hasPreHash) {
+            minRequiredNodes += 1;
+        }
+
+        // Check if we have enough nodes
+        if (proof.nodes.length < minRequiredNodes) {
+            return false;
+        }
+
+        // Check for inconsistent hasPreHash flag
+        if (hasPreHash && proof.nodes.length > 0 && proof.nodes[0] == bytes32(0)) {
+            return false;
+        }
+
+        // Check for excess nodes when hasPreHash is false
+        if (
+            !hasPreHash && proof.nodes.length > (subtreeProofCount + followingHashesCount)
+                && subtreeProofCount + followingHashesCount > 0
+        ) {
+            return false;
+        }
+
+        // All basic structural validation is done
+        return true;
+    }
+
+    /**
      * @dev Calculates the unhinged root from a leaf and proof with validation checks
      * @param leaf The leaf node to calculate from
      * @param proof The unhinged proof structure
@@ -200,8 +247,8 @@ library UnhingedMerkleTree {
      *         before calculating the root. It supports the hasPreHash optimization.
      */
     function calculateRoot(
-        bytes32 leaf,
-        IUnhingedMerkleTree.UnhingedProof memory proof
+        IUnhingedMerkleTree.UnhingedProof memory proof,
+        bytes32 leaf
     ) internal pure returns (bytes32) {
         // Extract counts from packed data
         (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash) = extractCounts(proof.counts);
@@ -260,7 +307,7 @@ library UnhingedMerkleTree {
         }
 
         // Calculate the subtree root
-        bytes32 subtreeRoot = verifyBalancedSubtree(leaf, subtreeProof);
+        bytes32 subtreeRoot = verifyBalancedSubtree(subtreeProof, leaf);
 
         // Calculate the unhinged chain - either start with preHash or use subtreeRoot directly
         if (hasPreHash) {

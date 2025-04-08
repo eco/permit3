@@ -24,6 +24,7 @@ import { PermitBase } from "./PermitBase.sol";
 contract Permit3 is IPermit3, PermitBase, NonceManager {
     using ECDSA for bytes32;
     using UnhingedMerkleTree for bytes32;
+    using UnhingedMerkleTree for IUnhingedMerkleTree.UnhingedProof;
 
     /**
      * @dev EIP-712 typehash for bundled chain permits
@@ -133,13 +134,13 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.currentChainHash = _hashChainPermits(proof.permits);
 
         // Calculate the unhinged root from the proof components
-        // First verify the proof is valid using _verifyUnhingedProof (boolean return value function)
-        if (!_verifyUnhingedProof(params.currentChainHash, proof.unhingedProof)) {
+        // First verify the proof structure is valid (boolean return value function)
+        if (!proof.unhingedProof.verifyProofStructure()) {
             revert IUnhingedMerkleTree.InvalidUnhingedProof();
         }
 
-        // If verification succeeds, calculate the root using _calculateUnhingedRoot (reverts on errors)
-        params.unhingedRoot = _calculateUnhingedRoot(params.currentChainHash, proof.unhingedProof);
+        // If verification succeeds, calculate the root (reverts on errors)
+        params.unhingedRoot = proof.unhingedProof.calculateRoot(params.currentChainHash);
 
         // Verify signature with unhinged root
         bytes32 signedHash = keccak256(
@@ -256,88 +257,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     }
 
     /**
-     * @dev Verifies an Unhinged Merkle Tree proof structure
-     * @param leaf The leaf node being proven (unused in structural validation)
-     * @param proof The unhinged proof structure
-     * @return True if the proof structure is valid, false otherwise
-     * @notice Performs validation checks on the proof structure and returns a boolean instead of reverting.
-     *         This makes it suitable for conditional verification. The actual root calculation
-     *         happens in _calculateUnhingedRoot after validation.
-     */
-    function _verifyUnhingedProof(
-        bytes32 leaf, // unused in structural validation, but required for interface consistency
-        IUnhingedMerkleTree.UnhingedProof memory proof
-    ) internal pure returns (bool) {
-        // Extract counts from packed data using the library's function
-        (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash) =
-            UnhingedMerkleTree.extractCounts(proof.counts);
-
-        // Validate the proof structure with basic checks
-
-        // If hasPreHash is true but no nodes are provided, this is invalid
-        if (hasPreHash && proof.nodes.length == 0) {
-            return false;
-        }
-
-        // Calculate minimum required nodes
-        uint256 minRequiredNodes = subtreeProofCount + followingHashesCount;
-        if (hasPreHash) {
-            minRequiredNodes += 1;
-        }
-
-        // Check if we have enough nodes
-        if (proof.nodes.length < minRequiredNodes) {
-            return false;
-        }
-
-        // Check for inconsistent hasPreHash flag
-        if (hasPreHash && proof.nodes.length > 0 && proof.nodes[0] == bytes32(0)) {
-            return false;
-        }
-
-        // Check for excess nodes when hasPreHash is false
-        if (
-            !hasPreHash && proof.nodes.length > (subtreeProofCount + followingHashesCount)
-                && subtreeProofCount + followingHashesCount > 0
-        ) {
-            return false;
-        }
-
-        // Check subtree proof validity by calculating the root
-        // If any errors occur in calculation, it's handled by the caller
-        // All basic structural validation is already done
-        return true;
-    }
-
-    /**
-     * @dev Calculates the Unhinged Root from proof components
-     * @param leaf The leaf node being proven
-     * @param proof The unhinged proof structure
-     * @return The calculated unhinged root
-     * @notice Uses the UnhingedMerkleTree library to calculate the root.
-     *         The library implementation handles all validation and reversion.
-     */
-    function _calculateUnhingedRoot(
-        bytes32 leaf,
-        IUnhingedMerkleTree.UnhingedProof memory proof
-    ) internal pure returns (bytes32) {
-        // Delegate to the UnhingedMerkleTree library
-        return UnhingedMerkleTree.calculateRoot(leaf, proof);
-    }
-
-    /**
-     * @dev Verifies a balanced Merkle subtree proof
-     * @param leaf The leaf node being proven
-     * @param proof The Merkle proof (sibling hashes)
-     * @return The calculated root of the balanced subtree
-     * @notice Delegates to the UnhingedMerkleTree library implementation
-     */
-    function _verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) internal pure returns (bytes32) {
-        // Delegate to the UnhingedMerkleTree library
-        return UnhingedMerkleTree.verifyBalancedSubtree(leaf, proof);
-    }
-
-    /**
      * @notice Process token approvals with witness data for single chain operations
      * @dev Handles permitWitnessTransferFrom operations with dynamic witness data
      * @param owner The token owner authorizing the permits
@@ -426,13 +345,13 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.currentChainHash = _hashChainPermits(proof.permits);
 
         // Calculate the unhinged root
-        // First verify the proof is valid using _verifyUnhingedProof (boolean return value function)
-        if (!_verifyUnhingedProof(params.currentChainHash, proof.unhingedProof)) {
+        // First verify the proof structure is valid (boolean return value function)
+        if (!proof.unhingedProof.verifyProofStructure()) {
             revert IUnhingedMerkleTree.InvalidUnhingedProof();
         }
 
-        // If verification succeeds, calculate the root using _calculateUnhingedRoot (reverts on errors)
-        params.unhingedRoot = _calculateUnhingedRoot(params.currentChainHash, proof.unhingedProof);
+        // If verification succeeds, calculate the root (reverts on errors)
+        params.unhingedRoot = proof.unhingedProof.calculateRoot(params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getUnhingedWitnessTypeHash(witnessTypeString);

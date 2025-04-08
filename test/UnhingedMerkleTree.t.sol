@@ -12,6 +12,8 @@ import "forge-std/Test.sol";
  */
 contract UnhingedMerkleTreeTest is Test {
     using UnhingedMerkleTree for bytes32;
+    using UnhingedMerkleTree for bytes32[];
+    using UnhingedMerkleTree for IUnhingedMerkleTree.UnhingedProof;
 
     UnhingedMerkleTreeTester tester;
 
@@ -20,14 +22,14 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test creating an unhinged root with an empty array
-    function test_emptyTreeHash() public {
+    function test_emptyTreeHash() public pure {
         bytes32[] memory roots = new bytes32[](0);
         bytes32 result = UnhingedMerkleTree.createUnhingedRoot(roots);
         assert(result == bytes32(0));
     }
 
     // Test creating an unhinged root with a single leaf
-    function test_singleLeafHash() public {
+    function test_singleLeafHash() public pure {
         bytes32[] memory roots = new bytes32[](1);
         roots[0] = bytes32(uint256(0x1234));
 
@@ -36,7 +38,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test creating an unhinged root with two leaves
-    function test_twoLeavesHash() public {
+    function test_twoLeavesHash() public pure {
         bytes32[] memory roots = new bytes32[](2);
         roots[0] = bytes32(uint256(0x1234));
         roots[1] = bytes32(uint256(0x5678));
@@ -48,7 +50,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test creating an unhinged root with three leaves
-    function test_threeLeavesHash() public {
+    function test_threeLeavesHash() public pure {
         bytes32[] memory roots = new bytes32[](3);
         roots[0] = bytes32(uint256(0x1234));
         roots[1] = bytes32(uint256(0x5678));
@@ -62,7 +64,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test creating an unhinged root with four leaves
-    function test_fourLeavesHash() public {
+    function test_fourLeavesHash() public pure {
         bytes32[] memory roots = new bytes32[](4);
         roots[0] = bytes32(uint256(0x1234));
         roots[1] = bytes32(uint256(0x5678));
@@ -79,7 +81,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test creating and verifying a proof
-    function test_generateAndVerifyProof() public {
+    function test_generateAndVerifyProof() public view {
         // Create a leaf
         bytes32 leaf = bytes32(uint256(0x1234));
 
@@ -102,12 +104,12 @@ contract UnhingedMerkleTreeTest is Test {
         expectedRoot = keccak256(abi.encodePacked(expectedRoot, followingHashes[0]));
 
         // Verify the proof
-        bool result = UnhingedMerkleTree.verify(leaf, proof, expectedRoot);
+        bool result = proof.verify(expectedRoot, leaf);
         assert(result == true);
     }
 
     // Test with an empty proof
-    function test_emptyProof() public {
+    function test_emptyProof() public view {
         // Create a leaf
         bytes32 leaf = bytes32(uint256(0x1234));
 
@@ -121,12 +123,12 @@ contract UnhingedMerkleTreeTest is Test {
         bytes32 expectedRoot = keccak256(abi.encodePacked(preHash, leaf));
 
         // Verify the proof
-        bool result = UnhingedMerkleTree.verify(leaf, proof, expectedRoot);
+        bool result = proof.verify(expectedRoot, leaf);
         assert(result == true);
     }
 
     // Test packing and extracting counts
-    function test_packAndExtractCounts() public {
+    function test_packAndExtractCounts() public pure {
         uint120 subtreeProofCount = 3;
         uint120 followingHashesCount = 2;
         bool hasPreHash = true;
@@ -142,7 +144,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test hash link function
-    function test_hashLink() public {
+    function test_hashLink() public pure {
         bytes32 previousHash = bytes32(uint256(0x1234));
         bytes32 currentHash = bytes32(uint256(0x5678));
 
@@ -153,7 +155,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test invalid proof verification with incorrect unhinged root
-    function test_invalidProofWithWrongRoot() public {
+    function test_invalidProofWithWrongRoot() public view {
         // Create a leaf
         bytes32 leaf = bytes32(uint256(0x1234));
 
@@ -179,7 +181,7 @@ contract UnhingedMerkleTreeTest is Test {
         bytes32 incorrectRoot = bytes32(uint256(correctRoot) + 1);
 
         // Verify the proof with incorrect root - should fail
-        bool result = UnhingedMerkleTree.verify(leaf, proof, incorrectRoot);
+        bool result = proof.verify(incorrectRoot, leaf);
         assert(result == false);
     }
 
@@ -209,7 +211,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test with a larger realistic dataset (10 chain permits)
-    function test_largeRealisticDataset() public {
+    function test_largeRealisticDataset() public view {
         // Create 10 leaf values to simulate 10 different chain permits
         bytes32[] memory leaves = new bytes32[](10);
         for (uint256 i = 0; i < 10; i++) {
@@ -252,18 +254,18 @@ contract UnhingedMerkleTreeTest is Test {
         }
 
         // Verify the proof with the correct unhinged root - should pass
-        bool result = UnhingedMerkleTree.verify(targetLeaf, proof, unhingedRoot);
+        bool result = proof.verify(unhingedRoot, targetLeaf);
         assert(result == true);
 
         // Verify with an incorrect root - should fail
         bytes32 incorrectRoot = bytes32(uint256(unhingedRoot) + 1);
-        bool failResult = UnhingedMerkleTree.verify(targetLeaf, proof, incorrectRoot);
+        bool failResult = proof.verify(incorrectRoot, targetLeaf);
         assert(failResult == false);
     }
 
     // Additional tests for the tester contract
 
-    function test_createUnhingedRoot() public {
+    function test_createUnhingedRoot() public view {
         // Test with one hash
         bytes32[] memory singleHash = new bytes32[](1);
         singleHash[0] = bytes32(uint256(123));
@@ -283,7 +285,7 @@ contract UnhingedMerkleTreeTest is Test {
         assertEq(multipleRoot, expected);
     }
 
-    function test_createOptimizedProof() public {
+    function test_createOptimizedProof() public view {
         // Test with preHash, empty subtree proof, and some following hashes
         bytes32 preHash = bytes32(uint256(42));
         bytes32[] memory emptySubtreeProof = new bytes32[](0);
@@ -306,7 +308,7 @@ contract UnhingedMerkleTreeTest is Test {
         assertTrue(hasPreHash);
     }
 
-    function test_verify() public {
+    function test_verify() public view {
         // Create a simple proof with leaf and one level
         bytes32 leaf = bytes32(uint256(123));
         bytes32 sibling = bytes32(uint256(456));
@@ -342,7 +344,7 @@ contract UnhingedMerkleTreeTest is Test {
         assertFalse(isInvalid);
     }
 
-    function test_verifyBalancedSubtreeInTester() public {
+    function test_verifyBalancedSubtreeInTester() public view {
         // Create a leaf and sibling
         bytes32 leaf = bytes32(uint256(100));
 
@@ -364,7 +366,7 @@ contract UnhingedMerkleTreeTest is Test {
         assertEq(resultReverse, expectedReverse);
     }
 
-    function test_verifyBalancedSubtreeEmptyProof() public {
+    function test_verifyBalancedSubtreeEmptyProof() public view {
         // Test with empty proof (should return the leaf itself)
         bytes32 leaf = bytes32(uint256(123));
         bytes32[] memory emptyProof = new bytes32[](0);
@@ -373,7 +375,7 @@ contract UnhingedMerkleTreeTest is Test {
         assertEq(result, leaf);
     }
 
-    function test_verifyBalancedSubtreeMultiLevel() public {
+    function test_verifyBalancedSubtreeMultiLevel() public view {
         // Test with a multi-level proof
         bytes32 leaf = bytes32(uint256(100));
 
@@ -401,7 +403,7 @@ contract UnhingedMerkleTreeTest is Test {
         assertEq(result, computedHash);
     }
 
-    function test_verifyEqualElements() public {
+    function test_verifyEqualElements() public view {
         // Test case where leaf and proof element are equal
         bytes32 leaf = bytes32(uint256(100));
 
@@ -415,7 +417,7 @@ contract UnhingedMerkleTreeTest is Test {
         assertEq(result, expected);
     }
 
-    function test_proofWithoutPreHash() public {
+    function test_proofWithoutPreHash() public view {
         // Test creating and verifying a proof without a preHash
 
         // Create a leaf and some subtree proof
@@ -674,7 +676,7 @@ contract UnhingedMerkleTreeTest is Test {
         tester.verify(leaf, proof, bytes32(0));
     }
 
-    function test_countOverflowChecks() public {
+    function test_countOverflowChecks() public view {
         // Test the overflow checks in packCounts
         uint120 maxValue = type(uint120).max;
 

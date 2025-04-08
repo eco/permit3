@@ -10,6 +10,8 @@ import "../../src/lib/UnhingedMerkleTree.sol";
  */
 contract UnhingedMerkleTreeTester {
     using UnhingedMerkleTree for bytes32;
+    using UnhingedMerkleTree for bytes32[];
+    using UnhingedMerkleTree for IUnhingedMerkleTree.UnhingedProof;
 
     /**
      * @notice Creates an unhinged root from chain hashes
@@ -85,7 +87,7 @@ contract UnhingedMerkleTreeTester {
         IUnhingedMerkleTree.UnhingedProof memory proof,
         bytes32 expectedRoot
     ) external pure returns (bool) {
-        return UnhingedMerkleTree.verify(leaf, proof, expectedRoot);
+        return proof.verify(expectedRoot, leaf);
     }
 
     /**
@@ -95,7 +97,7 @@ contract UnhingedMerkleTreeTester {
      * @return The calculated subtree root
      */
     function verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) external pure returns (bytes32) {
-        return UnhingedMerkleTree.verifyBalancedSubtree(leaf, proof);
+        return proof.verifyBalancedSubtree(leaf);
     }
 
     /**
