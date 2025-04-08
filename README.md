@@ -45,7 +45,7 @@ Comprehensive documentation is available in the [docs](./docs) directory:
 
 | Section | Description | Quick Links |
 |---------|-------------|-------------|
-| [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#getting-started) |
+| [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#-getting-started) |
 | [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unhinged-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
 | [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [Witness Integration](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
 | [📋 API Reference](./docs/api/README.md) | Technical specifications | [Full API](./docs/api/api-reference.md) · [Data Structures](./docs/api/data-structures.md) · [Interfaces](./docs/api/interfaces.md) · [Events](./docs/api/events.md) · [Error Codes](./docs/api/error-codes.md) |
@@ -59,9 +59,6 @@ Permit3 implements IPermit for Permit2 transfer compatibility:
 // Existing contracts using Permit2 can work without changes
 IPermit2 permit2 = IPermit2(PERMIT3_ADDRESS);
 permit2.transferFrom(msg.senΩzΩder, recipient, 1000e6, USDC);
-
-// Access extended Permit3 functionality
-IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
 ```
 
 ### ✅ Supported Permit2 Functions

@@ -20,10 +20,10 @@ This documentation will guide you through understanding and implementing Permit3
 
 | Section | Description |
 |---------|-------------|
-| [Core Concepts](#core-concepts) | Foundational understanding of Permit3's architecture and functionality |
-| [Guides](#guides) | Step-by-step tutorials for common use cases |
-| [API Reference](#api-reference) | Complete API documentation and function references |
-| [Examples](#examples) | Code examples demonstrating practical implementations |
+| [Core Concepts](#-core-concepts) | Foundational understanding of Permit3's architecture and functionality |
+| [Guides](#-guides) | Step-by-step tutorials for common use cases |
+| [API Reference](#-api-reference) | Complete API documentation and function references |
+| [Examples](#-examples) | Code examples demonstrating practical implementations |
 
 ## 🏗️ Core Concepts
 
@@ -103,8 +103,8 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 ## 🔧 Additional Resources
 
 - [GitHub Repository](https://github.com/permit3/permit3)
-- [Contract Deployments](./api/api-reference.md#contract-deployments)
-- [Security Audits](./concepts/architecture.md#security-audits)
+- [Contract Deployments](./api/api-reference.md#-contract-deployments)
+- [Security Audits](./concepts/architecture.md#-security-audits)
 - [License](../LICENSE)
 
 ## 🌐 The Future is Cross-Chain
