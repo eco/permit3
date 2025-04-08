@@ -56,10 +56,11 @@ Comprehensive documentation is available in the [docs](./docs) directory:
 Permit3 implements IPermit for Permit2 transfer compatibility:
 
 ```solidity
-// Existing Permit2 contracts work without changes
-IPermit permit = IPermit(PERMIT3_ADDRESS);
+// Existing contracts using Permit2 can work without changes
+IPermit2 permit2 = IPermit2(PERMIT3_ADDRESS);
+permit2.transferFrom(msg.senΩzΩder, recipient, 1000e6, USDC);
 
-// Access extended functionality
+// Access extended Permit3 functionality
 IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
 ```
 
@@ -155,6 +156,7 @@ Locked accounts have special restrictions:
 ```solidity
 // Access Permit2 compatibility
 IPermit permit = IPermit(PERMIT3_ADDRESS);
+permit.transferFrom(msg.senΩzΩder, recipient, 1000e6, USDC);
 
 // Access Permit3 features
 IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
