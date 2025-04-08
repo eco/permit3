@@ -23,7 +23,7 @@ library UnhingedMerkleTree {
     ) internal pure returns (bool) {
         // Validate the proof structure and calculate the root
         bytes32 calculatedRoot = calculateRoot(proof, leaf);
-        
+
         // Verify the calculated root matches the signed root
         return calculatedRoot == unhingedRoot;
     }
@@ -84,7 +84,7 @@ library UnhingedMerkleTree {
     function verifyBalancedSubtree(bytes32[] calldata proof, bytes32 leaf) internal pure returns (bytes32) {
         return verifyBalancedSubtreeWithOffset(proof, 0, uint120(proof.length), leaf);
     }
-    
+
     /**
      * @dev Verifies a standard Merkle proof for a balanced subtree using offset and count
      * @param proofNodes The array containing all proof nodes
@@ -158,13 +158,17 @@ library UnhingedMerkleTree {
      */
     function _validateProofStructure(
         IUnhingedMerkleTree.UnhingedProof calldata proof
-    ) private pure returns (
-        bool isValid,
-        uint120 subtreeProofCount,
-        uint120 followingHashesCount,
-        bool hasPreHash,
-        uint256 minRequiredNodes
-    ) {
+    )
+        private
+        pure
+        returns (
+            bool isValid,
+            uint120 subtreeProofCount,
+            uint120 followingHashesCount,
+            bool hasPreHash,
+            uint256 minRequiredNodes
+        )
+    {
         // Extract counts from packed data
         (subtreeProofCount, followingHashesCount, hasPreHash) = extractCounts(proof.counts);
 
@@ -242,29 +246,31 @@ library UnhingedMerkleTree {
             if (hasPreHash && proof.nodes.length == 0) {
                 revert IUnhingedMerkleTree.HasPreHashButEmptyNodes();
             }
-            
+
             if (proof.nodes.length < minRequiredNodes) {
                 revert IUnhingedMerkleTree.InvalidNodeArrayLength(minRequiredNodes, proof.nodes.length);
             }
-            
+
             if (hasPreHash && proof.nodes.length > 0 && proof.nodes[0] == bytes32(0)) {
                 revert IUnhingedMerkleTree.InconsistentPreHashFlag(true, bytes32(0));
             }
-            
-            if (!hasPreHash && proof.nodes.length > (subtreeProofCount + followingHashesCount) 
-                && subtreeProofCount + followingHashesCount > 0) {
+
+            if (
+                !hasPreHash && proof.nodes.length > (subtreeProofCount + followingHashesCount)
+                    && subtreeProofCount + followingHashesCount > 0
+            ) {
                 revert IUnhingedMerkleTree.InvalidNodeArrayLength(
                     subtreeProofCount + followingHashesCount, proof.nodes.length
                 );
             }
-            
+
             // Catch-all for any other validation issues
             revert IUnhingedMerkleTree.InvalidParameters();
         }
 
         return _computeRoot(proof, leaf, subtreeProofCount, followingHashesCount, hasPreHash);
     }
-    
+
     /**
      * @dev Computes the unhinged root from validated components
      * @param proof The unhinged proof structure (pre-validated)
@@ -284,14 +290,10 @@ library UnhingedMerkleTree {
         // Extract proof components and establish starting points
         bytes32 calculatedRoot;
         uint256 subtreeProofStartIndex = hasPreHash ? 1 : 0;
-        
+
         // Calculate the subtree root directly using the original array with an offset
-        bytes32 subtreeRoot = verifyBalancedSubtreeWithOffset(
-            proof.nodes, 
-            subtreeProofStartIndex,
-            subtreeProofCount,
-            leaf
-        );
+        bytes32 subtreeRoot =
+            verifyBalancedSubtreeWithOffset(proof.nodes, subtreeProofStartIndex, subtreeProofCount, leaf);
 
         // Calculate the unhinged chain - either start with preHash or use subtreeRoot directly
         if (hasPreHash) {
@@ -323,42 +325,35 @@ library UnhingedMerkleTree {
     ) internal pure returns (IUnhingedMerkleTree.UnhingedProof memory optimizedProof) {
         // Check if preHash is present (non-zero)
         bool hasPreHash = preHash != bytes32(0);
-        
+
         // Determine array size needed
         uint256 nodesArraySize = subtreeProof.length + followingHashes.length + (hasPreHash ? 1 : 0);
-        
+
         // Create the combined nodes array
         bytes32[] memory nodes = new bytes32[](nodesArraySize);
-        
+
         // We still need to create a combined array, but we can use a more efficient method
         uint256 currentIndex = 0;
-        
+
         // 1. Add preHash if present
         if (hasPreHash) {
             nodes[currentIndex++] = preHash;
         }
-        
+
         // 2. Add subtree proof nodes
         for (uint256 i = 0; i < subtreeProof.length; i++) {
             nodes[currentIndex++] = subtreeProof[i];
         }
-        
+
         // 3. Add following hash nodes
         for (uint256 i = 0; i < followingHashes.length; i++) {
             nodes[currentIndex++] = followingHashes[i];
         }
-        
+
         // 4. Pack the counts with the hasPreHash flag
-        bytes32 counts = packCounts(
-            uint120(subtreeProof.length), 
-            uint120(followingHashes.length), 
-            hasPreHash
-        );
-        
+        bytes32 counts = packCounts(uint120(subtreeProof.length), uint120(followingHashes.length), hasPreHash);
+
         // 5. Create and return the optimized proof
-        optimizedProof = IUnhingedMerkleTree.UnhingedProof({ 
-            nodes: nodes, 
-            counts: counts 
-        });
+        optimizedProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
     }
 }
