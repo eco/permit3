@@ -162,9 +162,13 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @dev Core permit processing logic
      * @param owner Token owner
      * @param chain Bundle of permit operations to process
-     * @notice Handles two types of operations:
-     * 1. Immediate transfers (transferOrExpiration = 1)
-     * 2. Allowance updates (transferOrExpiration = future timestamp)
+     * @notice Handles multiple types of operations:
+     * @notice modeOrExpiration Mode indicators:
+     *        = 0: Immediate transfer mode
+     *        = 1: Decrease allowance mode
+     *        = 2: Lock allowance mode
+     *        = 3: Unlock allowance mode
+     *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
      */
     function _processChainPermits(address owner, bytes32 salt, uint48 timestamp, ChainPermits memory chain) internal {
         _useNonce(owner, salt);
