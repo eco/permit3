@@ -87,7 +87,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         require(chain.chainId == block.chainid, WrongChainId(block.chainid, chain.chainId));
 
         bytes32 signedHash =
-            keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, salt, deadline, timestamp, _hashChainPermits(chain)));
+            keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, salt, deadline, timestamp, hashChainPermits(chain)));
 
         _verifySignature(owner, signedHash, signature);
         _processChainPermits(owner, salt, timestamp, chain);
@@ -131,7 +131,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.timestamp = timestamp;
 
         // Hash current chain's permits
-        params.currentChainHash = _hashChainPermits(proof.permits);
+        params.currentChainHash = hashChainPermits(proof.permits);
 
         // Calculate the unhinged root from the proof components
         // First verify the proof structure is valid (boolean return value function)
@@ -241,9 +241,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param permits Chain-specific permit data
      * @return bytes32 Combined hash of all permit parameters
      */
-    function _hashChainPermits(
+    function hashChainPermits(
         ChainPermits memory permits
-    ) internal pure returns (bytes32) {
+    ) public pure returns (bytes32) {
         bytes32[] memory permitHashes = new bytes32[](permits.permits.length);
 
         for (uint256 i = 0; i < permits.permits.length; i++) {
@@ -289,7 +289,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         _validateWitnessTypeString(witnessTypeString);
 
         // Get hash of permits data
-        bytes32 permitDataHash = _hashChainPermits(chain);
+        bytes32 permitDataHash = hashChainPermits(chain);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
@@ -346,7 +346,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.witness = witness;
 
         // Hash current chain's permits
-        params.currentChainHash = _hashChainPermits(proof.permits);
+        params.currentChainHash = hashChainPermits(proof.permits);
 
         // Calculate the unhinged root
         // First verify the proof structure is valid (boolean return value function)

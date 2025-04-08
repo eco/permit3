@@ -78,6 +78,19 @@ interface IPermit3 is IPermit, INonceManager {
      * @return The stub string for batch witness permit typehash
      */
     function PERMIT_BATCH_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
+    
+    /**
+     * @notice Returns the unhinged witness typehash stub for EIP-712 signature verification
+     * @return The stub string for unhinged witness permit typehash
+     */
+    function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
+    
+    /**
+     * @notice Hashes chain permits data for cross-chain operations
+     * @param permits Chain-specific permit data
+     * @return bytes32 Combined hash of all permit parameters
+     */
+    function hashChainPermits(ChainPermits memory permits) external pure returns (bytes32);
 
     /**
      * @notice Process permit for single chain token approvals
