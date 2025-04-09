@@ -5,6 +5,8 @@
 
 This document provides a comprehensive overview of the Permit3 architecture, explaining how its components work together to enable cross-chain token approvals and transfers.
 
+###### Navigation: [Overview](#overview) | [Core Components](#core-components) | [Inheritance Structure](#contract-inheritance-structure) | [Data Structures](#key-data-structures) | [Operations](#core-operations) | [Cross-Chain](#cross-chain-mechanism) | [Security](#security-features) | [Gas Optimization](#gas-optimization) | [Integration](#integration-with-external-systems) | [Audits](#security-audits) | [Conclusion](#conclusion)
+
 <a id="overview"></a>
 ## 🔍 Overview
 

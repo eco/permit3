@@ -1,9 +1,13 @@
+<a id="examples-top"></a>
 # 🔏 Permit3 Examples 💻
+
+###### Quick Navigation: [Available Examples](#available-examples) | [Use Cases](#example-use-cases) | [Working with Examples](#working-with-the-examples)
 
 🧭 [Home](/docs/README.md) > Examples
 
 This section provides practical examples of implementing and using Permit3.
 
+<a id="available-examples"></a>
 ## 📚 Available Examples
 
 | Example | Description |
@@ -14,6 +18,7 @@ This section provides practical examples of implementing and using Permit3.
 | [🛡️ Security Example](./security-example.md) | Implementing secure permit operations |
 | [🔌 Integration Example](./integration-example.md) | Integrating Permit3 into existing systems |
 
+<a id="example-use-cases"></a>
 ## 🛠️ Example Use Cases
 
 ### 📊 Decentralized Exchange with Witness Functionality
@@ -32,6 +37,7 @@ The [🔄 Allowance Management Example](./allowance-management-example.md) demon
 
 The [🛡️ Security Example](./security-example.md) shows how to implement a secure multi-signature wallet using Permit3's witness functionality.
 
+<a id="working-with-the-examples"></a>
 ## 📋 Working with the Examples
 
 Each example includes:
@@ -49,3 +55,5 @@ These examples are designed to be practical starting points for your own impleme
 | ⬅️ Previous | 🏠 Section | ➡️ Next |
 |:-----------|:----------:|------------:|
 | [Home](/docs/README.md) | [Home](/docs/README.md) | [Witness Example](/docs/examples/witness-example.md) |
+
+[🔝 Back to Top](#examples-top)

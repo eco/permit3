@@ -1,9 +1,13 @@
+<a id="quick-start-top"></a>
 # 🔏 Permit3 Quick Start Guide 🚀
+
+###### Quick Navigation: [Prerequisites](#prerequisites) | [Installation](#installation) | [Basic Integration](#basic-integration) | [Witness Functionality](#using-witness-functionality) | [Cross-Chain Operations](#cross-chain-operations) | [Common Operations](#common-operations) | [Best Practices](#best-practices) | [Troubleshooting](#troubleshooting)
 
 🧭 [Home](/docs/README.md) > [Guides](/docs/guides/README.md) > Quick Start
 
 This guide will help you quickly integrate Permit3 into your application, enabling cross-chain token approvals and transfers with witness functionality.
 
+<a id="prerequisites"></a>
 ## 📋 Prerequisites
 
 - 💻 An Ethereum development environment (Hardhat, Foundry, etc.)
@@ -11,6 +15,7 @@ This guide will help you quickly integrate Permit3 into your application, enabli
 - 💰 Familiarity with ERC20 tokens
 - 🔌 Access to the Permit3 contract address on your target chain(s)
 
+<a id="installation"></a>
 ## 📥 Installation
 
 ### Using npm
@@ -25,6 +30,7 @@ npm install @permit3/contracts
 forge install username/permit3
 ```
 
+<a id="basic-integration"></a>
 ## 🔌 Basic Integration
 
 ### 1️⃣  Initialize Permit3 Interface
@@ -139,6 +145,7 @@ function executePermit(
 }
 ```
 
+<a id="using-witness-functionality"></a>
 ## Using Witness Functionality
 
 Witness functionality allows you to include arbitrary data in your permits for enhanced verification.
@@ -239,6 +246,7 @@ function executeWitnessPermit(
 }
 ```
 
+<a id="cross-chain-operations"></a>
 ## Cross-Chain Operations
 
 Permit3 supports cross-chain operations with a single signature.
@@ -320,6 +328,7 @@ const optProof = {
 permit3.permit(owner, salt, deadline, timestamp, optProof, signature);
 ```
 
+<a id="common-operations"></a>
 ## Common Operations
 
 ### Setting an Allowance
@@ -366,6 +375,7 @@ const permitData = {
 };
 ```
 
+<a id="best-practices"></a>
 ## Best Practices
 
 1. **Use Unique Salts**: Generate cryptographically secure random values for salts
@@ -377,6 +387,7 @@ const permitData = {
 7. **Test Thoroughly**: Test all permit scenarios, including error cases
 8. **Gas Optimization**: Batch related operations when possible
 
+<a id="next-steps"></a>
 ## Next Steps
 
 - Learn about [Witness Functionality](../concepts/witness-functionality.md) in detail
@@ -384,6 +395,7 @@ const permitData = {
 - Check out the complete [API Reference](../api/api-reference.md)
 - See [Examples](../examples/README.md) for common implementation patterns
 
+<a id="troubleshooting"></a>
 ## Troubleshooting
 
 ### Signature Verification Fails
@@ -412,3 +424,5 @@ const permitData = {
 | ⬅️ Previous | 🏠 Section | ➡️ Next |
 |:-----------|:----------:|------------:|
 | [Guides](/docs/guides/README.md) | [Guides](/docs/guides/README.md) | [Witness Integration](/docs/guides/witness-integration.md) |
+
+[🔝 Back to Top](#quick-start-top)

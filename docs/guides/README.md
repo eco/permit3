@@ -1,9 +1,13 @@
+<a id="guides-top"></a>
 # 🔏 Permit3 Guides 📚
+
+###### Quick Navigation: [Available Guides](#available-guides) | [Getting Started](#getting-started) | [Common Use Cases](#common-use-cases)
 
 🧭 [Home](/docs/README.md) > Guides
 
 This section provides step-by-step guides for common Permit3 use cases.
 
+<a id="available-guides"></a>
 ## 📖 Available Guides
 
 | Guide | Description |
@@ -14,12 +18,14 @@ This section provides step-by-step guides for common Permit3 use cases.
 | [✍️ Signature Creation](./signature-creation.md) | Creating and signing permit operations |
 | [🛡️ Security Best Practices](./security-best-practices.md) | Best practices for secure Permit3 usage |
 
+<a id="getting-started"></a>
 ## 🏁 Getting Started
 
 If you're new to Permit3, we recommend starting with the [🚀 Quick Start Guide](./quick-start.md), which covers basic integration and common operations.
 
 For more advanced use cases, check out the specific guides for witness functionality and cross-chain operations.
 
+<a id="common-use-cases"></a>
 ## 💼 Common Use Cases
 
 ### 🔓 Basic Token Approval
@@ -59,3 +65,5 @@ For more advanced use cases like witness functionality and cross-chain operation
 | ⬅️ Previous | 🏠 Section | ➡️ Next |
 |:-----------|:----------:|------------:|
 | [Home](/docs/README.md) | [Home](/docs/README.md) | [Quick Start](/docs/guides/quick-start.md) |
+
+[🔝 Back to Top](#guides-top)

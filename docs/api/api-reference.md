@@ -5,6 +5,8 @@
 
 This document provides a comprehensive reference for the Permit3 API, including all public interfaces, function signatures, and data structures.
 
+###### Navigation: [Interfaces](#interfaces) | [Data Structures](#data-structures) | [Constants](#constants) | [Errors](#custom-errors) | [Functions](#function-signatures) | [Events](#events) | [EIP-712](#eip-712-domain-separator) | [Type Strings](#type-strings) | [Examples](#usage-examples) | [Modes](#operation-mode-reference) | [Error Reference](#error-reference) | [Nonce Management](#nonce-management-reference) | [Security](#security-considerations)
+
 <a id="interfaces"></a>
 ## 🔌 Interfaces
 

@@ -1,9 +1,13 @@
+<a id="api-top"></a>
 # 🔏 Permit3 API Reference 📋
 
 🧭 [Home](/docs/README.md) > API Reference
 
 This section provides comprehensive API documentation for Permit3.
 
+###### Navigation: [Documentation](#available-documentation) | [Key Interfaces](#key-interfaces) | [Function Categories](#function-categories) | [Using the API](#using-the-api)
+
+<a id="available-documentation"></a>
 ## 📚 Available Documentation
 
 | Document | Description |
@@ -14,6 +18,7 @@ This section provides comprehensive API documentation for Permit3.
 | [⚠️ Error Codes](./error-codes.md) | List of error codes and their meanings |
 | [🔌 Interfaces](./interfaces.md) | Documentation of Permit3 interfaces |
 
+<a id="key-interfaces"></a>
 ## 🔑 Key Interfaces
 
 ### 📄 IPermit3
@@ -46,6 +51,7 @@ interface INonceManager {
 }
 ```
 
+<a id="function-categories"></a>
 ## 🔍 Function Categories
 
 ### 🔏 Standard Permit Functions
@@ -68,6 +74,7 @@ Functions for managing token allowances with flexible modes.
 
 Functions for handling nonces to prevent replay attacks.
 
+<a id="using-the-api"></a>
 ## 🚀 Using the API
 
 For practical examples of using the Permit3 API, see the [💻 Examples](../examples/README.md) section.
