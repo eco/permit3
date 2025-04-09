@@ -9,9 +9,13 @@ A trader wants to rebalance their portfolio across five different networks with 
 
 For years, these scenarios required cumbersome processes: signing separate transactions for each chain, managing complex off-chain coordination, or relying on centralized bridges as intermediaries. The multi-chain ecosystem demanded a better solution—one that respected the sovereignty of each chain while enabling seamless interoperability.
 
+Signature based permits, offered a step function improvement. Initially native permits were used but they created additional overhead on applications to enable them for their users. Permit2 built on the idea by creating a singleton contract that could be used as a entrypoint to extend permit functionality to applications without requiring native support. 
+
 **That solution is Permit3 🔏**
 
 Permit3 introduces a revolutionary approach to cross-chain token operations. By combining cryptographic innovation (UnhingedMerkleTree proofs) with signature efficiency, it enables what was previously impossible: authorizing complex token operations across an unlimited number of blockchains with a single signature.
+
+Permit3 extends the concept of Permit2 but across chains, by using nested permits, a user is able to create a single signature on one chain which contain a set of permit3 transactions that can be executed on each chain defined in the permit3 signature.  
 
 Unlike traditional cross-chain solutions that force compromises between security and usability, Permit3 maintains the highest security standards while dramatically improving the user experience. Each chain processes only what's relevant to it, keeping gas costs optimized while still preserving the mathematically verifiable connection to operations on other chains.
 
