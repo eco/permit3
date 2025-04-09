@@ -1,9 +1,11 @@
+<a id="api-reference-top"></a>
 # 🔏 Permit3 API Reference 📘
 
 🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > API Reference
 
 This document provides a comprehensive reference for the Permit3 API, including all public interfaces, function signatures, and data structures.
 
+<a id="interfaces"></a>
 ## 🔌 Interfaces
 
 ### 📄 IPermit3
@@ -37,6 +39,7 @@ interface INonceManager {
 }
 ```
 
+<a id="data-structures"></a>
 ## 🧰 Data Structures
 
 ### 🔖 Enums
@@ -91,6 +94,7 @@ struct UnhingedPermitProof {
 }
 ```
 
+<a id="constants"></a>
 ## Constants
 
 ```solidity
@@ -117,6 +121,7 @@ string private constant _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
     "PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,";
 ```
 
+<a id="custom-errors"></a>
 ## Custom Errors
 
 ```solidity
@@ -130,6 +135,7 @@ error AllowanceLocked();
 error InvalidWitnessTypeString();
 ```
 
+<a id="function-signatures"></a>
 ## Function Signatures
 
 ### Standard Permit Functions
@@ -414,6 +420,7 @@ function nonceBitmap(
 
 **Returns:** The nonce bitmap at the specified position
 
+<a id="events"></a>
 ## Events
 
 ```solidity
@@ -437,6 +444,7 @@ event Permit(
 );
 ```
 
+<a id="eip-712-domain-separator"></a>
 ## EIP-712 Domain Separator
 
 Permit3 uses EIP-712 domain separation with the following parameters:
@@ -450,6 +458,7 @@ const domain = {
 };
 ```
 
+<a id="type-strings"></a>
 ## Type Strings
 
 ### Standard Permit
@@ -476,6 +485,7 @@ bytes32 witnessData)
 OrderData data)OrderData(uint256 orderId,uint256 price,uint256 expiration)
 ```
 
+<a id="usage-examples"></a>
 ## Usage Examples
 
 ### Basic Permit
@@ -607,6 +617,7 @@ permit3.permitWitnessTransferFrom(
 );
 ```
 
+<a id="operation-mode-reference"></a>
 ## Operation Mode Reference
 
 | Mode Value | Operation Type | Description |
@@ -617,6 +628,7 @@ permit3.permitWitnessTransferFrom(
 | 3 | Unlock | Unlock previously locked allowance |
 | > 3 | Increase | Increase allowance with expiration timestamp |
 
+<a id="error-reference"></a>
 ## Error Reference
 
 | Error | Description | Mitigation |
@@ -627,6 +639,7 @@ permit3.permitWitnessTransferFrom(
 | `AllowanceLocked()` | Account is in locked state | Unlock with newer timestamp before operations |
 | `InvalidWitnessTypeString()` | Witness type string is malformed | Ensure type string is valid EIP-712 format with closing parenthesis |
 
+<a id="nonce-management-reference"></a>
 ## Nonce Management Reference
 
 Permit3 uses a bitmap-based nonce system:
@@ -642,6 +655,7 @@ This approach:
 - Optimizes gas usage for nonce tracking
 - Supports cross-chain nonce management
 
+<a id="security-considerations"></a>
 ## Security Considerations
 
 - **Signature Expiration**: Always set reasonable deadlines

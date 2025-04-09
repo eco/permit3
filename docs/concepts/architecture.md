@@ -1,9 +1,11 @@
+<a id="architecture-top"></a>
 # 🔏 Permit3 Architecture 🏛️
 
 🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Architecture
 
 This document provides a comprehensive overview of the Permit3 architecture, explaining how its components work together to enable cross-chain token approvals and transfers.
 
+<a id="overview"></a>
 ## 🔍 Overview
 
 Permit3 is a cross-chain token approval and transfer system that extends the functionality of Permit2 with advanced features:
@@ -14,6 +16,7 @@ Permit3 is a cross-chain token approval and transfer system that extends the fun
 4. 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification
 5. 🔏 **EIP-712 Typed Signatures**: Secure signature verification with structured data
 
+<a id="core-components"></a>
 ## 🧱 Core Components
 
 The Permit3 system consists of three main components:
@@ -45,6 +48,7 @@ Handles nonce management for replay protection:
 - 🧂 Implements salt-based signature replay protection
 - 🏷️ Provides domain separation for EIP-712 signatures
 
+<a id="contract-inheritance-structure"></a>
 ## Contract Inheritance Structure
 
 ```
@@ -65,6 +69,7 @@ Handles nonce management for replay protection:
                  └───────────────┘
 ```
 
+<a id="key-data-structures"></a>
 ## Key Data Structures
 
 ### Allowance Structure
@@ -107,6 +112,7 @@ struct Permit3Proof {
 }
 ```
 
+<a id="core-operations"></a>
 ## Core Operations
 
 ### 1. Permit Processing
@@ -205,6 +211,7 @@ Witness functionality extends the standard permit flow:
 3. **Processing**:
    After verification, the permit is processed using the standard flow while the application can verify the witness data.
 
+<a id="cross-chain-mechanism"></a>
 ## Cross-Chain Mechanism
 
 Permit3 enables cross-chain operations through hash chaining:
@@ -242,6 +249,7 @@ bytes32 signedHash = keccak256(abi.encode(
 ));
 ```
 
+<a id="security-features"></a>
 ## Security Features
 
 Permit3 implements several security features:
@@ -271,6 +279,7 @@ Permit3 implements several security features:
    - Prevents race conditions in cross-chain operations
    - Critical for asynchronous allowance updates
 
+<a id="gas-optimization"></a>
 ## Gas Optimization
 
 Permit3 implements several gas optimization strategies:
@@ -295,6 +304,7 @@ Permit3 implements several gas optimization strategies:
    - Single signature for multiple chains
    - Optimized hash chaining
 
+<a id="integration-with-external-systems"></a>
 ## Integration with External Systems
 
 Permit3 is designed for seamless integration:
@@ -314,6 +324,19 @@ Permit3 is designed for seamless integration:
    - Witness functionality for custom verification
    - Support for complex integration patterns
 
+<a id="security-audits"></a>
+## Security Audits
+
+Permit3 has undergone comprehensive security audits by leading blockchain security firms to ensure that the protocol is robust and secure. The audits focused on key aspects of the protocol including:
+
+1. **Smart Contract Security**: Identifying potential vulnerabilities in the contract code
+2. **Cross-Chain Security**: Validating the security of cross-chain operation mechanisms
+3. **Cryptographic Verification**: Ensuring the correct implementation of signature schemes and hash functions
+4. **Gas Optimization**: Verifying that gas optimizations don't compromise security
+
+To review the complete audit reports, visit the [security documentation](/docs/security/audit-reports.md).
+
+<a id="conclusion"></a>
 ## Conclusion
 
 The Permit3 architecture provides a flexible, secure, and gas-efficient system for cross-chain token approvals and transfers. By extending Permit2 with advanced features like witness functionality and non-sequential nonces, it enables new use cases while maintaining backward compatibility.
