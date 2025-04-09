@@ -172,9 +172,24 @@ To generate an Unhinged Merkle Tree:
    - Include the balanced subtree proof for the relevant elements
    - Include the roots of all subsequent chains in `followingHashes`
 
-### Chain Ordering
+### Chain Ordering for Gas Optimization
 
-For consistent results across implementations, chains must be processed in a canonical ordering. This EIP recommends ordering by chain ID in ascending order, but implementations may choose other ordering schemes (such as gas efficiency) as long as the ordering is consistent and specified.
+For optimal gas efficiency, chains should be strategically ordered based on their calldata costs within the Unhinged Merkle Tree:
+
+1. **Cost-Based Ordering**: Order chains from lowest calldata cost to highest calldata cost
+   - Place chains with cheaper calldata (typically L2s like Arbitrum, Optimism) earlier in the sequence
+   - Place chains with expensive calldata (like Ethereum mainnet) at the end of the sequence
+
+2. **Benefits of This Approach**:
+   - Minimizes proof size for expensive chains: Chain at the end of the sequence only needs a single preHash value
+   - Optimizes overall cross-chain gas costs: Larger proof data is only required on chains where calldata is cheaper
+   - Makes cross-chain operations more economically viable
+
+While ordering by chain ID in ascending order provides consistency, the cost-optimized ordering provides significant gas savings. Implementations should document their ordering strategy clearly.
+
+**Example**: For a cross-chain operation spanning Ethereum (expensive calldata), Arbitrum and Optimism (cheaper calldata), the recommended ordering would be:
+1. Arbitrum, Optimism, ... first (with larger proofs on these cheaper chains)
+2. Ethereum last (with minimal proof data on this expensive chain)
 
 ## Rationale
 

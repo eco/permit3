@@ -170,13 +170,24 @@ if (allowed.expiration == LOCKED_ALLOWANCE &&
 - Prevents cross-chain race conditions
 - Maintains consistent state across chains
 
-### Cross-Chain Operations
+### Cross-Chain Operations with Gas Optimization
 
-#### UnhingedProofs Structure
+#### UnhingedProofs Structure for Optimal Gas Efficiency
 ```javascript
 // Example: Three-chain operation with UnhingedProofs
-const unhingedRoot = UnhingedMerkleTree.createUnhingedRoot([chainARoot, chainBRoot, chainCRoot]);
+// Chains ordered from cheapest to most expensive calldata
+const cheapChainRoot = permit3.hashChainPermits(ArbitrumPermissions);  // L2 with lower calldata costs
+const mediumChainRoot = permit3.hashChainPermits(OptimismPermissions); // L2 with moderate calldata costs
+const expensiveChainRoot = permit3.hashChainPermits(EthereumPermissions); // L1 with highest calldata costs
+
+// Order chains strategically: cheapest first, most expensive last
+const unhingedRoot = UnhingedMerkleTree.createUnhingedRoot([cheapChainRoot, mediumChainRoot, expensiveChainRoot]);
 ```
+
+This strategic ordering optimizes gas consumption across all chains:
+- Chains with expensive calldata (like Ethereum mainnet) are positioned last, requiring only a minimal preHash value
+- Chains with cheaper calldata (like L2s) are positioned earlier, where larger proof structures are more economical
+- Overall cross-chain transaction costs are minimized, making complex operations viable
 
 ### How It Works
 
@@ -257,18 +268,33 @@ root3 = permit3.hashChainPermits(OptimismPermissions);
 unhingedRoot = UnhingedMerkleTree.hashLink(UnhingedMerkleTree.hashLink(root1, root2), root3);
 ```
 
-2. **Using UnhingedProofs**
+2. **Using UnhingedProofs with Cost Optimization**
 ```solidity
-// On Arbitrum, you prove:
+// For Ethereum (expensive chain, positioned last in the tree):
 {
     "unhingedProof": {
-        "preHash": root1,
+        "preHash": keccak256(root1, root2), // Combined hash of cheaper chains
+        "subtreeProof": [proofForEthereumPermissions],
+        "followingHashes": [] // No following hashes needed (minimal calldata)
+    },
+    "permits": EthereumPermissions
+}
+
+// For Arbitrum (cheap chain, positioned first in the tree):
+{
+    "unhingedProof": {
+        "preHash": bytes32(0), // No preHash needed for first chain
         "subtreeProof": [proofForArbitrumPermissions],
-        "followingHashes": [root3]
+        "followingHashes": [root2, root3] // More data, but on a cheaper chain
     },
     "permits": ArbitrumPermissions
 }
 ```
+
+This approach ensures that:
+- The expensive chain (Ethereum) uses minimal calldata (just a preHash)
+- Cheaper chains carry more of the proof data burden
+- Overall gas costs across the ecosystem are minimized
 
 ## Security
 
