@@ -1,9 +1,16 @@
-# Permit3 Error Codes
+<a id="error-codes-top"></a>
+# 🔏 Permit3 Error Codes ⚠️
+
+🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Error Codes
 
 This document provides a comprehensive reference for all error codes that can be thrown by the Permit3 system.
 
+###### Navigation: [Core Errors](#core-errors) | [Signature Errors](#signature-errors) | [Nonce Errors](#nonce-errors) | [Chain Errors](#chain-errors) | [Witness Errors](#witness-errors) | [Allowance Errors](#allowance-errors) | [Proof Errors](#proof-errors) | [Best Practices](#error-handling-best-practices) | [Cross-Chain](#cross-chain-error-handling)
+
+<a id="core-errors"></a>
 ## Core Errors
 
+<a id="signature-errors"></a>
 ### Signature Errors
 
 #### SignatureExpired
@@ -45,6 +52,7 @@ Thrown when the provided signature does not match the expected signer or data.
 - Ensure correct domain parameters (name, version, chainId, contract address)
 - Check that the signer is the token owner
 
+<a id="nonce-errors"></a>
 ### Nonce Errors
 
 #### NonceAlreadyUsed
@@ -66,6 +74,7 @@ Thrown when attempting to use a nonce (salt) that has already been used.
 - Check if a nonce is already used with `isNonceUsed()` before submitting transaction
 - Track used nonces in your application
 
+<a id="chain-errors"></a>
 ### Chain Errors
 
 #### WrongChainId
@@ -91,6 +100,7 @@ Thrown when the chainId in the permit doesn't match the actual chain where the t
 - Always include the correct chainId in ChainPermits
 - Use chain-specific validity checks in your dApp
 
+<a id="witness-errors"></a>
 ### Witness Errors
 
 #### InvalidWitnessTypeString
@@ -112,6 +122,7 @@ Thrown when the witnessTypeString is not properly formatted according to EIP-712
 - Verify type strings end with a closing parenthesis ')'
 - Test witness verification with correct format before deploying
 
+<a id="allowance-errors"></a>
 ### Allowance Errors
 
 #### AllowanceLocked
@@ -133,6 +144,7 @@ Thrown when attempting to modify an allowance that is in the locked state.
 - Use the unlock operation (mode 3) to remove the lock
 - Ensure the unlock operation has a more recent timestamp than the lock
 
+<a id="proof-errors"></a>
 ### Proof Errors
 
 #### InvalidUnhingedProof
@@ -156,6 +168,7 @@ Thrown when the provided UnhingedProof fails verification against the signed roo
 - Verify proofs locally before submitting
 - Ensure proper handling of the hasPreHash flag
 
+<a id="error-handling-best-practices"></a>
 ## Error Handling Best Practices
 
 ### Client-Side Error Prevention
@@ -187,6 +200,7 @@ Thrown when the provided UnhingedProof fails verification against the signed roo
 | Allowance | AllowanceLocked | Medium | Yes | Check lock status first |
 | Proof | InvalidUnhingedProof | High | Yes | Verify proof locally |
 
+<a id="cross-chain-error-handling"></a>
 ## Cross-Chain Error Handling
 
 When working with cross-chain permits, additional considerations apply:

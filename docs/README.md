@@ -1,6 +1,7 @@
 <a id="documentation-top"></a>
 # 🔏 Permit3 Documentation 📖
 
+<a id="cross-chain-revolution"></a>
 ## The Cross-Chain Revolution
 
 Imagine a world where blockchain boundaries no longer limit what you can build. 
@@ -17,6 +18,7 @@ Unlike traditional cross-chain solutions that force compromises between security
 
 This documentation will guide you through understanding and implementing Permit3 in your applications, from the core cryptographic concepts to practical integration patterns. Whether you're building a cross-chain DEX, a multi-chain wallet, or a complex DeFi protocol, Permit3 provides the foundation for a true cross-chain future.
 
+<a id="documentation-sections"></a>
 ## 📑 Documentation Sections
 
 | Section | Description |
@@ -25,6 +27,8 @@ This documentation will guide you through understanding and implementing Permit3
 | [Guides](#guides) | Step-by-step tutorials for common use cases |
 | [API Reference](#api-reference) | Complete API documentation and function references |
 | [Examples](#examples) | Code examples demonstrating practical implementations |
+
+###### Quick Navigation: [Revolution](#cross-chain-revolution) | [Sections](#documentation-sections) | [Core Concepts](#core-concepts) | [Guides](#guides) | [API Reference](#api-reference) | [Examples](#examples) | [Features](#feature-highlights) | [Resources](#additional-resources) | [Future](#future-cross-chain)
 
 <a id="core-concepts"></a>
 ## 🏗️ Core Concepts
@@ -95,6 +99,7 @@ Permit3 provides the foundation for your cross-chain vision.
 
 Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to get a basic implementation up and running in minutes. Then explore the [Core Concepts](./concepts/README.md) to understand the powerful cryptography that makes it all possible.
 
+<a id="feature-highlights"></a>
 ## 🔍 Feature Highlights
 
 | Feature | Description |
@@ -106,6 +111,7 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 | **Security Controls** | Robust security features including account locking and permission revocation |
 | **Permit2 Compatibility** | Compatibility with contracts that are already using Permit2 for transfers, allowing them to work with Permit3 without any changes |
 
+<a id="additional-resources"></a>
 ## 🔧 Additional Resources
 
 - [GitHub Repository](https://github.com/permit3/permit3)
@@ -113,6 +119,7 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 - [Security Audits](./concepts/architecture.md#security-audits)
 - [License](../LICENSE)
 
+<a id="future-cross-chain"></a>
 ## 🌐 The Future is Cross-Chain
 
 The blockchain ecosystem is no longer a collection of isolated chains but an interconnected network of specialized blockchains, each with its unique strengths. Permit3 embraces this multi-chain reality, providing the critical infrastructure needed to build seamless experiences across chains.

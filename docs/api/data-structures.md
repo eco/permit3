@@ -1,7 +1,13 @@
+<a id="data-structures-top"></a>
 # 🔏 Permit3 Data Structures 📋
+
+🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Data Structures
 
 This document provides a detailed reference of all data structures used in Permit3.
 
+###### Navigation: [Core Structures](#core-data-structures) | [UnhingedMerkleTree](#unhingedmerkletree-structures) | [Relations](#relations-between-structures) | [Gas Optimization](#gas-optimization-note)
+
+<a id="core-data-structures"></a>
 ## Core Data Structures
 
 ### AllowanceOrTransfer
@@ -103,6 +109,7 @@ struct NoncesToInvalidate {
 
 - **salts**: Array of salt values to mark as used/invalid
 
+<a id="unhingedmerkletree-structures"></a>
 ## UnhingedMerkleTree Structures
 
 ### UnhingedProof
@@ -129,6 +136,7 @@ struct UnhingedProof {
   - Next 15 bits: Reserved for future use
   - Last bit: hasPreHash flag (1 if preHash is present, 0 if not)
 
+<a id="relations-between-structures"></a>
 ## Relations Between Structures
 
 ```
@@ -152,6 +160,7 @@ struct UnhingedProof {
 
 This diagram shows how the different data structures relate to each other in the Permit3 system, particularly for cross-chain operations.
 
+<a id="gas-optimization-note"></a>
 ## Gas Optimization Note
 
 Many of these structures are specifically designed for gas optimization:

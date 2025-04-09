@@ -1,9 +1,13 @@
+<a id="cross-chain-operations-top"></a>
 # 🔏 Permit3 Cross-Chain Operations 🌉
 
 🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Cross-Chain Operations
 
 This document explains how Permit3 enables token operations across multiple blockchains with a single signature.
 
+###### Navigation: [Overview](#overview) | [How It Works](#how-cross-chain-operations-work) | [Legacy Hash Chaining](#legacy-hash-chaining-mechanism) | [Unhinged Trees](#unhinged-merkle-tree-approach) | [Proof Structures](#proof-structures) | [Example](#example-cross-chain-token-approval) | [Chain Ordering](#chain-ordering-and-gas-optimization) | [Witness Functionality](#cross-chain-witness-functionality) | [Security](#security-considerations) | [Limitations](#limitations-and-considerations)
+
+<a id="overview"></a>
 ## Overview
 
 One of the most powerful features of Permit3 is the ability to authorize token operations across multiple blockchains with a single signature. This is achieved through two complementary techniques:
@@ -13,6 +17,7 @@ One of the most powerful features of Permit3 is the ability to authorize token o
 
 Both approaches allow different portions of a signed message to be verified and executed on different chains, with Unhinged Merkle Trees providing better gas efficiency.
 
+<a id="how-cross-chain-operations-work"></a>
 ## How Cross-Chain Operations Work
 
 The cross-chain mechanism in Permit3 involves these key steps:
@@ -23,6 +28,7 @@ The cross-chain mechanism in Permit3 involves these key steps:
 4. **Cross-Chain Proof**: Create a proof for each chain that links the chain's permits to the root hash
 5. **Execution**: Submit the proof and signature on each chain for verification and execution
 
+<a id="legacy-hash-chaining-mechanism"></a>
 ### Legacy Hash Chaining Mechanism
 
 The original hash chaining technique creates a single root hash that represents permit operations across multiple chains:
@@ -36,6 +42,7 @@ chainC_hash = hash(chainC_permits)
 root_hash = hash(hash(hash(chainA_hash), chainB_hash), chainC_hash)
 ```
 
+<a id="unhinged-merkle-tree-approach"></a>
 ### Unhinged Merkle Tree Approach
 
 The newer, more gas-efficient approach uses Unhinged Merkle Trees:
@@ -58,6 +65,7 @@ unhinged_root = hash(unhinged_root, chainC_root)
 
 This root hash is what the user signs. When executing on any specific chain, a proof is provided that links that chain's permits to the root hash.
 
+<a id="proof-structures"></a>
 ## Proof Structures
 
 Permit3 offers two proof structures for cross-chain operations:
@@ -89,6 +97,7 @@ struct UnhingedProof {
 
 The Unhinged Merkle Tree approach is more gas-efficient as it packs data more compactly and optimizes verification.
 
+<a id="example-cross-chain-token-approval"></a>
 ## Example: Cross-Chain Token Approval
 
 Let's walk through practical examples of setting up approvals on Ethereum, Arbitrum, and Optimism with a single signature using both approaches.
@@ -391,6 +400,7 @@ await permit3.permitUnhinged(
 );
 ```
 
+<a id="cross-chain-witness-functionality"></a>
 ## Cross-Chain Witness Functionality
 
 Permit3 also supports witness functionality in cross-chain operations, allowing you to include custom data in the signature verification process across multiple chains.
@@ -417,6 +427,7 @@ await permit3.permitWitnessTransferFrom(
 );
 ```
 
+<a id="chain-ordering-and-gas-optimization"></a>
 ## Chain Ordering and Gas Optimization
 
 The order of chains in the Unhinged Merkle Tree structure is critically important for gas optimization. To minimize overall transaction costs across all chains, you should order chains strategically based on their calldata costs:
@@ -448,6 +459,7 @@ Consider a scenario with operations on Ethereum (high calldata cost) and two L2s
 
 The efficient ordering could save 50% or more on the total gas cost for cross-chain operations, making previously uneconomical cross-chain interactions viable.
 
+<a id="security-considerations"></a>
 ## Security Considerations
 
 When working with cross-chain operations in Permit3, keep these security considerations in mind:
@@ -458,6 +470,7 @@ When working with cross-chain operations in Permit3, keep these security conside
 4. **Timestamp Ordering**: Be aware of timestamp-based operation ordering across chains
 5. **Proof Verification**: Ensure proofs correctly link chain-specific permits to the root hash
 
+<a id="limitations-and-considerations"></a>
 ## Limitations and Considerations
 
 - **Atomicity**: Cross-chain operations are not atomic; each chain's operations execute independently

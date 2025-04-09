@@ -1,13 +1,18 @@
+<a id="witness-example-top"></a>
 # 🔏 Permit3 Witness Functionality Example 🧩
+
+###### Quick Navigation: [Use Case](#use-case-orderbook-dex-with-witness-data) | [Order Structure](#step-1-define-order-structure) | [Witness Data](#step-2-witness-data-encoding-and-verification) | [Order Execution](#step-3-execute-order-with-witness) | [Client-Side](#step-4-client-side-order-creation-and-signing) | [Multi-Signature Example](#advanced-example-multi-signature-order-execution) | [Key Takeaways](#summary-and-key-takeaways)
 
 🧭 [Home](/docs/README.md) > [Examples](/docs/examples/README.md) > Witness Example
 
 This example demonstrates how to implement and use Permit3's witness functionality in a decentralized exchange scenario.
 
+<a id="use-case-orderbook-dex-with-witness-data"></a>
 ## 📊 Use Case: Orderbook DEX with Witness Data
 
 In this example, we'll create a decentralized exchange where orders are submitted off-chain and executed on-chain using Permit3's witness functionality to verify order parameters.
 
+<a id="step-1-define-order-structure"></a>
 ### 📝  Step 1: Define Order Structure
 
 First, we define the order structure that will be encoded in the witness data:
@@ -42,6 +47,7 @@ contract OrderBook {
 }
 ```
 
+<a id="step-2-witness-data-encoding-and-verification"></a>
 ### 🔍  Step 2: Witness Data Encoding and Verification
 
 Next, we implement functions to encode and verify order data as witness:
@@ -68,6 +74,7 @@ function getWitnessTypeString() public pure returns (string memory) {
 }
 ```
 
+<a id="step-3-execute-order-with-witness"></a>
 ### Step 3: Execute Order with Witness
 
 Now we implement the order execution function that uses Permit3's witness functionality:
@@ -173,6 +180,7 @@ event OrderExecuted(
 );
 ```
 
+<a id="step-4-client-side-order-creation-and-signing"></a>
 ### Step 4: Client-Side Order Creation and Signing
 
 Here's how to create and sign an order using ethers.js:
@@ -294,6 +302,7 @@ async function createAndSignOrder(
 }
 ```
 
+<a id="step-5-execute-order-from-client"></a>
 ### Step 5: Execute Order from Client
 
 Here's how to execute an order using the signed data:
@@ -328,6 +337,7 @@ async function executeOrder(orderBookContract, signedOrderData) {
 }
 ```
 
+<a id="advanced-example-multi-signature-order-execution"></a>
 ## Advanced Example: Multi-Signature Order Execution
 
 This example extends the basic order execution to require multiple signatures for high-value orders.
@@ -696,6 +706,7 @@ async function createAndSignMultiSigOrder(
 }
 ```
 
+<a id="summary-and-key-takeaways"></a>
 ## Summary and Key Takeaways
 
 This example demonstrates how Permit3's witness functionality can be used to create powerful and flexible token permission systems. Key points to remember:
@@ -721,3 +732,5 @@ By leveraging Permit3's witness functionality, you can create more secure and so
 | ⬅️ Previous | 🏠 Section | ➡️ Next |
 |:-----------|:----------:|------------:|
 | [Examples](/docs/examples/README.md) | [Examples](/docs/examples/README.md) | [Cross-Chain Example](/docs/examples/cross-chain-example.md) |
+
+[🔝 Back to Top](#witness-example-top)

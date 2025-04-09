@@ -1,9 +1,13 @@
+<a id="unhinged-merkle-tree-top"></a>
 # 🔏 Permit3: Unhinged Merkle Trees 🌲
 
 🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Unhinged Merkle Trees
 
 Unhinged Merkle Trees are a key innovation in Permit3 that enables efficient cross-chain proofs while minimizing gas costs. This document explains what they are, how they work, and how they're used within the Permit3 system.
 
+###### Navigation: [What Are They](#what-are-unhinged-merkle-trees) | [Why "Unhinged"](#why-unhinged) | [Key Structure](#key-structure-a-two-part-design) | [Working Together](#how-the-two-parts-work-together) | [Cross-Chain Use](#applied-to-cross-chain-use-cases) | [Gas Optimization](#gas-optimization-through-chain-ordering) | [Proof Structure](#proof-structure) | [Verification](#verification-process) | [Implementation](#implementation-in-permit3) | [Example](#example-cross-chain-permit-with-unhinged-merkle-tree) | [Benefits](#benefits-of-unhinged-merkle-trees) | [Applications](#applications-beyond-permit3) | [Comparison](#comparison-with-other-approaches) | [Conclusion](#conclusion)
+
+<a id="what-are-unhinged-merkle-trees"></a>
 ## 🤔 What are Unhinged Merkle Trees?
 
 Unhinged Merkle Trees are a hybrid data structure that combines two proven cryptographic patterns in a specific, two-part structure:
@@ -13,10 +17,12 @@ Unhinged Merkle Trees are a hybrid data structure that combines two proven crypt
 
 This approach was specifically designed to solve the problem of cross-chain proofs while optimizing for gas efficiency, where each blockchain only needs to process what's relevant to it.
 
+<a id="why-unhinged"></a>
 ## 🏷️ Why "Unhinged"?
 
 The name "Unhinged" refers to the deliberate deviation from traditional balanced Merkle trees at the top level. Unlike classic Merkle trees that maintain balance throughout, Unhinged Merkle Trees use an "unhinged" (sequential) structure at the top level to optimize for cross-chain verifications.
 
+<a id="key-structure-a-two-part-design"></a>
 ## 🧩 Key Structure: A Two-Part Design
 
 The key insight of the Unhinged Merkle Tree is its two-part structure:
@@ -50,6 +56,7 @@ This hybrid approach gives us the benefits of both structures:
 - Sequential processing efficiency from the chain part
 - Ability to include both tree-structured and sequential data in one root
 
+<a id="how-the-two-parts-work-together"></a>
 ## How the Two Parts Work Together
 
 1. **Balanced Subtree**:
@@ -63,6 +70,7 @@ This hybrid approach gives us the benefits of both structures:
    - Each hash represents data that should be included but doesn't need the efficiency of a balanced tree
    - The final hash in the chain is the Unhinged Root that gets signed
 
+<a id="applied-to-cross-chain-use-cases"></a>
 ## Applied to Cross-Chain Use Cases
 
 In the cross-chain context:
@@ -74,6 +82,7 @@ This allows each chain to:
 2. Include other chains' operations in the overall signed root (unhinged chain part)
 3. Minimize gas usage by only processing what's relevant to the current chain
 
+<a id="gas-optimization-through-chain-ordering"></a>
 ### Gas Optimization Through Chain Ordering
 
 A critical aspect of Unhinged Merkle Trees for cross-chain operations is the strategic ordering of chains based on their calldata costs:
@@ -89,6 +98,7 @@ This ordering strategy provides substantial gas savings because:
 
 By ordering chains according to their calldata costs, a single signature can authorize operations across multiple networks while ensuring optimal gas efficiency on each chain.
 
+<a id="proof-structure"></a>
 ## Proof Structure
 
 Permits3 uses an optimized proof structure for Unhinged Merkle Trees:
@@ -134,6 +144,7 @@ You should set hasPreHash=true in these scenarios:
 - When verification depends on the combined hash of previous chains
 - When preserving the complete verification path is important
 
+<a id="verification-process"></a>
 ## Verification Process
 
 To verify that an element is included in an Unhinged Merkle Tree:
@@ -154,6 +165,7 @@ To verify that an element is included in an Unhinged Merkle Tree:
    - Compare the final calculated hash against the signed Unhinged Root
    - If they match, the proof is valid
 
+<a id="implementation-in-permit3"></a>
 ## Implementation in Permit3
 
 Permit3 implements Unhinged Merkle Trees through:
@@ -186,6 +198,7 @@ function extractCounts(bytes32 counts) internal pure returns (uint120 subtreePro
 function packCounts(uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash) internal pure returns (bytes32)
 ```
 
+<a id="example-cross-chain-permit-with-unhinged-merkle-tree"></a>
 ## Example: Cross-Chain Permit with Unhinged Merkle Tree
 
 Here's how Unhinged Merkle Trees are used in a cross-chain permit scenario:
@@ -246,6 +259,7 @@ UnhingedPermitProof memory proof = {
 permit3.permitUnhinged(owner, salt, deadline, timestamp, proof, signature);
 ```
 
+<a id="benefits-of-unhinged-merkle-trees"></a>
 ## Benefits of Unhinged Merkle Trees
 
 1. **Gas Efficiency**: Each chain only processes what's relevant to it
@@ -254,6 +268,7 @@ permit3.permitUnhinged(owner, salt, deadline, timestamp, proof, signature);
 4. **Flexible Structure**: Supports arbitrary numbers of chains and operations
 5. **Security**: Maintains cryptographic integrity across chain boundaries
 
+<a id="applications-beyond-permit3"></a>
 ## Applications Beyond Permit3
 
 Unhinged Merkle Trees have applications beyond token approvals:
@@ -263,6 +278,7 @@ Unhinged Merkle Trees have applications beyond token approvals:
 - Cross-chain message passing systems
 - Layer 2 rollup systems with shared state
 
+<a id="comparison-with-other-approaches"></a>
 ## Comparison with Other Approaches
 
 | Approach | Pros | Cons |
@@ -272,6 +288,7 @@ Unhinged Merkle Trees have applications beyond token approvals:
 | Hash Lists | Very simple | No efficient inclusion proofs |
 | **Unhinged Merkle Trees** | Efficiency, flexibility, compact proofs | Novel approach (fewer existing implementations) |
 
+<a id="conclusion"></a>
 ## Conclusion
 
 Unhinged Merkle Trees represent a significant innovation in cross-chain cryptographic proof systems. By combining the strengths of balanced Merkle trees and sequential hash chaining, they provide an optimal solution for cross-chain operations within Permit3.

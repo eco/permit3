@@ -1,7 +1,13 @@
+<a id="interfaces-top"></a>
 # 🔏 Permit3 Interfaces 🔌
+
+🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Interfaces
 
 This document provides a comprehensive reference of all interfaces in the Permit3 system.
 
+###### Navigation: [IPermit3](#ipermit3) | [IPermit](#ipermit) | [INonceManager](#inoncemanager) | [IUnhingedMerkleTree](#iunhingedmerkletree) | [Inheritance Diagram](#interface-inheritance-diagram) | [Implementation Contracts](#implementation-contracts)
+
+<a id="ipermit3"></a>
 ## 📄 IPermit3
 
 The main interface for Permit3, combining IPermit and INonceManager functionality plus additional features.
@@ -89,6 +95,7 @@ interface IPermit3 is IPermit, INonceManager {
 }
 ```
 
+<a id="ipermit"></a>
 ## 📃 IPermit
 
 Interface providing compatibility with Permit2 functions.
@@ -143,6 +150,7 @@ interface IPermit {
 }
 ```
 
+<a id="inoncemanager"></a>
 ## 🧮 INonceManager
 
 Interface for managing nonces (salts) to prevent replay attacks.
@@ -160,6 +168,7 @@ interface INonceManager {
 }
 ```
 
+<a id="iunhingedmerkletree"></a>
 ## 🌲 IUnhingedMerkleTree
 
 Interface for the UnhingedMerkleTree library providing cross-chain proof functionality.
@@ -196,6 +205,7 @@ library UnhingedMerkleTree {
 }
 ```
 
+<a id="interface-inheritance-diagram"></a>
 ## 📊 Interface Inheritance Diagram
 
 ```
@@ -228,6 +238,7 @@ library UnhingedMerkleTree {
 
 This diagram shows the inheritance relationship between interfaces in the Permit3 system.
 
+<a id="implementation-contracts"></a>
 ## 📁 Implementation Contracts
 
 The main contracts implementing these interfaces are:

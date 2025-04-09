@@ -1,9 +1,16 @@
-# Permit3 Events
+<a id="events-top"></a>
+# 🔏 Permit3 Events 📣
+
+🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Events
 
 This document provides a comprehensive reference for all events emitted by the Permit3 system.
 
+###### Navigation: [Core Events](#core-events) | [Permit Event](#permit) | [NonceInvalidation](#nonceinvalidation) | [NonceUsed](#nonceused) | [Event Flows](#event-flow-diagrams) | [Cross-Chain Considerations](#cross-chain-event-considerations) | [Indexing](#indexing-and-monitoring)
+
+<a id="core-events"></a>
 ## Core Events
 
+<a id="permit"></a>
 ### Permit
 
 Emitted when a permit operation is processed, including allowance updates or transfers.
@@ -24,6 +31,7 @@ event Permit(
 - Monitor spending permissions
 - Track operation ordering by timestamp
 
+<a id="nonceinvalidation"></a>
 ### NonceInvalidation
 
 Emitted when a nonce (salt) is manually invalidated.
@@ -40,6 +48,7 @@ event NonceInvalidation(
 - Tracking revoked permissions
 - Audit logging
 
+<a id="nonceused"></a>
 ### NonceUsed
 
 Emitted when a nonce (salt) is used in a permit operation.
@@ -56,6 +65,7 @@ event NonceUsed(
 - Preventing replay attacks
 - Monitoring signature usage
 
+<a id="event-flow-diagrams"></a>
 ## Event Flow Diagrams
 
 ### Permit Flow
@@ -121,6 +131,7 @@ event NonceUsed(
        │                   │
 ```
 
+<a id="cross-chain-event-considerations"></a>
 ## Cross-Chain Event Considerations
 
 When using Permit3 across multiple chains, the same events are emitted on each chain where operations occur. To track cross-chain operations:
@@ -131,6 +142,7 @@ When using Permit3 across multiple chains, the same events are emitted on each c
 
 This allows applications to correlate related events across different blockchains by matching salt, owner, and timestamp values.
 
+<a id="indexing-and-monitoring"></a>
 ## Indexing and Monitoring
 
 Permit3 events are designed to be easily indexed by subgraphs and monitoring services. Key strategies include:
