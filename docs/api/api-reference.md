@@ -198,6 +198,29 @@ function permit(
 - Validates signature against owner and unhinged root
 - Processes permits for current chain only
 
+#### Direct Permit (ERC-7702 Integration)
+
+```solidity
+function permit(
+    AllowanceOrTransfer[] memory permits
+) external;
+```
+
+**Parameters:**
+- `permits`: Array of permit operations to execute on current chain
+
+**Behavior:**
+- Uses `msg.sender` as the token owner (no signature verification)
+- Automatically uses current `block.chainid` (no need to specify)
+- Processes permits directly (allowance updates or transfers)
+- Designed for ERC-7702 delegatecall usage where caller authority is verified via authorization
+
+**Use Cases:**
+- ERC-7702 Token Approver integration
+- Direct permit execution without signatures
+- Simplified permit operations for trusted callers
+- Single-chain operations where caller has direct authority
+
 ### Witness Permit Functions
 
 #### Single Chain Witness Permit

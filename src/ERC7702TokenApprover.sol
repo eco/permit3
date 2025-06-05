@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import { IERC7702TokenApprover } from "./interfaces/IERC7702TokenApprover.sol";
+import { IPermit3 } from "./interfaces/IPermit3.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /**
@@ -50,5 +51,17 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
                 revert ApprovalFailed(token);
             }
         }
+    }
+
+    /**
+     * @notice Execute permit operations directly on Permit3
+     * @dev This function is designed to be called via ERC-7702 delegatecall from an EOA
+     *      The caller becomes the token owner for the permit operations
+     * @param permits Array of permit operations to execute on current chain
+     */
+    function permit(
+        IPermit3.AllowanceOrTransfer[] memory permits
+    ) external {
+        IPermit3(PERMIT3).permit(permits);
     }
 }

@@ -2,6 +2,8 @@
 pragma solidity ^0.8.27;
 
 import { ERC7702TokenApprover } from "../src/ERC7702TokenApprover.sol";
+import { Permit3 } from "../src/Permit3.sol";
+import { IPermit3 } from "../src/interfaces/IPermit3.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { Test } from "forge-std/Test.sol";
 
@@ -56,20 +58,32 @@ contract MockEOA {
         (bool success,) = address(approver).delegatecall(data);
         require(success, "ERC7702 simulation failed");
     }
+
+    // Simulates what would happen when EOA delegatecalls to ERC7702TokenApprover.permit()
+    function simulateERC7702Permit(
+        IPermit3.AllowanceOrTransfer[] calldata permits
+    ) external {
+        // In real ERC-7702, this would be a delegatecall from the EOA
+        bytes memory data = abi.encodeWithSelector(approver.permit.selector, permits);
+        (bool success,) = address(approver).delegatecall(data);
+        require(success, "ERC7702 permit simulation failed");
+    }
 }
 
 contract ERC7702TokenApproverTest is Test {
     ERC7702TokenApprover public approver;
+    Permit3 public permit3;
     MockERC20 public token1;
     MockERC20 public token2;
     MockERC20 public token3;
     MockEOA public mockEOA;
 
-    address public constant PERMIT3_ADDRESS = address(0x1234567890123456789012345678901234567890);
     address public user = address(0xBEEF);
+    address public spender = address(0xCAFE);
 
     function setUp() public {
-        approver = new ERC7702TokenApprover(PERMIT3_ADDRESS);
+        permit3 = new Permit3();
+        approver = new ERC7702TokenApprover(address(permit3));
         token1 = new MockERC20("Token1", "TK1");
         token2 = new MockERC20("Token2", "TK2");
         token3 = new MockERC20("Token3", "TK3");
@@ -77,7 +91,7 @@ contract ERC7702TokenApproverTest is Test {
     }
 
     function test_Constructor() public view {
-        assertEq(approver.PERMIT3(), PERMIT3_ADDRESS);
+        assertEq(approver.PERMIT3(), address(permit3));
     }
 
     function test_Approve_SingleToken() public {
@@ -87,7 +101,7 @@ contract ERC7702TokenApproverTest is Test {
         // Skip event check due to msg.sender context in delegatecall tests
         mockEOA.simulateERC7702Approval(tokens);
 
-        assertEq(token1.allowance(address(mockEOA), PERMIT3_ADDRESS), type(uint256).max);
+        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
     }
 
     function test_Approve_MultipleTokens() public {
@@ -99,9 +113,9 @@ contract ERC7702TokenApproverTest is Test {
         // Skip event check due to msg.sender context in delegatecall tests
         mockEOA.simulateERC7702Approval(tokens);
 
-        assertEq(token1.allowance(address(mockEOA), PERMIT3_ADDRESS), type(uint256).max);
-        assertEq(token2.allowance(address(mockEOA), PERMIT3_ADDRESS), type(uint256).max);
-        assertEq(token3.allowance(address(mockEOA), PERMIT3_ADDRESS), type(uint256).max);
+        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+        assertEq(token2.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+        assertEq(token3.allowance(address(mockEOA), address(permit3)), type(uint256).max);
     }
 
     function test_Approve_EmptyArray() public {
@@ -136,16 +150,16 @@ contract ERC7702TokenApproverTest is Test {
 
         // When delegatecall reverts, all state changes are reverted
         // So no tokens should have approvals set
-        assertEq(token1.allowance(address(mockEOA), PERMIT3_ADDRESS), 0);
-        assertEq(token2.allowance(address(mockEOA), PERMIT3_ADDRESS), 0);
-        assertEq(token3.allowance(address(mockEOA), PERMIT3_ADDRESS), 0);
+        assertEq(token1.allowance(address(mockEOA), address(permit3)), 0);
+        assertEq(token2.allowance(address(mockEOA), address(permit3)), 0);
+        assertEq(token3.allowance(address(mockEOA), address(permit3)), 0);
     }
 
     function test_Approve_OverwritesExistingAllowance() public {
         // Set initial allowance through mock EOA
         vm.prank(address(mockEOA));
-        token1.approve(PERMIT3_ADDRESS, 1000);
-        assertEq(token1.allowance(address(mockEOA), PERMIT3_ADDRESS), 1000);
+        token1.approve(address(permit3), 1000);
+        assertEq(token1.allowance(address(mockEOA), address(permit3)), 1000);
 
         // Approve should overwrite with infinite
         address[] memory tokens = new address[](1);
@@ -153,7 +167,7 @@ contract ERC7702TokenApproverTest is Test {
 
         mockEOA.simulateERC7702Approval(tokens);
 
-        assertEq(token1.allowance(address(mockEOA), PERMIT3_ADDRESS), type(uint256).max);
+        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
     }
 
     function test_Approve_DifferentEOAs() public {
@@ -169,8 +183,8 @@ contract ERC7702TokenApproverTest is Test {
         mockEOA2.simulateERC7702Approval(tokens);
 
         // Both should have infinite allowance
-        assertEq(token1.allowance(address(mockEOA), PERMIT3_ADDRESS), type(uint256).max);
-        assertEq(token1.allowance(address(mockEOA2), PERMIT3_ADDRESS), type(uint256).max);
+        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+        assertEq(token1.allowance(address(mockEOA2), address(permit3)), type(uint256).max);
     }
 
     function testFuzz_Approve(
@@ -186,7 +200,7 @@ contract ERC7702TokenApproverTest is Test {
         mockEOA.simulateERC7702Approval(tokens);
 
         for (uint256 i = 0; i < tokenCount; i++) {
-            assertEq(IERC20(tokens[i]).allowance(address(mockEOA), PERMIT3_ADDRESS), type(uint256).max);
+            assertEq(IERC20(tokens[i]).allowance(address(mockEOA), address(permit3)), type(uint256).max);
         }
     }
 
@@ -200,6 +214,97 @@ contract ERC7702TokenApproverTest is Test {
         approver.approve(tokens);
 
         // The allowance will be set for the approver contract (not useful)
-        assertEq(token1.allowance(address(approver), PERMIT3_ADDRESS), type(uint256).max);
+        assertEq(token1.allowance(address(approver), address(permit3)), type(uint256).max);
+    }
+
+    // ERC-7702 Permit Integration Tests
+    function test_Permit_DirectExecution() public {
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+        permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(1000), // Expiration timestamp
+            token: address(token1),
+            account: spender,
+            amountDelta: 500e18
+        });
+
+        // Execute direct permit (simulating ERC-7702 call)
+        vm.prank(user);
+        permit3.permit(permits);
+
+        // Verify allowance was set
+        (uint160 amount, uint48 expiration, uint48 timestamp) = permit3.allowance(user, address(token1), spender);
+        assertEq(amount, 500e18);
+        assertEq(expiration, 1000);
+        assertGt(timestamp, 0);
+    }
+
+    function test_Permit_ThroughApprover() public {
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+        permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(2000), // Expiration timestamp
+            token: address(token1),
+            account: spender,
+            amountDelta: 1000e18
+        });
+
+        // Execute permit through mockEOA (proper ERC-7702 simulation)
+        // This simulates what happens when user's EOA delegatecalls to approver.permit()
+        mockEOA.simulateERC7702Permit(permits);
+
+        // Verify allowance was set for the mockEOA (simulating user's address)
+        (uint160 amount, uint48 expiration, uint48 timestamp) =
+            permit3.allowance(address(mockEOA), address(token1), spender);
+        assertEq(amount, 1000e18);
+        assertEq(expiration, 2000);
+        assertGt(timestamp, 0);
+    }
+
+    function test_Permit_EmptyArray() public {
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](0);
+
+        // Empty array should work fine (no operations to process)
+        vm.prank(user);
+        permit3.permit(permits);
+
+        // No error expected, just testing that empty arrays work
+    }
+
+    function test_CombinedApproveAndPermit() public {
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(token1);
+        tokens[1] = address(token2);
+
+        // Setup permit data
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](2);
+        permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(3000),
+            token: address(token1),
+            account: spender,
+            amountDelta: 750e18
+        });
+        permits[1] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(3000),
+            token: address(token2),
+            account: spender,
+            amountDelta: 250e18
+        });
+
+        // Execute both approve and permit via mockEOA (simulating ERC-7702 multicall)
+
+        // 1. Approve tokens
+        mockEOA.simulateERC7702Approval(tokens);
+
+        // 2. Execute permits
+        mockEOA.simulateERC7702Permit(permits);
+
+        // Verify token approvals
+        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+        assertEq(token2.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+
+        // Verify permit allowances
+        (uint160 amount0,,) = permit3.allowance(address(mockEOA), address(token1), spender);
+        (uint160 amount1,,) = permit3.allowance(address(mockEOA), address(token2), spender);
+        assertEq(amount0, 750e18);
+        assertEq(amount1, 250e18);
     }
 }

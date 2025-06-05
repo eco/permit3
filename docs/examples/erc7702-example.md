@@ -8,9 +8,9 @@
 <a id="overview"></a>
 ## 📖 Overview
 
-This example demonstrates how to integrate the ERC-7702 Token Approver with Permit3 to create a seamless user experience for batch token approvals using Account Abstraction.
+This example demonstrates how to integrate the ERC-7702 Token Approver with Permit3 to create a seamless user experience for batch token approvals AND permit operations using Account Abstraction.
 
-The ERC-7702 integration eliminates the need for multiple approval transactions by leveraging delegatecall functionality to batch approve infinite allowances in a single transaction.
+The ERC-7702 integration eliminates the need for both approval transactions and signature creation by leveraging delegatecall functionality to approve tokens and execute permit operations in a single transaction.
 
 <a id="setup"></a>
 ## 🛠️ Setup
@@ -75,23 +75,34 @@ const transaction = {
 const txHash = await wallet.sendTransaction(transaction);
 ```
 
-### Multiple Token Approval
+### Multiple Token Approval + Permit Execution
 
 ```javascript
-// Batch approve multiple tokens
+// Batch approve multiple tokens AND execute permit operations
 const tokens = [
     "0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8", // USDC
     "0xdAC17F958D2ee523a2206206994597C13D831ec7", // USDT
     "0x6B175474E89094C44Da98b954EedeAC495271d0F", // DAI
-    "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // WBTC
+];
+
+const permits = [
+    {
+        modeOrExpiration: 2000, // Expiration timestamp
+        token: "0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8",
+        account: spenderAddress,
+        amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC
+    }
 ];
 
 const transaction = {
     type: 0x04,
     authorizationList: [authorization],
     to: userAddress,
-    data: approver.interface.encodeFunctionData("approve", [tokens]),
-    gasLimit: 200000, // Higher gas limit for multiple tokens
+    data: multicall([
+        approver.interface.encodeFunctionData("approve", [tokens]),
+        approver.interface.encodeFunctionData("permit", [permits])
+    ]),
+    gasLimit: 300000, // Higher gas limit for combined operations
 };
 ```
 
@@ -107,26 +118,46 @@ class ERC7702PermitManager {
         this.approver = new ethers.Contract(approverAddress, APPROVER_ABI, provider);
     }
     
-    async batchApproveAndPermit(userAddress, tokens, permitData, signature) {
-        // 1. First, batch approve tokens using ERC-7702
+    async batchApproveAndPermit(userAddress, tokens, permits) {
+        // Single ERC-7702 transaction: approve + permit (no signatures needed!)
+        const combinedTx = await this.createCombinedTransaction(userAddress, tokens, permits);
+        const receipt = await userAddress.sendTransaction(combinedTx);
+        
+        return { receipt };
+    }
+    
+    async approveOnly(userAddress, tokens) {
+        // ERC-7702 transaction: just approve tokens
         const approvalTx = await this.createApprovalTransaction(userAddress, tokens);
-        const approvalReceipt = await userAddress.sendTransaction(approvalTx);
+        const receipt = await userAddress.sendTransaction(approvalTx);
         
-        // 2. Then execute Permit3 operations
-        const permitTx = await this.permit3.permit(
-            permitData.owner,
-            permitData.salt,
-            permitData.deadline,
-            permitData.timestamp,
-            permitData.chainPermits,
-            signature
-        );
+        return { receipt };
+    }
+    
+    async permitOnly(userAddress, permits) {
+        // ERC-7702 transaction: just execute permits (requires prior approvals)
+        const permitTx = await this.createPermitTransaction(userAddress, permits);
+        const receipt = await userAddress.sendTransaction(permitTx);
         
-        return { approvalReceipt, permitTx };
+        return { receipt };
+    }
+    
+    async createCombinedTransaction(userAddress, tokens, permits) {
+        const authorization = await this.signAuthorization(userAddress);
+        
+        return {
+            type: 0x04,
+            authorizationList: [authorization],
+            to: userAddress,
+            data: multicall([
+                this.approver.interface.encodeFunctionData("approve", [tokens]),
+                this.approver.interface.encodeFunctionData("permit", [permits])
+            ]),
+            gasLimit: 80000 + (tokens.length * 24000) + (permits.length * 25000),
+        };
     }
     
     async createApprovalTransaction(userAddress, tokens) {
-        // Create ERC-7702 authorization signature
         const authorization = await this.signAuthorization(userAddress);
         
         return {
@@ -134,7 +165,19 @@ class ERC7702PermitManager {
             authorizationList: [authorization],
             to: userAddress,
             data: this.approver.interface.encodeFunctionData("approve", [tokens]),
-            gasLimit: 50000 + (tokens.length * 24000), // Dynamic gas estimation
+            gasLimit: 50000 + (tokens.length * 24000),
+        };
+    }
+    
+    async createPermitTransaction(userAddress, permits) {
+        const authorization = await this.signAuthorization(userAddress);
+        
+        return {
+            type: 0x04,
+            authorizationList: [authorization],
+            to: userAddress,
+            data: this.approver.interface.encodeFunctionData("permit", [permits]),
+            gasLimit: 50000 + (permits.length * 25000),
         };
     }
     
@@ -175,17 +218,15 @@ import { useAccount, useWalletClient } from 'wagmi';
 export function useERC7702Approval() {
     const { address } = useAccount();
     const { data: walletClient } = useWalletClient();
-    const [isApproving, setIsApproving] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
     
     const batchApprove = useCallback(async (tokens) => {
         if (!address || !walletClient) return;
         
-        setIsApproving(true);
+        setIsProcessing(true);
         try {
-            // Create authorization signature
             const authorization = await signAuthorization(address, walletClient);
             
-            // Create and send ERC-7702 transaction
             const transaction = {
                 type: '0x04',
                 authorizationList: [authorization],
@@ -201,11 +242,70 @@ export function useERC7702Approval() {
             const hash = await walletClient.sendTransaction(transaction);
             return hash;
         } finally {
-            setIsApproving(false);
+            setIsProcessing(false);
         }
     }, [address, walletClient]);
     
-    return { batchApprove, isApproving };
+    const executePermit = useCallback(async (permits) => {
+        if (!address || !walletClient) return;
+        
+        setIsProcessing(true);
+        try {
+            const authorization = await signAuthorization(address, walletClient);
+            
+            const transaction = {
+                type: '0x04',
+                authorizationList: [authorization],
+                to: address,
+                data: encodeFunctionData({
+                    abi: APPROVER_ABI,
+                    functionName: 'permit',
+                    args: [permits]
+                }),
+                account: address,
+            };
+            
+            const hash = await walletClient.sendTransaction(transaction);
+            return hash;
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [address, walletClient]);
+    
+    const approveAndPermit = useCallback(async (tokens, permits) => {
+        if (!address || !walletClient) return;
+        
+        setIsProcessing(true);
+        try {
+            const authorization = await signAuthorization(address, walletClient);
+            
+            const transaction = {
+                type: '0x04',
+                authorizationList: [authorization],
+                to: address,
+                data: multicall([
+                    encodeFunctionData({
+                        abi: APPROVER_ABI,
+                        functionName: 'approve',
+                        args: [tokens]
+                    }),
+                    encodeFunctionData({
+                        abi: APPROVER_ABI,
+                        functionName: 'permit',
+                        args: [permits]
+                    })
+                ]),
+                account: address,
+            };
+            
+            const hash = await walletClient.sendTransaction(transaction);
+            return hash;
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [address, walletClient]);
+    
+    return { batchApprove, executePermit, approveAndPermit, isProcessing };
 }
 ```
 
@@ -218,53 +318,106 @@ export function useERC7702Approval() {
 import React, { useState } from 'react';
 import { useERC7702Approval } from './hooks/useERC7702Approval';
 
-function TokenApprovalModal({ tokens, onSuccess }) {
-    const { batchApprove, isApproving } = useERC7702Approval();
-    const [step, setStep] = useState('prepare'); // prepare, approving, success
+function TokenApprovalModal({ tokens, permitOperations, onSuccess }) {
+    const { batchApprove, executePermit, approveAndPermit, isProcessing } = useERC7702Approval();
+    const [step, setStep] = useState('prepare'); // prepare, processing, success
+    const [mode, setMode] = useState('combined'); // 'approve', 'permit', 'combined'
     
-    const handleApprove = async () => {
-        setStep('approving');
+    const handleExecute = async () => {
+        setStep('processing');
         try {
-            const txHash = await batchApprove(tokens);
+            let txHash;
+            switch (mode) {
+                case 'approve':
+                    txHash = await batchApprove(tokens.map(t => t.address));
+                    break;
+                case 'permit':
+                    txHash = await executePermit(permitOperations);
+                    break;
+                case 'combined':
+                    txHash = await approveAndPermit(tokens.map(t => t.address), permitOperations);
+                    break;
+            }
             setStep('success');
             onSuccess(txHash);
         } catch (error) {
-            console.error('Approval failed:', error);
+            console.error('Operation failed:', error);
             setStep('prepare');
         }
     };
     
     return (
         <div className="approval-modal">
-            <h2>🔗 Batch Token Approval</h2>
+            <h2>🔗 ERC-7702 Operations</h2>
             
             {step === 'prepare' && (
                 <div>
-                    <p>Approve {tokens.length} tokens for Permit3 usage:</p>
-                    <ul>
-                        {tokens.map(token => (
-                            <li key={token.address}>
-                                {token.symbol} - Infinite Approval
-                            </li>
-                        ))}
-                    </ul>
-                    <button onClick={handleApprove}>
-                        📝 Sign ERC-7702 Authorization
+                    <div className="mode-selector">
+                        <button 
+                            className={mode === 'approve' ? 'active' : ''} 
+                            onClick={() => setMode('approve')}
+                        >
+                            Approve Only
+                        </button>
+                        <button 
+                            className={mode === 'permit' ? 'active' : ''} 
+                            onClick={() => setMode('permit')}
+                        >
+                            Permit Only
+                        </button>
+                        <button 
+                            className={mode === 'combined' ? 'active' : ''} 
+                            onClick={() => setMode('combined')}
+                        >
+                            Approve + Permit
+                        </button>
+                    </div>
+                    
+                    {(mode === 'approve' || mode === 'combined') && (
+                        <div>
+                            <p>Approve {tokens.length} tokens for Permit3:</p>
+                            <ul>
+                                {tokens.map(token => (
+                                    <li key={token.address}>
+                                        {token.symbol} - Infinite Approval
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                    
+                    {(mode === 'permit' || mode === 'combined') && (
+                        <div>
+                            <p>Execute {permitOperations.length} permit operations:</p>
+                            <ul>
+                                {permitOperations.map((permit, i) => (
+                                    <li key={i}>
+                                        {permit.token} - {permit.amountDelta} allowance
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                    
+                    <button onClick={handleExecute}>
+                        📝 Execute ERC-7702 Transaction
                     </button>
                 </div>
             )}
             
-            {step === 'approving' && (
+            {step === 'processing' && (
                 <div>
                     <div className="spinner" />
-                    <p>Processing batch approval...</p>
+                    <p>Processing {mode} operation...</p>
                 </div>
             )}
             
             {step === 'success' && (
                 <div>
-                    <p>✅ Tokens approved successfully!</p>
-                    <p>You can now use Permit3 without additional approvals.</p>
+                    <p>✅ Operation completed successfully!</p>
+                    {mode === 'approve' && <p>Tokens approved - ready for Permit3!</p>}
+                    {mode === 'permit' && <p>Permit operations executed!</p>}
+                    {mode === 'combined' && <p>Tokens approved and operations executed!</p>}
                 </div>
             )}
         </div>
@@ -273,30 +426,40 @@ function TokenApprovalModal({ tokens, onSuccess }) {
 
 // Usage in main component
 function DApp() {
-    const [showApprovalModal, setShowApprovalModal] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     
     const requiredTokens = [
-        { address: "0x...", symbol: "USDC" },
-        { address: "0x...", symbol: "USDT" },
-        { address: "0x...", symbol: "DAI" },
+        { address: "0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8", symbol: "USDC" },
+        { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", symbol: "USDT" },
+        { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI" },
     ];
     
-    const handleApprovalSuccess = (txHash) => {
-        console.log('Approval transaction:', txHash);
-        setShowApprovalModal(false);
-        // Proceed with Permit3 operations
+    const permitOperations = [
+        {
+            modeOrExpiration: 1735689600, // Expiration timestamp
+            token: "0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8",
+            account: "0x742D35cc6634C0532925a3b8D0C23b881A32a6AB", // DEX contract
+            amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC allowance
+        }
+    ];
+    
+    const handleSuccess = (txHash) => {
+        console.log('ERC-7702 transaction:', txHash);
+        setShowModal(false);
+        // Continue with DApp operations
     };
     
     return (
         <div className="dapp">
-            <button onClick={() => setShowApprovalModal(true)}>
-                🚀 Setup Token Approvals
+            <button onClick={() => setShowModal(true)}>
+                🚀 Setup Permit3 Integration
             </button>
             
-            {showApprovalModal && (
+            {showModal && (
                 <TokenApprovalModal
                     tokens={requiredTokens}
-                    onSuccess={handleApprovalSuccess}
+                    permitOperations={permitOperations}
+                    onSuccess={handleSuccess}
                 />
             )}
         </div>

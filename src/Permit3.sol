@@ -50,13 +50,13 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     );
 
     // Constants for witness type hash strings
-    string private constant _PERMIT_WITNESS_TYPEHASH_STUB =
+    string public constant PERMIT_WITNESS_TYPEHASH_STUB =
         "PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
 
-    string private constant _PERMIT_BATCH_WITNESS_TYPEHASH_STUB =
+    string public constant PERMIT_BATCH_WITNESS_TYPEHASH_STUB =
         "PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
 
-    string private constant _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
+    string public constant PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
         "PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,";
 
     /**
@@ -64,6 +64,42 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @notice Establishes the contract's domain for typed data signing
      */
     constructor() NonceManager("Permit3", "1") { }
+
+    /**
+     * @dev Generate EIP-712 compatible hash for chain permits
+     * @param permits Chain-specific permit data
+     * @return bytes32 Combined hash of all permit parameters
+     */
+    function hashChainPermits(
+        ChainPermits memory permits
+    ) public pure returns (bytes32) {
+        bytes32[] memory permitHashes = new bytes32[](permits.permits.length);
+
+        for (uint256 i = 0; i < permits.permits.length; i++) {
+            permitHashes[i] = keccak256(
+                abi.encode(
+                    permits.permits[i].modeOrExpiration,
+                    permits.permits[i].token,
+                    permits.permits[i].account,
+                    permits.permits[i].amountDelta
+                )
+            );
+        }
+
+        return keccak256(abi.encode(CHAIN_PERMITS_TYPEHASH, permits.chainId, keccak256(abi.encodePacked(permitHashes))));
+    }
+
+    /**
+     * @notice Direct permit execution for ERC-7702 integration
+     * @dev No signature verification - caller must be the token owner
+     * @param permits Array of permit operations to execute on current chain
+     */
+    function permit(
+        AllowanceOrTransfer[] memory permits
+    ) external {
+        ChainPermits memory chain = ChainPermits({ chainId: block.chainid, permits: permits });
+        _processChainPermits(msg.sender, uint48(block.timestamp), chain);
+    }
 
     /**
      * @notice Process token approvals for a single chain
@@ -88,8 +124,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 signedHash =
             keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, salt, deadline, timestamp, hashChainPermits(chain)));
 
+        _useNonce(owner, salt);
         _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, salt, timestamp, chain);
+        _processChainPermits(owner, timestamp, chain);
     }
 
     // Helper struct to avoid stack-too-deep errors
@@ -153,110 +190,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
             )
         );
 
-        _verifySignature(params.owner, signedHash, signature);
-        _processChainPermits(params.owner, params.salt, params.timestamp, proof.permits);
-    }
-
-    /**
-     * @dev Core permit processing logic
-     * @param owner Token owner
-     * @param chain Bundle of permit operations to process
-     * @notice Handles multiple types of operations:
-     * @notice modeOrExpiration Mode indicators:
-     *        = 0: Immediate transfer mode
-     *        = 1: Decrease allowance mode
-     *        = 2: Lock allowance mode
-     *        = 3: Unlock allowance mode
-     *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
-     */
-    function _processChainPermits(address owner, bytes32 salt, uint48 timestamp, ChainPermits memory chain) internal {
         _useNonce(owner, salt);
-
-        for (uint256 i = 0; i < chain.permits.length; i++) {
-            AllowanceOrTransfer memory p = chain.permits[i];
-
-            if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
-                _transferFrom(owner, p.account, p.amountDelta, p.token);
-            } else {
-                Allowance memory allowed = allowances[owner][p.token][p.account];
-
-                // Check if allowance is locked
-                // If the allowance is locked, only allow unlock operation with newer timestamp
-                if (allowed.expiration == LOCKED_ALLOWANCE) {
-                    // Special handling for unlock operation
-                    if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
-                        // Only allow unlock if timestamp is newer than lock timestamp
-                        if (timestamp <= allowed.timestamp) {
-                            revert AllowanceLocked();
-                        }
-                    } else {
-                        // For all other operations, reject if allowance is locked
-                        revert AllowanceLocked();
-                    }
-                }
-
-                if (p.modeOrExpiration == uint48(PermitType.Decrease)) {
-                    // Decrease allowance
-                    if (allowed.amount != MAX_ALLOWANCE || p.amountDelta == MAX_ALLOWANCE) {
-                        allowed.amount = p.amountDelta > allowed.amount ? 0 : allowed.amount - p.amountDelta;
-                    }
-                } else if (p.modeOrExpiration == uint48(PermitType.Lock)) {
-                    // Lockdown allowance
-                    allowed.amount = 0;
-                    allowed.expiration = LOCKED_ALLOWANCE;
-                    allowed.timestamp = timestamp;
-                } else if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
-                    // Unlock allowance
-                    allowed.amount = p.amountDelta;
-                    allowed.expiration = 0;
-                    allowed.timestamp = timestamp;
-                } else {
-                    if (p.amountDelta > 0) {
-                        // Increase allowance
-                        if (allowed.amount != MAX_ALLOWANCE) {
-                            if (p.amountDelta == MAX_ALLOWANCE) {
-                                allowed.amount = MAX_ALLOWANCE;
-                            } else {
-                                allowed.amount += p.amountDelta;
-                            }
-                        }
-                    }
-
-                    if (timestamp > allowed.timestamp) {
-                        allowed.expiration = p.modeOrExpiration;
-                        allowed.timestamp = timestamp;
-                    }
-                }
-
-                emit Permit(owner, p.token, p.account, allowed.amount, allowed.expiration, timestamp);
-
-                allowances[owner][p.token][p.account] = allowed;
-            }
-        }
-    }
-
-    /**
-     * @dev Generate EIP-712 compatible hash for chain permits
-     * @param permits Chain-specific permit data
-     * @return bytes32 Combined hash of all permit parameters
-     */
-    function hashChainPermits(
-        ChainPermits memory permits
-    ) public pure returns (bytes32) {
-        bytes32[] memory permitHashes = new bytes32[](permits.permits.length);
-
-        for (uint256 i = 0; i < permits.permits.length; i++) {
-            permitHashes[i] = keccak256(
-                abi.encode(
-                    permits.permits[i].modeOrExpiration,
-                    permits.permits[i].token,
-                    permits.permits[i].account,
-                    permits.permits[i].amountDelta
-                )
-            );
-        }
-
-        return keccak256(abi.encode(CHAIN_PERMITS_TYPEHASH, permits.chainId, keccak256(abi.encodePacked(permitHashes))));
+        _verifySignature(params.owner, signedHash, signature);
+        _processChainPermits(params.owner, params.timestamp, proof.permits);
     }
 
     /**
@@ -294,8 +230,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
         bytes32 signedHash = keccak256(abi.encode(typeHash, permitDataHash, owner, salt, deadline, timestamp, witness));
 
+        _useNonce(owner, salt);
         _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, salt, timestamp, chain);
+        _processChainPermits(owner, timestamp, chain);
     }
 
     // Helper struct to avoid stack-too-deep errors
@@ -370,8 +307,85 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
             )
         );
 
+        _useNonce(owner, salt);
         _verifySignature(params.owner, signedHash, signature);
-        _processChainPermits(params.owner, params.salt, params.timestamp, proof.permits);
+        _processChainPermits(params.owner, params.timestamp, proof.permits);
+    }
+
+    /**
+     * @dev Core permit processing logic
+     * @param owner Token owner
+     * @param chain Bundle of permit operations to process
+     * @notice Handles multiple types of operations:
+     * @notice modeOrExpiration Mode indicators:
+     *        = 0: Immediate transfer mode
+     *        = 1: Decrease allowance mode
+     *        = 2: Lock allowance mode
+     *        = 3: Unlock allowance mode
+     *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
+     */
+    function _processChainPermits(address owner, uint48 timestamp, ChainPermits memory chain) internal {
+        for (uint256 i = 0; i < chain.permits.length; i++) {
+            AllowanceOrTransfer memory p = chain.permits[i];
+
+            if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
+                _transferFrom(owner, p.account, p.amountDelta, p.token);
+            } else {
+                Allowance memory allowed = allowances[owner][p.token][p.account];
+
+                // Check if allowance is locked
+                // If the allowance is locked, only allow unlock operation with newer timestamp
+                if (allowed.expiration == LOCKED_ALLOWANCE) {
+                    // Special handling for unlock operation
+                    if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
+                        // Only allow unlock if timestamp is newer than lock timestamp
+                        if (timestamp <= allowed.timestamp) {
+                            revert AllowanceLocked();
+                        }
+                    } else {
+                        // For all other operations, reject if allowance is locked
+                        revert AllowanceLocked();
+                    }
+                }
+
+                if (p.modeOrExpiration == uint48(PermitType.Decrease)) {
+                    // Decrease allowance
+                    if (allowed.amount != MAX_ALLOWANCE || p.amountDelta == MAX_ALLOWANCE) {
+                        allowed.amount = p.amountDelta > allowed.amount ? 0 : allowed.amount - p.amountDelta;
+                    }
+                } else if (p.modeOrExpiration == uint48(PermitType.Lock)) {
+                    // Lockdown allowance
+                    allowed.amount = 0;
+                    allowed.expiration = LOCKED_ALLOWANCE;
+                    allowed.timestamp = timestamp;
+                } else if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
+                    // Unlock allowance
+                    allowed.amount = p.amountDelta;
+                    allowed.expiration = 0;
+                    allowed.timestamp = timestamp;
+                } else {
+                    if (p.amountDelta > 0) {
+                        // Increase allowance
+                        if (allowed.amount != MAX_ALLOWANCE) {
+                            if (p.amountDelta == MAX_ALLOWANCE) {
+                                allowed.amount = MAX_ALLOWANCE;
+                            } else {
+                                allowed.amount += p.amountDelta;
+                            }
+                        }
+                    }
+
+                    if (timestamp > allowed.timestamp) {
+                        allowed.expiration = p.modeOrExpiration;
+                        allowed.timestamp = timestamp;
+                    }
+                }
+
+                emit Permit(owner, p.token, p.account, allowed.amount, allowed.expiration, timestamp);
+
+                allowances[owner][p.token][p.account] = allowed;
+            }
+        }
     }
 
     /**
@@ -396,7 +410,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function _getWitnessTypeHash(
         string calldata witnessTypeString
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_PERMIT_WITNESS_TYPEHASH_STUB, witnessTypeString));
+        return keccak256(abi.encodePacked(PERMIT_WITNESS_TYPEHASH_STUB, witnessTypeString));
     }
 
     /**
@@ -407,31 +421,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function _getUnhingedWitnessTypeHash(
         string memory witnessTypeString
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB, witnessTypeString));
-    }
-
-    /**
-     * @notice Returns the witness typehash stub for EIP-712 signature verification
-     * @return The stub string for witness permit typehash
-     */
-    function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory) {
-        return _PERMIT_WITNESS_TYPEHASH_STUB;
-    }
-
-    /**
-     * @notice Returns the batch witness typehash stub for EIP-712 signature verification
-     * @return The stub string for batch witness permit typehash
-     */
-    function PERMIT_BATCH_WITNESS_TYPEHASH_STUB() external pure returns (string memory) {
-        return _PERMIT_BATCH_WITNESS_TYPEHASH_STUB;
-    }
-
-    /**
-     * @notice Returns the unhinged witness typehash stub for EIP-712 signature verification
-     * @return The stub string for unhinged witness permit typehash
-     */
-    function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory) {
-        return _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB;
+        return keccak256(abi.encodePacked(PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB, witnessTypeString));
     }
 
     /**
