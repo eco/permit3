@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {Permit3} from "../src/Permit3.sol";
+import {ERC7702TokenApprover} from "../src/ERC7702TokenApprover.sol";
 import {CommonBase} from "forge-std/Base.sol";
 import {Script} from "forge-std/Script.sol";
 import {StdChains} from "forge-std/StdChains.sol";
@@ -17,9 +18,17 @@ contract Deploy is Script {
 
         vm.startBroadcast();
 
-        // Intent Source
+        // Deploy Permit3 first
         address permit3 = deploy(type(Permit3).creationCode, salt);
-        console.log("Permit3 :", address(permit3));
+        console.log("Permit3:", permit3);
+
+        // Deploy ERC7702TokenApprover with Permit3 address
+        bytes memory erc7702Code = abi.encodePacked(
+            type(ERC7702TokenApprover).creationCode,
+            abi.encode(permit3)
+        );
+        address erc7702Approver = deploy(erc7702Code, keccak256(abi.encode(salt, "ERC7702")));
+        console.log("ERC7702TokenApprover:", erc7702Approver);
 
         vm.stopBroadcast();
     }
