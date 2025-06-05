@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import { IERC7702TokenApprover } from "./interfaces/IERC7702TokenApprover.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /**
@@ -10,15 +11,9 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
  *      Users authorize their EOA to delegatecall to this contract, which then sets infinite
  *      allowances for specified ERC20 tokens to the Permit3 contract.
  */
-contract ERC7702TokenApprover {
+contract ERC7702TokenApprover is IERC7702TokenApprover {
     /// @notice The Permit3 contract address that will receive infinite approvals
     address public immutable PERMIT3;
-
-    /// @notice Thrown when no tokens are provided for approval
-    error NoTokensProvided();
-
-    /// @notice Thrown when token approval fails
-    error ApprovalFailed(address token);
 
     /**
      * @notice Constructor to set the Permit3 contract address
