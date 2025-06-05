@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /**
  * @title ERC7702TokenApprover
@@ -24,7 +24,9 @@ contract ERC7702TokenApprover {
      * @notice Constructor to set the Permit3 contract address
      * @param permit3 Address of the Permit3 contract
      */
-    constructor(address permit3) {
+    constructor(
+        address permit3
+    ) {
         PERMIT3 = permit3;
     }
 
@@ -34,7 +36,9 @@ contract ERC7702TokenApprover {
      *      The EOA must have authorized delegation to this contract in the same transaction
      * @param tokens Array of ERC20 token addresses to approve
      */
-    function approve(address[] calldata tokens) external {
+    function approve(
+        address[] calldata tokens
+    ) external {
         if (tokens.length == 0) {
             revert NoTokensProvided();
         }
@@ -43,10 +47,10 @@ contract ERC7702TokenApprover {
 
         for (uint256 i = 0; i < length; ++i) {
             address token = tokens[i];
-            
+
             // Set infinite allowance (type(uint256).max) regardless of current allowance
             bool success = IERC20(token).approve(PERMIT3, type(uint256).max);
-            
+
             if (!success) {
                 revert ApprovalFailed(token);
             }
