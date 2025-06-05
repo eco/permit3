@@ -50,6 +50,7 @@ Learn about the core concepts that power Permit3's functionality:
 Follow our step-by-step guides to implement Permit3 in your projects:
 
 - [**Quick Start Guide**](./guides/quick-start.md) - Get up and running with Permit3 in minutes
+- [**ERC-7702 Integration**](./guides/erc7702-integration.md) - Batch token approvals with Account Abstraction
 - [**Witness Integration**](./guides/witness-integration.md) - Implement witness functionality in your application
 - [**Cross-Chain Permits**](./guides/cross-chain-permit.md) - Authorize operations across multiple blockchains
 - [**Signature Creation**](./guides/signature-creation.md) - Create and validate EIP-712 signatures
@@ -75,6 +76,7 @@ Detailed technical documentation for Permit3's interfaces and functions:
 
 Practical examples demonstrating Permit3 implementation:
 
+- [**ERC-7702 Example**](./examples/erc7702-example.md) - Batch token approvals with Account Abstraction
 - [**Witness Example**](./examples/witness-example.md) - Implementing witness functionality in a DEX
 - [**Cross-Chain Example**](./examples/cross-chain-example.md) - Multi-chain token operations with a single signature
 - [**Allowance Management Example**](./examples/allowance-management-example.md) - Comprehensive token approval workflows
@@ -105,6 +107,7 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 | Feature | Description |
 |---------|-------------|
 | **Cross-Chain Operations** | Authorize token operations across multiple blockchains with a single signature |
+| **ERC-7702 Integration** | Batch approve infinite allowances with Account Abstraction for seamless UX |
 | **Witness Functionality** | Attach arbitrary data to permits for enhanced verification and complex permission patterns |
 | **Flexible Allowance System** | Comprehensive tools for managing token permissions with different modes and expirations |
 | **Gas Optimization** | Efficient designs for minimizing gas costs across all operations |
