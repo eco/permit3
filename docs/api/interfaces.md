@@ -58,6 +58,11 @@ interface IPermit3 is IPermit, INonceManager {
         bytes calldata signature
     ) external;
     
+    // Direct permit (ERC-7702 integration)
+    function permit(
+        AllowanceOrTransfer[] memory permits
+    ) external;
+    
     // Witness functions
     function permitWitnessTransferFrom(
         address owner,

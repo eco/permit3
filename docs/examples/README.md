@@ -12,6 +12,7 @@ This section provides practical examples of implementing and using Permit3.
 
 | Example | Description |
 |---------|-------------|
+| [🔗 ERC-7702 Example](./erc7702-example.md) | Batch token approvals with Account Abstraction |
 | [🧩 Witness Example](./witness-example.md) | Implementing witness functionality in a decentralized exchange |
 | [🌉 Cross-Chain Example](./cross-chain-example.md) | Working with permits across multiple chains |
 | [🔄 Allowance Management Example](./allowance-management-example.md) | Managing token allowances with different modes |
@@ -20,6 +21,10 @@ This section provides practical examples of implementing and using Permit3.
 
 <a id="example-use-cases"></a>
 ## 🛠️ Example Use Cases
+
+### 🔗 ERC-7702 Batch Token Approvals
+
+The [🔗 ERC-7702 Example](./erc7702-example.md) demonstrates how to implement batch token approvals using Account Abstraction for seamless user experience.
 
 ### 📊 Decentralized Exchange with Witness Functionality
 

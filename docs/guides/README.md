@@ -13,6 +13,7 @@ This section provides step-by-step guides for common Permit3 use cases.
 | Guide | Description |
 |-------|-------------|
 | [🚀 Quick Start](./quick-start.md) | Quick introduction to integrating Permit3 |
+| [🔗 ERC-7702 Integration](./erc7702-integration.md) | Batch token approvals with Account Abstraction |
 | [🧩 Witness Integration](./witness-integration.md) | How to implement witness functionality |
 | [🌉 Cross-Chain Permits](./cross-chain-permit.md) | Working with permits across multiple chains |
 | [✍️ Signature Creation](./signature-creation.md) | Creating and signing permit operations |

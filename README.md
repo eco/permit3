@@ -9,6 +9,8 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 ## ✨ Key Features
 
 - 🌉 **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
+- 🔐 **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
+- 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
 - 🌲 **Unhinged Merkle Trees**: A novel two-part data structure that combines:
   ```
                [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
@@ -49,9 +51,9 @@ Comprehensive documentation is available in the [docs](./docs) directory:
 |---------|-------------|-------------|
 | [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#getting-started) |
 | [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unhinged-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
-| [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [Witness Integration](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
+| [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [ERC-7702](./docs/guides/erc7702-integration.md) · [Witness Integration](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
 | [📋 API Reference](./docs/api/README.md) | Technical specifications | [Full API](./docs/api/api-reference.md) · [Data Structures](./docs/api/data-structures.md) · [Interfaces](./docs/api/interfaces.md) · [Events](./docs/api/events.md) · [Error Codes](./docs/api/error-codes.md) |
-| [💻 Examples](./docs/examples/README.md) | Code samples | [Witness](./docs/examples/witness-example.md) · [Cross-Chain](./docs/examples/cross-chain-example.md) · [Allowance](./docs/examples/allowance-management-example.md) · [Security](./docs/examples/security-example.md) · [Integration](./docs/examples/integration-example.md) |
+| [💻 Examples](./docs/examples/README.md) | Code samples | [ERC-7702](./docs/examples/erc7702-example.md) · [Witness](./docs/examples/witness-example.md) · [Cross-Chain](./docs/examples/cross-chain-example.md) · [Allowance](./docs/examples/allowance-management-example.md) · [Security](./docs/examples/security-example.md) · [Integration](./docs/examples/integration-example.md) |
 
 ## 🔄 Permit2 Compatibility
 
@@ -78,6 +80,35 @@ function transferFrom(AllowanceTransferDetails[] calldata transfers) external;
 function allowance(address user, address token, address spender) 
     external view returns (uint160 amount, uint48 expiration, uint48 nonce);
 function lockdown(TokenSpenderPair[] calldata approvals) external;
+```
+
+### 🔗 Enhanced Functions (Permit3 Exclusive)
+```solidity
+// Direct permit execution (no signatures required, caller is owner)
+function permit(AllowanceOrTransfer[] memory permits) external;
+
+// Single-chain permit operations with signatures  
+function permit(address owner, bytes32 salt, uint256 deadline, uint48 timestamp, 
+                ChainPermits memory chain, bytes calldata signature) external;
+
+// Cross-chain operations with UnhingedProofs and signatures
+function permit(address owner, bytes32 salt, uint256 deadline, uint48 timestamp,
+                UnhingedPermitProof calldata proof, bytes calldata signature) external;
+```
+
+**Direct Permit Usage:**
+```solidity
+// Execute permit operations directly (msg.sender becomes token owner)
+AllowanceOrTransfer[] memory operations = [
+    AllowanceOrTransfer({
+        modeOrExpiration: 1735689600, // expiration timestamp
+        token: USDC_ADDRESS,
+        account: DEX_ADDRESS,
+        amountDelta: 1000e6 // 1000 USDC allowance
+    })
+];
+
+permit3.permit(operations); // No signature needed, no chainId needed!
 ```
 
 ## 💡 Core Concepts

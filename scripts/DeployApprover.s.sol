@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-import {Permit3} from "../src/Permit3.sol";
 import {ERC7702TokenApprover} from "../src/ERC7702TokenApprover.sol";
 import {CommonBase} from "forge-std/Base.sol";
 import {Script} from "forge-std/Script.sol";
@@ -9,25 +8,22 @@ import {StdCheatsSafe} from "forge-std/StdCheats.sol";
 import {StdUtils} from "forge-std/StdUtils.sol";
 import {console} from "forge-std/console.sol";
 
-contract Deploy is Script {
+contract DeployApprover is Script {
     address public constant create2Factory = 0xce0042B868300000d44A59004Da54A005ffdcf9f;
 
     function run() external {
         bytes32 salt = vm.envBytes32("SALT");
+        address permit3Address = vm.envAddress("PERMIT3_ADDRESS");
         vm.rememberKey(vm.envUint("PRIVATE_KEY"));
 
         vm.startBroadcast();
 
-        // Deploy Permit3 first
-        address permit3 = deploy(type(Permit3).creationCode, salt);
-        console.log("Permit3:", permit3);
-
-        // Deploy ERC7702TokenApprover with Permit3 address
+        // Deploy ERC7702TokenApprover with provided Permit3 address
         bytes memory erc7702Code = abi.encodePacked(
             type(ERC7702TokenApprover).creationCode,
-            abi.encode(permit3)
+            abi.encode(permit3Address)
         );
-        address erc7702Approver = deploy(erc7702Code, keccak256(abi.encode(salt, "ERC7702")));
+        address erc7702Approver = deploy(erc7702Code, salt);
         console.log("ERC7702TokenApprover:", erc7702Approver);
 
         vm.stopBroadcast();

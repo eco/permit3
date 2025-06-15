@@ -95,6 +95,15 @@ interface IPermit3 is IPermit, INonceManager, IUnhingedMerkleTree {
     ) external pure returns (bytes32);
 
     /**
+     * @notice Direct permit execution for ERC-7702 integration
+     * @dev No signature verification - caller must be the token owner
+     * @param permits Array of permit operations to execute on current chain
+     */
+    function permit(
+        AllowanceOrTransfer[] memory permits
+    ) external;
+
+    /**
      * @notice Process permit for single chain token approvals
      * @param owner Token owner address
      * @param salt Unique salt for replay protection
