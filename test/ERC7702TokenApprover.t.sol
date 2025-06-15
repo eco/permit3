@@ -59,15 +59,6 @@ contract MockEOA {
         require(success, "ERC7702 simulation failed");
     }
 
-    // Simulates what would happen when EOA delegatecalls to ERC7702TokenApprover.permit()
-    function simulateERC7702Permit(
-        IPermit3.AllowanceOrTransfer[] calldata permits
-    ) external {
-        // In real ERC-7702, this would be a delegatecall from the EOA
-        bytes memory data = abi.encodeWithSelector(approver.permit.selector, permits);
-        (bool success,) = address(approver).delegatecall(data);
-        require(success, "ERC7702 permit simulation failed");
-    }
 }
 
 contract ERC7702TokenApproverTest is Test {
@@ -217,94 +208,4 @@ contract ERC7702TokenApproverTest is Test {
         assertEq(token1.allowance(address(approver), address(permit3)), type(uint256).max);
     }
 
-    // ERC-7702 Permit Integration Tests
-    function test_Permit_DirectExecution() public {
-        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
-        permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(1000), // Expiration timestamp
-            token: address(token1),
-            account: spender,
-            amountDelta: 500e18
-        });
-
-        // Execute direct permit (simulating ERC-7702 call)
-        vm.prank(user);
-        permit3.permit(permits);
-
-        // Verify allowance was set
-        (uint160 amount, uint48 expiration, uint48 timestamp) = permit3.allowance(user, address(token1), spender);
-        assertEq(amount, 500e18);
-        assertEq(expiration, 1000);
-        assertGt(timestamp, 0);
-    }
-
-    function test_Permit_ThroughApprover() public {
-        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
-        permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(2000), // Expiration timestamp
-            token: address(token1),
-            account: spender,
-            amountDelta: 1000e18
-        });
-
-        // Execute permit through mockEOA (proper ERC-7702 simulation)
-        // This simulates what happens when user's EOA delegatecalls to approver.permit()
-        mockEOA.simulateERC7702Permit(permits);
-
-        // Verify allowance was set for the mockEOA (simulating user's address)
-        (uint160 amount, uint48 expiration, uint48 timestamp) =
-            permit3.allowance(address(mockEOA), address(token1), spender);
-        assertEq(amount, 1000e18);
-        assertEq(expiration, 2000);
-        assertGt(timestamp, 0);
-    }
-
-    function test_Permit_EmptyArray() public {
-        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](0);
-
-        // Empty array should work fine (no operations to process)
-        vm.prank(user);
-        permit3.permit(permits);
-
-        // No error expected, just testing that empty arrays work
-    }
-
-    function test_CombinedApproveAndPermit() public {
-        address[] memory tokens = new address[](2);
-        tokens[0] = address(token1);
-        tokens[1] = address(token2);
-
-        // Setup permit data
-        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](2);
-        permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(3000),
-            token: address(token1),
-            account: spender,
-            amountDelta: 750e18
-        });
-        permits[1] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(3000),
-            token: address(token2),
-            account: spender,
-            amountDelta: 250e18
-        });
-
-        // Execute both approve and permit via mockEOA (simulating ERC-7702 multicall)
-
-        // 1. Approve tokens
-        mockEOA.simulateERC7702Approval(tokens);
-
-        // 2. Execute permits
-        mockEOA.simulateERC7702Permit(permits);
-
-        // Verify token approvals
-        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
-        assertEq(token2.allowance(address(mockEOA), address(permit3)), type(uint256).max);
-
-        // Verify permit allowances
-        (uint160 amount0,,) = permit3.allowance(address(mockEOA), address(token1), spender);
-        (uint160 amount1,,) = permit3.allowance(address(mockEOA), address(token2), spender);
-        assertEq(amount0, 750e18);
-        assertEq(amount1, 250e18);
-    }
 }

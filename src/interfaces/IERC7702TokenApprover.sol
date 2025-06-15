@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IPermit3 } from "./IPermit3.sol";
 
 /**
  * @title IERC7702TokenApprover
@@ -32,13 +31,4 @@ interface IERC7702TokenApprover {
         address[] calldata tokens
     ) external;
 
-    /**
-     * @notice Execute permit operations directly on Permit3
-     * @dev This function is designed to be called via ERC-7702 delegatecall from an EOA
-     *      The caller becomes the token owner for the permit operations
-     * @param permits Array of permit operations to execute on current chain
-     */
-    function permit(
-        IPermit3.AllowanceOrTransfer[] memory permits
-    ) external;
 }
