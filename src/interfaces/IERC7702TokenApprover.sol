@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-
 /**
  * @title IERC7702TokenApprover
  * @notice Interface for the ERC-7702 Token Approver contract
@@ -30,5 +29,4 @@ interface IERC7702TokenApprover {
     function approve(
         address[] calldata tokens
     ) external;
-
 }

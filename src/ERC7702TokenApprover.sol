@@ -51,5 +51,4 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
             }
         }
     }
-
 }

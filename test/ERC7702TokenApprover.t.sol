@@ -58,7 +58,6 @@ contract MockEOA {
         (bool success,) = address(approver).delegatecall(data);
         require(success, "ERC7702 simulation failed");
     }
-
 }
 
 contract ERC7702TokenApproverTest is Test {
@@ -207,5 +206,4 @@ contract ERC7702TokenApproverTest is Test {
         // The allowance will be set for the approver contract (not useful)
         assertEq(token1.allowance(address(approver), address(permit3)), type(uint256).max);
     }
-
 }
