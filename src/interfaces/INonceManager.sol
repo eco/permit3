@@ -21,8 +21,6 @@ interface INonceManager {
     /// @notice Thrown when a witness type string is invalid
     error InvalidWitnessTypeString();
 
-    /// @notice Thrown when a witness signature is invalid
-    error InvalidWitnessSignature();
 
     /**
      * @notice Nonce invalidation parameters for a specific chain
