@@ -73,6 +73,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
         for (uint256 i = 0; i < length; i++) {
             usedNonces[msg.sender][salts[i]] = 1;
+            emit NonceInvalidated(msg.sender, salts[i]);
         }
     }
 
@@ -148,6 +149,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
         for (uint256 i = 0; i < length; i++) {
             usedNonces[owner][invalidations.salts[i]] = 1;
+            emit NonceInvalidated(owner, invalidations.salts[i]);
         }
     }
 
