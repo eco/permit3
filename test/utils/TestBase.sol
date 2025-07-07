@@ -159,8 +159,7 @@ contract TestBase is Test {
 
         // Calculate the unhinged root exactly as the contract does
         if (params.hasPreHash) {
-            params.unhingedRoot = params.preHash;
-            params.unhingedRoot = keccak256(abi.encodePacked(params.unhingedRoot, params.subtreeRoot));
+            params.unhingedRoot = keccak256(abi.encodePacked(params.preHash, params.currentChainHash));
         } else {
             params.unhingedRoot = params.subtreeRoot;
         }

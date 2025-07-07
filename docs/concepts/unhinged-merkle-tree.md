@@ -117,8 +117,10 @@ struct UnhingedProof {
 This compact representation contains three key components:
 
 1. **preHash** (optional): The combined hash of all previous chain operations. Can be completely omitted to save gas when not needed.
-2. **subtreeProof**: A traditional Merkle proof for the elements in the current chain's subtree
+2. **subtreeProof**: A traditional Merkle proof for the elements in the current chain's subtree  
 3. **followingHashes**: Array of subtree roots for chains that should be processed after the current chain
+
+Note: `preHash` and `subtreeProof` are mutually exclusive - only one approach is used per proof to optimize verification.
 
 ### Gas Optimization with hasPreHash Flag
 

@@ -38,7 +38,7 @@ contract Permit3Tester is Permit3 {
      * @notice Exposes the UnhingedMerkleTree.verifyBalancedSubtree function for testing
      */
     function verifyBalancedSubtree(bytes32 leaf, bytes32[] calldata proof) external pure returns (bytes32) {
-        return proof.verifyBalancedSubtree(leaf);
+        return UnhingedMerkleTree.computeBalancedRoot(leaf, uint120(proof.length), proof);
     }
 
     /**

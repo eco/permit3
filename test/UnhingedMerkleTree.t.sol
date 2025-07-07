@@ -80,15 +80,13 @@ contract UnhingedMerkleTreeTest is Test {
         assert(result == expected);
     }
 
-    // Test creating and verifying a proof
+    // Test creating and verifying a proof with preHash only (due to mutual exclusivity)
     function test_generateAndVerifyProof() public view {
         // Create a leaf
         bytes32 leaf = bytes32(uint256(0x1234));
 
-        // Create a sample proof
-        bytes32[] memory subtreeProof = new bytes32[](1);
-        subtreeProof[0] = bytes32(uint256(0x5678));
-
+        // Create a sample proof with preHash only (due to mutual exclusivity)
+        bytes32[] memory subtreeProof = new bytes32[](0); // Empty due to mutual exclusivity
         bytes32[] memory followingHashes = new bytes32[](1);
         followingHashes[0] = bytes32(uint256(0x9abc));
 
@@ -98,9 +96,8 @@ contract UnhingedMerkleTreeTest is Test {
         IUnhingedMerkleTree.UnhingedProof memory proof =
             tester.createOptimizedProof(preHash, subtreeProof, followingHashes);
 
-        // Calculate the expected unhinged root
-        bytes32 expectedSubtreeRoot = tester.verifyBalancedSubtree(leaf, subtreeProof);
-        bytes32 expectedRoot = keccak256(abi.encodePacked(preHash, expectedSubtreeRoot));
+        // Calculate the expected unhinged root (with preHash, directly hash preHash + leaf)
+        bytes32 expectedRoot = keccak256(abi.encodePacked(preHash, leaf));
         expectedRoot = keccak256(abi.encodePacked(expectedRoot, followingHashes[0]));
 
         // Verify the proof
@@ -108,18 +105,45 @@ contract UnhingedMerkleTreeTest is Test {
         assert(result == true);
     }
 
-    // Test with an empty proof
+    // Test creating and verifying a proof with subtreeProof only
+    function test_generateAndVerifyProofSubtreeOnly() public view {
+        // Create a leaf
+        bytes32 leaf = bytes32(uint256(0x1234));
+
+        // Create a sample proof with subtreeProof only (no preHash)
+        bytes32[] memory subtreeProof = new bytes32[](1);
+        subtreeProof[0] = bytes32(uint256(0x5678));
+
+        bytes32[] memory followingHashes = new bytes32[](1);
+        followingHashes[0] = bytes32(uint256(0x9abc));
+
+        bytes32 preHash = bytes32(0); // No preHash
+
+        // Create the optimized proof
+        IUnhingedMerkleTree.UnhingedProof memory proof =
+            tester.createOptimizedProof(preHash, subtreeProof, followingHashes);
+
+        // Calculate the expected unhinged root
+        bytes32 expectedSubtreeRoot = tester.verifyBalancedSubtree(leaf, subtreeProof);
+        bytes32 expectedRoot = keccak256(abi.encodePacked(expectedSubtreeRoot, followingHashes[0]));
+
+        // Verify the proof
+        bool result = tester.verify(leaf, proof, expectedRoot);
+        assert(result == true);
+    }
+
+    // Test with preHash only (no subtree proof, no following hashes)
     function test_emptyProof() public view {
         // Create a leaf
         bytes32 leaf = bytes32(uint256(0x1234));
 
-        // Create an optimized proof with empty subtree proof and following hashes
+        // Create an optimized proof with preHash only
         bytes32[] memory emptyArray = new bytes32[](0);
         bytes32 preHash = bytes32(uint256(0xdef0));
 
         IUnhingedMerkleTree.UnhingedProof memory proof = tester.createOptimizedProof(preHash, emptyArray, emptyArray);
 
-        // Calculate the expected unhinged root
+        // When hasPreHash=true and no following hashes, hash the preHash with the leaf
         bytes32 expectedRoot = keccak256(abi.encodePacked(preHash, leaf));
 
         // Verify the proof
@@ -155,14 +179,12 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test invalid proof verification with incorrect unhinged root
-    function test_invalidProofWithWrongRoot() public view {
+    function test_wrongRoot() public view {
         // Create a leaf
         bytes32 leaf = bytes32(uint256(0x1234));
 
-        // Create a sample proof
-        bytes32[] memory subtreeProof = new bytes32[](1);
-        subtreeProof[0] = bytes32(uint256(0x5678));
-
+        // Create a sample proof with preHash (restore original test intent)
+        bytes32[] memory subtreeProof = new bytes32[](0); // Empty due to mutual exclusivity
         bytes32[] memory followingHashes = new bytes32[](1);
         followingHashes[0] = bytes32(uint256(0x9abc));
 
@@ -173,8 +195,7 @@ contract UnhingedMerkleTreeTest is Test {
             tester.createOptimizedProof(preHash, subtreeProof, followingHashes);
 
         // Calculate a correct root
-        bytes32 expectedSubtreeRoot = tester.verifyBalancedSubtree(leaf, subtreeProof);
-        bytes32 correctRoot = keccak256(abi.encodePacked(preHash, expectedSubtreeRoot));
+        bytes32 correctRoot = keccak256(abi.encodePacked(preHash, leaf));
         correctRoot = keccak256(abi.encodePacked(correctRoot, followingHashes[0]));
 
         // Create an incorrect root (just add 1 to make it different)
@@ -221,15 +242,7 @@ contract UnhingedMerkleTreeTest is Test {
         // We want to prove the 6th element (index 5)
         bytes32 targetLeaf = leaves[5];
 
-        // Create a balanced subtree proof
-        // In a balanced tree with 10 leaves, we need 4 proof elements (log2(10) rounded up)
-        bytes32[] memory subtreeProof = new bytes32[](4);
-        subtreeProof[0] = bytes32(uint256(0xa1));
-        subtreeProof[1] = bytes32(uint256(0xa2));
-        subtreeProof[2] = bytes32(uint256(0xa3));
-        subtreeProof[3] = bytes32(uint256(0xa4));
-
-        // Create the previous hash (combinatino of chains 0-4)
+        // Create a preHash for the combined previous chains (0-4) - restore original intent
         bytes32 preHash = keccak256(abi.encodePacked("Previous chains combined"));
 
         // Create following hashes (chains 7-9)
@@ -238,16 +251,13 @@ contract UnhingedMerkleTreeTest is Test {
         followingHashes[1] = leaves[8];
         followingHashes[2] = leaves[9];
 
-        // Create the optimized proof
+        // Create the optimized proof - now with preHash, so subtreeProof must be empty
+        bytes32[] memory emptySubtreeProof = new bytes32[](0);
         IUnhingedMerkleTree.UnhingedProof memory proof =
-            tester.createOptimizedProof(preHash, subtreeProof, followingHashes);
+            tester.createOptimizedProof(preHash, emptySubtreeProof, followingHashes);
 
-        // Calculate what the subtree root would be (for chains 5-6)
-        bytes32 subtreeRoot = tester.verifyBalancedSubtree(targetLeaf, subtreeProof);
-
-        // Calculate what the unhinged root should be
-        bytes32 unhingedRoot = preHash;
-        unhingedRoot = keccak256(abi.encodePacked(unhingedRoot, subtreeRoot));
+        // With preHash mode, the unhinged root calculation starts with preHash + leaf
+        bytes32 unhingedRoot = keccak256(abi.encodePacked(preHash, targetLeaf));
 
         for (uint256 i = 0; i < followingHashes.length; i++) {
             unhingedRoot = keccak256(abi.encodePacked(unhingedRoot, followingHashes[i]));
@@ -309,17 +319,43 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     function test_verify() public view {
-        // Create a simple proof with leaf and one level
+        // Create a simple proof with leaf and one level (with preHash - restore original intent)
+        bytes32 leaf = bytes32(uint256(123));
+
+        // Construct a proof with preHash only (due to mutual exclusivity)
+        bytes32[] memory nodes = new bytes32[](1); // only preHash
+        nodes[0] = bytes32(uint256(42)); // preHash
+
+        // Pack counts
+        bytes32 counts = tester.packCounts(0, 0, true); // 0 subtree proof elements, 0 following hashes, with preHash
+
+        // Create the proof structure
+        IUnhingedMerkleTree.UnhingedProof memory proof =
+            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
+
+        // Calculate the root manually (with preHash, hash preHash + leaf)
+        bytes32 expectedRoot = keccak256(abi.encodePacked(nodes[0], leaf));
+
+        // Verify the proof
+        bool isValid = tester.verify(leaf, proof, expectedRoot);
+        assertTrue(isValid);
+
+        // Test with invalid root
+        bool isInvalid = tester.verify(leaf, proof, bytes32(uint256(999)));
+        assertFalse(isInvalid);
+    }
+
+    function test_verifySubtreeProofOnly() public view {
+        // Test with subtreeProof only (no preHash)
         bytes32 leaf = bytes32(uint256(123));
         bytes32 sibling = bytes32(uint256(456));
 
-        // Construct a proof
-        bytes32[] memory nodes = new bytes32[](2); // preHash and subtree proof
-        nodes[0] = bytes32(uint256(42)); // preHash
-        nodes[1] = sibling; // subtree proof element
+        // Construct a proof with subtreeProof only
+        bytes32[] memory nodes = new bytes32[](1); // only subtree proof
+        nodes[0] = sibling; // subtree proof element
 
         // Pack counts
-        bytes32 counts = tester.packCounts(1, 0, true); // 1 subtree proof element, 0 following hashes, with preHash
+        bytes32 counts = tester.packCounts(1, 0, false); // 1 subtree proof element, 0 following hashes, no preHash
 
         // Create the proof structure
         IUnhingedMerkleTree.UnhingedProof memory proof =
@@ -333,7 +369,8 @@ contract UnhingedMerkleTreeTest is Test {
             subtreeRoot = keccak256(abi.encodePacked(sibling, leaf));
         }
 
-        bytes32 expectedRoot = keccak256(abi.encodePacked(nodes[0], subtreeRoot));
+        // When no preHash, the subtreeRoot is the expected root
+        bytes32 expectedRoot = subtreeRoot;
 
         // Verify the proof
         bool isValid = tester.verify(leaf, proof, expectedRoot);
@@ -470,7 +507,7 @@ contract UnhingedMerkleTreeTest is Test {
             // Set preHash to a non-zero value to avoid the InconsistentPreHashFlag error
             proofWithPreHash.nodes[0] = bytes32(uint256(0x5678));
 
-            // Calculate expected root (hashing leaf with preHash)
+            // When hasPreHash=true and no following hashes, hash the preHash with the leaf
             bytes32 expectedRoot = keccak256(abi.encodePacked(proofWithPreHash.nodes[0], leaf));
 
             // Measure gas for verification with preHash
@@ -671,8 +708,8 @@ contract UnhingedMerkleTreeTest is Test {
             counts: tester.packCounts(0, 0, true) // hasPreHash=true flag
          });
 
-        // This should revert with HasPreHashButEmptyNodes
-        vm.expectRevert(IUnhingedMerkleTree.HasPreHashButEmptyNodes.selector);
+        // This should revert with InvalidNodeArrayLength (expected 1, got 0)
+        vm.expectRevert(abi.encodeWithSelector(IUnhingedMerkleTree.InvalidNodeArrayLength.selector, 1, 0));
         tester.verify(leaf, proof, bytes32(0));
     }
 
@@ -701,5 +738,38 @@ contract UnhingedMerkleTreeTest is Test {
         assertEq(maxSubtree, maxValue);
         assertEq(maxFollowing, maxValue);
         assertTrue(hasPreHashExtracted);
+    }
+
+    function test_createOptimizedProofRevertsMutuallyExclusive() public {
+        // Test that createOptimizedProof reverts when both preHash and subtreeProof are provided
+        bytes32 preHash = bytes32(uint256(0x1234)); // Non-zero preHash
+        bytes32[] memory subtreeProof = new bytes32[](1); // Non-empty subtreeProof
+        subtreeProof[0] = bytes32(uint256(0x5678));
+        bytes32[] memory followingHashes = new bytes32[](0);
+
+        // This should revert with InvalidParameters
+        vm.expectRevert(abi.encodeWithSelector(IUnhingedMerkleTree.InvalidParameters.selector));
+        tester.createOptimizedProof(preHash, subtreeProof, followingHashes);
+    }
+
+    function test_rejectsExcessNodes() public {
+        // Test that validation rejects proofs with excess nodes
+        bytes32 leaf = bytes32(uint256(0x1234));
+
+        // Create a proof with more nodes than expected
+        bytes32[] memory nodes = new bytes32[](3); // 3 nodes provided
+        nodes[0] = bytes32(uint256(0x5678));
+        nodes[1] = bytes32(uint256(0x9abc));
+        nodes[2] = bytes32(uint256(0xdef0)); // Extra node
+
+        // Pack counts that only expect 2 nodes (1 subtree + 1 following, no preHash)
+        bytes32 counts = tester.packCounts(1, 1, false);
+
+        IUnhingedMerkleTree.UnhingedProof memory proof =
+            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
+
+        // This should revert with InvalidNodeArrayLength (expected 2, got 3)
+        vm.expectRevert(abi.encodeWithSelector(IUnhingedMerkleTree.InvalidNodeArrayLength.selector, 2, 3));
+        tester.verify(leaf, proof, bytes32(0));
     }
 }

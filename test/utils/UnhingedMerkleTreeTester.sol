@@ -91,13 +91,13 @@ contract UnhingedMerkleTreeTester {
     }
 
     /**
-     * @notice Exposes verifyBalancedSubtree function for testing
+     * @notice Exposes computeBalancedRoot function for testing
      * @param leaf The leaf node to verify
      * @param proof The balanced Merkle proof for the leaf
      * @return The calculated subtree root
      */
     function verifyBalancedSubtree(bytes32 leaf, bytes32[] calldata proof) external pure returns (bytes32) {
-        return proof.verifyBalancedSubtree(leaf);
+        return UnhingedMerkleTree.computeBalancedRoot(leaf, uint120(proof.length), proof);
     }
 
     /**

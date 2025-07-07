@@ -105,6 +105,25 @@ Where:
   - Next 15 bits: Reserved for future use
   - Last bit: hasPreHash flag (1 if preHash is present, 0 if not)
 
+#### Critical Design Constraint: Mutual Exclusivity
+
+**IMPORTANT**: The `preHash` and `subtreeProof` components are mutually exclusive and cannot both be present in the same proof structure. This is a fundamental design constraint enforced by the system:
+
+- **When hasPreHash=true**: The proof uses `preHash` mode with no subtree proof nodes (subtreeProofCount MUST be 0)
+- **When hasPreHash=false**: The proof uses `subtreeProof` mode with no preHash value
+
+This mutual exclusivity enables two distinct verification algorithms optimized for different scenarios:
+
+1. **preHash Mode (hasPreHash=true)**: Efficient for chains late in the sequence
+   - Structure: `[preHash, followingHashes...]`
+   - Verification: Direct hash with leaf, then append following hashes
+   - Gas optimized: Minimal proof data for expensive chains
+
+2. **subtreeProof Mode (hasPreHash=false)**: Efficient for chains early in the sequence
+   - Structure: `[subtreeProof..., followingHashes...]`
+   - Verification: Full balanced Merkle tree verification, then append following hashes
+   - Gas optimized: Larger proofs acceptable on cheaper chains
+
 This optimized format has several advantages:
 1. It avoids separate array allocations for subtree proofs and following hashes
 2. It allows omitting the preHash entirely when not needed, saving significant gas costs
@@ -130,22 +149,30 @@ To verify an element is included in an Unhinged Merkle Tree:
    - Extract followingHashesCount (120 bits): `uint120 followingHashesCount = uint120((value >> 16) & ((1 << 120) - 1))`
    - Extract hasPreHash flag (1 bit): `bool hasPreHash = (value & 1) == 1`
 
-2. **Extract nodes from the array**:
-   - Validate that nodes array has sufficient elements
-   - If hasPreHash is true, get preHash from nodes[0] and offset subsequent indices
-   - Extract subtree proof nodes from the appropriate positions
-   - Extract following hashes from the end of the array
+2. **Validate mutual exclusivity constraint**:
+   - Verify that `preHash` and `subtreeProof` are not both present
+   - If hasPreHash=true, subtreeProofCount MUST be 0
+   - If hasPreHash=false, no preHash value should be in nodes[0]
 
-3. **Verify the balanced subtree proof**:
-   - Use standard Merkle proof verification to check that the element is included in the current chain's subtree
-   - Calculate the subtree root
+3. **Extract nodes from the array based on mode**:
+   - **preHash Mode (hasPreHash=true)**:
+     - Get preHash from nodes[0]
+     - Extract following hashes from nodes[1] onwards
+     - No subtree proof nodes present
+   - **subtreeProof Mode (hasPreHash=false)**:
+     - Extract subtree proof nodes from nodes[0] to nodes[subtreeProofCount-1]
+     - Extract following hashes from remaining nodes
+     - No preHash value present
 
-4. **Recalculate the unhinged chain**:
-   - If hasPreHash is true:
+4. **Perform verification based on mode**:
+   - **preHash Mode**: 
      - Start with preHash from nodes[0]
-     - Append the calculated subtree root: `result = keccak256(abi.encodePacked(preHash, subtreeRoot))`
-   - If hasPreHash is false:
-     - Start directly with the subtree root: `result = subtreeRoot`
+     - Hash directly with leaf: `result = keccak256(abi.encodePacked(preHash, leaf))`
+   - **subtreeProof Mode**:
+     - Verify balanced subtree proof using standard Merkle verification
+     - Calculate subtree root: `result = computeBalancedRoot(leaf, subtreeProof)`
+
+5. **Complete the unhinged chain**:
    - Sequentially append each following hash: `result = keccak256(abi.encodePacked(result, followingHash))`
 
 5. **Verification**:
@@ -421,9 +448,13 @@ library UnhingedMerkleTree {
         bytes32[] memory subtreeProof,
         bytes32[] memory followingHashes
     ) internal pure returns (UnhingedProof memory optimizedProof) {
-        // Note: This function still uses memory parameters as it creates a new memory struct
         // Check if preHash is present (non-zero)
         bool hasPreHash = preHash != bytes32(0);
+        
+        // Enforce mutual exclusivity constraint
+        if (hasPreHash && subtreeProof.length > 0) {
+            revert("preHash and subtreeProof are mutually exclusive");
+        }
         
         // 1. Create the combined nodes array (size depends on whether preHash is included)
         uint256 nodesArraySize = subtreeProof.length + followingHashes.length;
