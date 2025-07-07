@@ -108,11 +108,8 @@ contract PermitBase is IPermit {
             address token = approvals[i].token;
             address spender = approvals[i].spender;
 
-            allowances[msg.sender][token][spender] = Allowance({
-                amount: 0,
-                expiration: LOCKED_ALLOWANCE,
-                timestamp: uint48(block.timestamp)
-            });
+            allowances[msg.sender][token][spender] =
+                Allowance({ amount: 0, expiration: LOCKED_ALLOWANCE, timestamp: uint48(block.timestamp) });
 
             emit Lockdown(msg.sender, token, spender);
         }

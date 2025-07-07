@@ -19,7 +19,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
     /// @dev Constant representing an unused nonce
     uint256 private constant NONCE_NOT_USED = 0;
-    
+
     /// @dev Constant representing a used nonce
     uint256 private constant NONCE_USED = 1;
 
