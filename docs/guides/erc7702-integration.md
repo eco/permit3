@@ -36,7 +36,7 @@ Users create an ERC-7702 transaction that:
 - **Authorizes delegation** to the `ERC7702TokenApprover` contract
 - **Executes multiple operations** via delegatecall (choose one or both):
   - `approve(address[] tokens)` - Batch approve tokens
-  - `permit(ChainPermits memory chain)` - Execute permit operations
+  - `permit(AllowanceOrTransfer[] memory permits)` - Execute permit operations
 
 ### 3. ✅ Result
 

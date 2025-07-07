@@ -82,7 +82,7 @@ struct AllowanceOrTransfer {
 
 ```solidity
 struct ChainPermits {
-    uint256 chainId;             // Target chain ID
+    uint64 chainId;              // Target chain ID
     AllowanceOrTransfer[] permits; // Operations for this chain
 }
 ```
@@ -114,7 +114,7 @@ bytes32 public constant SIGNED_UNHINGED_PERMIT3_TYPEHASH = keccak256(
 
 // Witness type hash stubs
 string private constant _PERMIT_WITNESS_TYPEHASH_STUB = 
-    "PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
+    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
     
 string private constant _PERMIT_BATCH_WITNESS_TYPEHASH_STUB = 
     "PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
@@ -148,9 +148,9 @@ error InvalidWitnessTypeString();
 function permit(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
-    ChainPermits memory chain,
+    AllowanceOrTransfer[] calldata permits,
     bytes calldata signature
 ) external;
 ```
@@ -160,7 +160,7 @@ function permit(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `chain`: Chain-specific permit data
+- `permits`: Array of permit operations to execute
 - `signature`: EIP-712 signature authorizing the permits
 
 **Behavior:**
@@ -175,7 +175,7 @@ function permit(
 function permit(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
     UnhingedPermitProof calldata proof,
     bytes calldata signature
@@ -226,12 +226,12 @@ function permit(
 #### Single Chain Witness Permit
 
 ```solidity
-function permitWitnessTransferFrom(
+function permitWitness(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
-    ChainPermits memory chain,
+    AllowanceOrTransfer[] calldata permits,
     bytes32 witness,
     string calldata witnessTypeString,
     bytes calldata signature
@@ -243,7 +243,7 @@ function permitWitnessTransferFrom(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `chain`: Chain-specific permit data
+- `permits`: Array of permit operations to execute
 - `witness`: Additional data to include in signature verification
 - `witnessTypeString`: EIP-712 type definition for witness data
 - `signature`: EIP-712 signature authorizing the permits
@@ -259,10 +259,10 @@ function permitWitnessTransferFrom(
 #### Cross-Chain Witness Permit
 
 ```solidity
-function permitWitnessTransferFrom(
+function permitWitness(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
     UnhingedPermitProof calldata proof,
     bytes32 witness,
@@ -499,7 +499,7 @@ AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint16
 
 ```
 // Base type stubs (incomplete)
-PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,
+PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,
 PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,
 PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,
 
@@ -518,22 +518,18 @@ OrderData data)OrderData(uint256 orderId,uint256 price,uint256 expiration)
 ```solidity
 // Create and sign permit
 bytes32 salt = generateSalt();
-uint256 deadline = block.timestamp + 1 hours;
+uint48 deadline = uint48(block.timestamp + 1 hours);
 uint48 timestamp = uint48(block.timestamp);
 
-IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({
-    chainId: block.chainid,
-    permits: [
-        IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: 0, // Transfer mode
-            token: USDC,
-            account: recipient,
-            amountDelta: 1000e6 // 1000 USDC
-        })
-    ]
+IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+permits[0] = IPermit3.AllowanceOrTransfer({
+    modeOrExpiration: 0, // Transfer mode
+    token: USDC,
+    account: recipient,
+    amountDelta: 1000e6 // 1000 USDC
 });
 
-bytes memory signature = signPermit(owner, salt, deadline, timestamp, chainPermits);
+bytes memory signature = signPermit(owner, salt, deadline, timestamp, permits);
 
 // Execute permit
 permit3.permit(
@@ -541,7 +537,7 @@ permit3.permit(
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    permits,
     signature
 );
 ```
@@ -630,12 +626,12 @@ bytes memory signature = signWitnessPermit(
 );
 
 // Execute witness permit
-permit3.permitWitnessTransferFrom(
+permit3.permitWitness(
     owner,
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    permits,
     witness,
     witnessTypeString,
     signature

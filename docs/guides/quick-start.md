@@ -178,7 +178,7 @@ const witnessTypeString = "OrderData data)OrderData(uint256 orderId,uint256 pric
 // Add witness types
 const types = {
     // ... previous types
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
@@ -230,7 +230,7 @@ function executeWitnessPermit(
     require(witness == expectedWitness, "Invalid witness data");
     
     // Execute permit with witness
-    permit3.permitWitnessTransferFrom(
+    permit3.permitWitness(
         owner,
         salt,
         deadline,

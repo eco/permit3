@@ -77,7 +77,7 @@ struct AllowanceOrTransfer {
  * @param permits Array of permit operations for this chain
  */
 struct ChainPermits {
-    uint256 chainId;
+    uint64 chainId;
     AllowanceOrTransfer[] permits;
 }
 
@@ -108,12 +108,12 @@ A key innovation in Permit3 is the addition of witness functionality, which allo
  * @param witnessTypeString EIP-712 type definition for witness data
  * @param signature EIP-712 signature authorizing the permits
  */
-function permitWitnessTransferFrom(
+function permitWitness(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
-    ChainPermits memory chain,
+    AllowanceOrTransfer[] calldata permits,
     bytes32 witness,
     string calldata witnessTypeString,
     bytes calldata signature

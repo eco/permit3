@@ -267,7 +267,7 @@ const witnessTypeString = "OrderData data)OrderData(uint256 orderId,uint256 pric
 ```javascript
 // Types for witness permit
 const witnessTypes = {
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'owner', type: 'address' },
         { name: 'spender', type: 'address' },
@@ -311,7 +311,7 @@ const witnessSignature = await signer._signTypedData(domain, witnessTypes, witne
 
 ```javascript
 // Execute the witness permit
-const tx = await permit3.permitWitnessTransferFrom(
+const tx = await permit3.permitWitness(
     witnessValue.owner,
     witnessValue.salt,
     witnessValue.deadline,

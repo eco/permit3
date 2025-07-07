@@ -75,7 +75,9 @@ contract PermitBase is IPermit {
 
         if (allowed.amount != MAX_ALLOWANCE) {
             require(allowed.amount >= amount, InsufficientAllowance(allowed.amount));
-            allowed.amount -= amount;
+            unchecked {
+                allowed.amount -= amount;
+            }
 
             allowances[from][token][msg.sender] = allowed;
         }
@@ -91,6 +93,10 @@ contract PermitBase is IPermit {
     function transferFrom(
         AllowanceTransferDetails[] calldata transfers
     ) external override {
+        if (transfers.length == 0) {
+            revert EmptyArray();
+        }
+
         for (uint256 i = 0; i < transfers.length; i++) {
             transferFrom(transfers[i].from, transfers[i].to, transfers[i].amount, transfers[i].token);
         }
@@ -104,6 +110,10 @@ contract PermitBase is IPermit {
     function lockdown(
         TokenSpenderPair[] calldata approvals
     ) external override {
+        if (approvals.length == 0) {
+            revert EmptyArray();
+        }
+
         for (uint256 i = 0; i < approvals.length; i++) {
             address token = approvals[i].token;
             address spender = approvals[i].spender;

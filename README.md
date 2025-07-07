@@ -39,8 +39,8 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
     - 🚫 Cross-chain revocation system
     - 🔐 Account locking mechanism
     - ⏳ Time-bound permissions
-- 🔄 **Full Permit2 Compatibility**:
-    - 📄 Implements all Permit2 interfaces
+- 🔄 **Full Permit2 Compatibility*:
+    - 📄 Implements basic transfer Permit2 interfaces
     - 🔌 Drop-in replacement for existing integrations
 
 ## 📚 Documentation
@@ -62,7 +62,7 @@ Permit3 implements IPermit for Permit2 transfer compatibility:
 ```solidity
 // Existing contracts using Permit2 can work without changes
 IPermit2 permit2 = IPermit2(PERMIT3_ADDRESS);
-permit2.transferFrom(msg.senΩzΩder, recipient, 1000e6, USDC);
+permit2.transferFrom(msg.sender, recipient, 1000e6, USDC);
 ```
 
 ### ✅ Supported Permit2 Functions
@@ -88,11 +88,11 @@ function lockdown(TokenSpenderPair[] calldata approvals) external;
 function permit(AllowanceOrTransfer[] memory permits) external;
 
 // Single-chain permit operations with signatures  
-function permit(address owner, bytes32 salt, uint256 deadline, uint48 timestamp, 
-                ChainPermits memory chain, bytes calldata signature) external;
+function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, 
+                AllowanceOrTransfer[] calldata permits, bytes calldata signature) external;
 
 // Cross-chain operations with UnhingedProofs and signatures
-function permit(address owner, bytes32 salt, uint256 deadline, uint48 timestamp,
+function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp,
                 UnhingedPermitProof calldata proof, bytes calldata signature) external;
 ```
 
@@ -186,7 +186,7 @@ Locked accounts have special restrictions:
 ```solidity
 // Access Permit2 compatibility
 IPermit permit = IPermit(PERMIT3_ADDRESS);
-permit.transferFrom(msg.senΩzΩder, recipient, 1000e6, USDC);
+permit.transferFrom(msg.sender, recipient, 1000e6, USDC);
 
 // Access Permit3 features
 IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
@@ -195,32 +195,35 @@ IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
 ### 📝 Example Operations
 
 ```solidity
-// 1. Increase Allowance
-ChainPermits memory permitData = ChainPermits({
-    chainId: block.chainid,
-    permits: [AllowanceOrTransfer({
-        modeOrExpiration: block.timestamp + 1 days,
-        token: USDC,
-        account: DEX,
-        amountDelta: 1000e6
-    })]
+// 1. Create permits array directly
+AllowanceOrTransfer[] memory permits = new AllowanceOrTransfer[](3);
+
+// 2. Increase Allowance
+permits[0] = AllowanceOrTransfer({
+    modeOrExpiration: uint48(block.timestamp + 1 days),
+    token: USDC,
+    account: DEX,
+    amountDelta: 1000e6
 });
 
-// 2. Lock Account
-permitData.permits.push(AllowanceOrTransfer({
+// 3. Lock Account
+permits[1] = AllowanceOrTransfer({
     modeOrExpiration: 2,
     token: USDC,
     account: address(0),
     amountDelta: 0
-}));
+});
 
-// 3. Execute Transfer
-permitData.permits.push(AllowanceOrTransfer({
+// 4. Execute Transfer
+permits[2] = AllowanceOrTransfer({
     modeOrExpiration: 0,
     token: USDC,
     account: recipient,
     amountDelta: 500e6
-}));
+});
+
+// Execute the permits
+permit3.permit(owner, salt, deadline, timestamp, permits, signature);
 ```
 
 ### 🌉 Cross-Chain Usage with UnhingedProofs

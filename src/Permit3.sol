@@ -30,7 +30,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * Used in cross-chain signature verification
      */
     bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
-        "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 transferOrExpiration,address token,address spender,uint160 amountDelta)"
+        "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
     );
 
     /**
@@ -42,7 +42,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
     // Constants for witness type hash strings
     string public constant PERMIT_WITNESS_TYPEHASH_STUB =
-        "PermitWitnessTransferFrom(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
+        "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
 
     /**
      * @dev Sets up EIP-712 domain separator with protocol identifiers
@@ -52,26 +52,28 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
     /**
      * @dev Generate EIP-712 compatible hash for chain permits
-     * @param permits Chain-specific permit data
+     * @param chainPermits Chain-specific permit data
      * @return bytes32 Combined hash of all permit parameters
      */
     function hashChainPermits(
-        ChainPermits memory permits
+        ChainPermits memory chainPermits
     ) public pure returns (bytes32) {
-        bytes32[] memory permitHashes = new bytes32[](permits.permits.length);
+        bytes32[] memory permitHashes = new bytes32[](chainPermits.permits.length);
 
-        for (uint256 i = 0; i < permits.permits.length; i++) {
+        for (uint256 i = 0; i < chainPermits.permits.length; i++) {
             permitHashes[i] = keccak256(
                 abi.encode(
-                    permits.permits[i].modeOrExpiration,
-                    permits.permits[i].token,
-                    permits.permits[i].account,
-                    permits.permits[i].amountDelta
+                    chainPermits.permits[i].modeOrExpiration,
+                    chainPermits.permits[i].token,
+                    chainPermits.permits[i].account,
+                    chainPermits.permits[i].amountDelta
                 )
             );
         }
 
-        return keccak256(abi.encode(CHAIN_PERMITS_TYPEHASH, permits.chainId, keccak256(abi.encodePacked(permitHashes))));
+        return keccak256(
+            abi.encode(CHAIN_PERMITS_TYPEHASH, chainPermits.chainId, keccak256(abi.encodePacked(permitHashes)))
+        );
     }
 
     /**
@@ -82,17 +84,22 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function permit(
         AllowanceOrTransfer[] memory permits
     ) external {
-        ChainPermits memory chain = ChainPermits({ chainId: block.chainid, permits: permits });
-        _processChainPermits(msg.sender, uint48(block.timestamp), chain);
+        if (permits.length == 0) {
+            revert EmptyArray();
+        }
+
+        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+        _processChainPermits(msg.sender, uint48(block.timestamp), chainPermits);
     }
 
     /**
      * @notice Process token approvals for a single chain
      * @dev Core permit processing function for single-chain operations
      * @param owner The token owner authorizing the permits
+     * @param salt Unique value for replay protection and nonce management
      * @param deadline Timestamp limiting signature validity for security
      * @param timestamp Timestamp of the permit
-     * @param chain Structured data containing token approval parameters
+     * @param permits Array of permit operations to execute
      * @param signature EIP-712 signature authorizing all permits in the batch
      */
     function permit(
@@ -100,18 +107,24 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        ChainPermits memory chain,
+        AllowanceOrTransfer[] calldata permits,
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
-        require(chain.chainId == block.chainid, WrongChainId(block.chainid, chain.chainId));
 
-        bytes32 signedHash =
-            keccak256(abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, salt, deadline, timestamp, hashChainPermits(chain)));
+        if (permits.length == 0) {
+            revert EmptyArray();
+        }
+
+        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+        bytes32 signedHash = keccak256(
+            abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, salt, deadline, timestamp, hashChainPermits(chainPermits))
+        );
 
         _useNonce(owner, salt);
         _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, timestamp, chain);
+        _processChainPermits(owner, timestamp, chainPermits);
     }
 
     // Helper struct to avoid stack-too-deep errors
@@ -142,7 +155,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
-        require(proof.permits.chainId == block.chainid, WrongChainId(block.chainid, proof.permits.chainId));
+        require(
+            proof.permits.chainId == uint64(block.chainid), WrongChainId(uint64(block.chainid), proof.permits.chainId)
+        );
 
         // Use a struct to avoid stack-too-deep errors
         PermitParams memory params;
@@ -182,29 +197,34 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Timestamp limiting signature validity for security
      * @param timestamp Timestamp of the permit
-     * @param chain Structured data containing token approval parameters
+     * @param permits Array of permit operations to execute
      * @param witness Additional data to include in signature verification
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing all permits with witness
      */
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        ChainPermits memory chain,
+        AllowanceOrTransfer[] calldata permits,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
-        require(chain.chainId == block.chainid, WrongChainId(block.chainid, chain.chainId));
+
+        if (permits.length == 0) {
+            revert EmptyArray();
+        }
+
+        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
 
         // Validate witness type string format
         _validateWitnessTypeString(witnessTypeString);
 
         // Get hash of permits data
-        bytes32 permitDataHash = hashChainPermits(chain);
+        bytes32 permitDataHash = hashChainPermits(chainPermits);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
@@ -212,7 +232,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
         _useNonce(owner, salt);
         _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, timestamp, chain);
+        _processChainPermits(owner, timestamp, chainPermits);
     }
 
     // Helper struct to avoid stack-too-deep errors
@@ -237,7 +257,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing the batch
      */
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
         uint48 deadline,
@@ -248,7 +268,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
-        require(proof.permits.chainId == block.chainid, WrongChainId(block.chainid, proof.permits.chainId));
+        require(
+            proof.permits.chainId == uint64(block.chainid), WrongChainId(uint64(block.chainid), proof.permits.chainId)
+        );
 
         // Validate witness type string format
         _validateWitnessTypeString(witnessTypeString);
@@ -291,7 +313,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @dev Core permit processing logic
      * @param owner Token owner
      * @param timestamp Block timestamp for validation and allowance updates
-     * @param chain Bundle of permit operations to process
+     * @param chainPermits Bundle of permit operations to process
      * @notice Handles multiple types of operations:
      * @notice modeOrExpiration Mode indicators:
      *        = 0: Immediate transfer mode
@@ -300,9 +322,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      *        = 3: Unlock allowance mode
      *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
      */
-    function _processChainPermits(address owner, uint48 timestamp, ChainPermits memory chain) internal {
-        for (uint256 i = 0; i < chain.permits.length; i++) {
-            AllowanceOrTransfer memory p = chain.permits[i];
+    function _processChainPermits(address owner, uint48 timestamp, ChainPermits memory chainPermits) internal {
+        for (uint256 i = 0; i < chainPermits.permits.length; i++) {
+            AllowanceOrTransfer memory p = chainPermits.permits[i];
 
             if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
                 _transferFrom(owner, p.account, p.amountDelta, p.token);

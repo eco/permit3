@@ -102,7 +102,7 @@ contract Permit3EdgeTest is Test {
         // Create empty permits array
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](0);
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x123));
@@ -120,11 +120,11 @@ contract Permit3EdgeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         params.signature = abi.encodePacked(r, s, v);
 
-        // Execute permit with empty array - should succeed but do nothing
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
-
-        // Verify nonce is used
-        assertTrue(permit3.isNonceUsed(owner, params.salt));
+        // Execute permit with empty array - should revert with EmptyArray error
+        vm.expectRevert(IPermit.EmptyArray.selector);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
     }
 
     function test_permitWitnessInvalidTypeString() public {
@@ -146,19 +146,19 @@ contract Permit3EdgeTest is Test {
             amountDelta: AMOUNT
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Create dummy signature (won't reach validation)
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
 
         // Should revert with InvalidWitnessTypeString
         vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidWitnessTypeString.selector));
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             params.salt,
             params.deadline,
             params.timestamp,
-            inputs.chainPermits,
+            inputs.chainPermits.permits,
             params.witness,
             params.witnessTypeString,
             params.signature
@@ -184,7 +184,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: AMOUNT
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Create additional variables in a separate struct to avoid stack-too-deep
         UnhingedWitnessTestVars memory vars;
@@ -225,7 +225,7 @@ contract Permit3EdgeTest is Test {
         deal(address(token), recipient, 0);
 
         // Execute unhinged witness permit
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             params.salt,
             params.deadline,
@@ -257,7 +257,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: AMOUNT
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Create invalid unhinged proof - invalid due to array length
         bytes32[] memory nodes = new bytes32[](1); // only preHash, no subtree elements
@@ -313,7 +313,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: AMOUNT
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Move complex variable declarations to a struct to avoid stack-too-deep
         ZeroSubtreeProofVars memory vars;
@@ -391,7 +391,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 0 // Zero amount delta
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Sign the permit
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -406,7 +406,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         // Execute the permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance - amount should stay the same, only expiration should update
         (uint160 newAmount, uint48 newExpiration,) = permit3.allowance(owner, address(token), spender);
@@ -434,7 +436,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 1000 // Additional amount (should be ignored)
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Sign the permit
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -449,7 +451,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         // Execute the permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance - amount should remain at MAX_ALLOWANCE
         (uint160 newAmount, uint48 newExpiration,) = permit3.allowance(owner, address(token), spender);
@@ -506,7 +510,8 @@ contract Permit3EdgeTest is Test {
             amountDelta: 5000 // Higher amount
          });
 
-        olderInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: olderInputs.permits });
+        olderInputs.chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: olderInputs.permits });
 
         PermitInputs memory newerInputs;
         newerInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -517,7 +522,8 @@ contract Permit3EdgeTest is Test {
             amountDelta: 3000 // Lower amount
          });
 
-        newerInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: newerInputs.permits });
+        newerInputs.chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: newerInputs.permits });
 
         // Use struct to avoid stack-too-deep
         TransactionOrderVars memory vars;
@@ -561,7 +567,7 @@ contract Permit3EdgeTest is Test {
             newerParams.salt,
             newerParams.deadline,
             newerParams.timestamp,
-            newerInputs.chainPermits,
+            newerInputs.chainPermits.permits,
             newerParams.signature
         );
 
@@ -577,7 +583,7 @@ contract Permit3EdgeTest is Test {
             olderParams.salt,
             olderParams.deadline,
             olderParams.timestamp,
-            olderInputs.chainPermits,
+            olderInputs.chainPermits.permits,
             olderParams.signature
         );
 
@@ -613,7 +619,7 @@ contract Permit3EdgeTest is Test {
         // Verify stubs match expected values
         assertEq(
             permitStub,
-            "PermitWitnessTransferFrom(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,"
+            "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,"
         );
     }
 
@@ -632,7 +638,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 0 // Not used for lock
          });
 
-        lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: lockInputs.permits });
+        lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
 
         TestParams memory lockParams;
         lockParams.salt = bytes32(uint256(0x444));
@@ -662,7 +668,7 @@ contract Permit3EdgeTest is Test {
             lockParams.salt,
             lockParams.deadline,
             lockParams.timestamp,
-            lockInputs.chainPermits,
+            lockInputs.chainPermits.permits,
             lockParams.signature
         );
 
@@ -681,7 +687,8 @@ contract Permit3EdgeTest is Test {
             amountDelta: 100 // Value to decrease by
          });
 
-        decreaseInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: decreaseInputs.permits });
+        decreaseInputs.chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: decreaseInputs.permits });
 
         TestParams memory decreaseParams;
         decreaseParams.salt = bytes32(uint256(0x555));
@@ -712,7 +719,7 @@ contract Permit3EdgeTest is Test {
             decreaseParams.salt,
             decreaseParams.deadline,
             decreaseParams.timestamp,
-            decreaseInputs.chainPermits,
+            decreaseInputs.chainPermits.permits,
             decreaseParams.signature
         );
     }
@@ -732,7 +739,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 0 // Not used for lock
          });
 
-        lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: lockInputs.permits });
+        lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
 
         TestParams memory lockParams;
         lockParams.salt = bytes32(uint256(0x666));
@@ -762,7 +769,7 @@ contract Permit3EdgeTest is Test {
             lockParams.salt,
             lockParams.deadline,
             lockParams.timestamp,
-            lockInputs.chainPermits,
+            lockInputs.chainPermits.permits,
             lockParams.signature
         );
 
@@ -782,7 +789,8 @@ contract Permit3EdgeTest is Test {
             amountDelta: 3000 // New amount after unlock
          });
 
-        unlockInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: unlockInputs.permits });
+        unlockInputs.chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: unlockInputs.permits });
 
         TestParams memory unlockParams;
         unlockParams.salt = bytes32(uint256(0x777));
@@ -812,7 +820,7 @@ contract Permit3EdgeTest is Test {
             unlockParams.salt,
             unlockParams.deadline,
             unlockParams.timestamp,
-            unlockInputs.chainPermits,
+            unlockInputs.chainPermits.permits,
             unlockParams.signature
         );
 
@@ -839,7 +847,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 0 // Not used for lock
          });
 
-        lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: lockInputs.permits });
+        lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
 
         TestParams memory lockParams;
         lockParams.salt = bytes32(uint256(0x888));
@@ -869,7 +877,7 @@ contract Permit3EdgeTest is Test {
             lockParams.salt,
             lockParams.deadline,
             lockParams.timestamp,
-            lockInputs.chainPermits,
+            lockInputs.chainPermits.permits,
             lockParams.signature
         );
 
@@ -883,7 +891,8 @@ contract Permit3EdgeTest is Test {
             amountDelta: 3000 // New amount after unlock
          });
 
-        unlockInputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: unlockInputs.permits });
+        unlockInputs.chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: unlockInputs.permits });
 
         TestParams memory unlockParams;
         unlockParams.salt = bytes32(uint256(0x999));
@@ -914,7 +923,7 @@ contract Permit3EdgeTest is Test {
             unlockParams.salt,
             unlockParams.deadline,
             unlockParams.timestamp,
-            unlockInputs.chainPermits,
+            unlockInputs.chainPermits.permits,
             unlockParams.signature
         );
     }
@@ -949,7 +958,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: type(uint160).max // Try to decrease by MAX_ALLOWANCE
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Sign the permit
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -964,7 +973,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         // Execute the permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance was reduced to 0
         (uint160 newAmount,,) = permit3.allowance(owner, address(token), spender);
@@ -991,7 +1002,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: type(uint160).max // Decrease by MAX_ALLOWANCE
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Sign the permit
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -1006,7 +1017,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         // Execute the permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance was reduced to 0
         (uint160 newAmount,,) = permit3.allowance(owner, address(token), spender);
@@ -1066,7 +1079,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: type(uint160).max // Set to MAX_ALLOWANCE
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Sign the permit
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -1081,7 +1094,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         // Execute the permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance is set to MAX_ALLOWANCE
         (uint160 newAmount,,) = permit3.allowance(owner, address(token), spender);
@@ -1108,7 +1123,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 500 // Decrease by 500 (from 1000)
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Sign the permit
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -1123,7 +1138,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         // Execute the permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance was reduced correctly
         (uint160 newAmount,,) = permit3.allowance(owner, address(token), spender);
@@ -1186,7 +1203,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 200 // Increase by 200
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Set up initial allowance for decrease operation to work
         vm.prank(owner);
@@ -1213,7 +1230,9 @@ contract Permit3EdgeTest is Test {
         deal(address(token), recipient, 0);
 
         // Execute the permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify the operations:
 
@@ -1236,7 +1255,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: AMOUNT
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
@@ -1256,7 +1275,9 @@ contract Permit3EdgeTest is Test {
 
         // Should revert with SignatureExpired
         vm.expectRevert(abi.encodeWithSelector(INonceManager.SignatureExpired.selector));
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
     }
 
     function test_decreaseMaxAllowanceToZero() public {
@@ -1274,7 +1295,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: type(uint160).max
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
@@ -1292,7 +1313,9 @@ contract Permit3EdgeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         params.signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance is now zero
         (uint160 amount,,) = permit3.allowance(owner, address(token), spender);
@@ -1323,7 +1346,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: AMOUNT
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
@@ -1341,7 +1364,9 @@ contract Permit3EdgeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         params.signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance is unlocked but amount remains unchanged
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
@@ -1364,7 +1389,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 0 // Zero delta
          });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
@@ -1382,7 +1407,9 @@ contract Permit3EdgeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         params.signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify allowance amount remains the same
         // Note: The expiration gets updated because the new expiration is greater than the existing one
@@ -1416,7 +1443,7 @@ contract Permit3EdgeTest is Test {
             amountDelta: 500
         });
 
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x999));
@@ -1435,7 +1462,9 @@ contract Permit3EdgeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         params.signature = abi.encodePacked(r, s, v);
 
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
 
         // Verify the maximum expiration is enforced
         (uint160 newAmount, uint48 newExpiration,) = permit3.allowance(owner, address(token), spender);

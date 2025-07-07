@@ -26,6 +26,11 @@ interface IPermit {
     error AllowanceLocked();
 
     /**
+     * @notice Thrown when an empty array is provided where it's not allowed
+     */
+    error EmptyArray();
+
+    /**
      * @dev Represents a token and spender pair for batch operations
      * @param token The address of the token contract
      * @param spender The address approved to spend the token

@@ -30,7 +30,7 @@ The signature is constructed using a dynamic type string that combines the stand
 ```solidity
 // Standard type hash stub (provided by Permit3)
 string constant PERMIT_WITNESS_TYPEHASH_STUB = 
-    "PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
+    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
 
 // Custom witness type (provided by your application)
 string witnessTypeString = "bytes32 witnessData)";
@@ -164,7 +164,7 @@ const domain = {
 };
 
 const types = {
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
@@ -173,7 +173,7 @@ const types = {
         { name: 'witnessData', type: 'bytes32' }
     ],
     ChainPermits: [
-        { name: 'chainId', type: 'uint256' },
+        { name: 'chainId', type: 'uint64' },
         { name: 'permits', type: 'AllowanceOrTransfer[]' }
     ],
     AllowanceOrTransfer: [
@@ -204,15 +204,15 @@ const signature = await signer._signTypedData(domain, types, value);
 
 ### 5. Call the Permit3 Contract
 
-Finally, call the `permitWitnessTransferFrom` function with the witness data and signature:
+Finally, call the `permitWitness` function with the witness data and signature:
 
 ```solidity
-permit3.permitWitnessTransferFrom(
+permit3.permitWitness(
     owner,
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    permits,
     witness,
     witnessTypeString,
     signature
@@ -267,7 +267,7 @@ contract OrderMatcher {
         bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
-        IPermit3.ChainPermits memory chainPermits,
+        IPermit3.AllowanceOrTransfer[] calldata permits,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -287,12 +287,12 @@ contract OrderMatcher {
         require(block.timestamp <= order.expiration, "Order expired");
         
         // 2. Process the permit with witness
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             salt,
             deadline,
             timestamp,
-            chainPermits,
+            permits,
             witness,
             witnessTypeString,
             signature

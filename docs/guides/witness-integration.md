@@ -108,7 +108,7 @@ const domain = {
 
 // Define EIP-712 types for witness permit
 const types = {
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'owner', type: 'address' },
         { name: 'spender', type: 'address' },
@@ -184,7 +184,7 @@ const signature = await signer._signTypedData(domain, types, value);
 
 ```typescript
 // Execute permit with witness
-const permitWithWitnessTx = await permit3.permitWitnessTransferFrom(
+const permitWithWitnessTx = await permit3.permitWitness(
     walletAddress,
     salt,
     deadline,
@@ -254,7 +254,7 @@ contract DexWithWitness {
         require(block.timestamp <= orderData.expiration, "Order expired");
         
         // 3. Execute permit with witness
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             salt,
             deadline,
@@ -280,7 +280,7 @@ For cross-chain operations, you can combine witness functionality with unhinged 
 
 ```typescript
 // Create the permit with witness for cross-chain operation
-const tx = await permit3.permitWitnessTransferFrom(
+const tx = await permit3.permitWitness(
     owner,
     salt,
     deadline,

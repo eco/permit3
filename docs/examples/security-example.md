@@ -473,7 +473,7 @@ contract SecureTradeExecutor {
         );
         
         // 3. Execute permit with witness
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             salt,
             deadline,

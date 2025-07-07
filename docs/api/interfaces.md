@@ -16,7 +16,7 @@ The main interface for Permit3, combining IPermit and INonceManager functionalit
 interface IPermit3 is IPermit, INonceManager {
     // Core structs and definitions
     struct ChainPermits {
-        uint256 chainId;
+        uint64 chainId;
         AllowanceOrTransfer[] permits;
     }
     
@@ -43,16 +43,16 @@ interface IPermit3 is IPermit, INonceManager {
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
-        ChainPermits calldata chain,
+        AllowanceOrTransfer[] calldata permits,
         bytes calldata signature
     ) external;
     
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         UnhingedPermitProof calldata unhingedPermitProof,
         bytes calldata signature
@@ -64,21 +64,21 @@ interface IPermit3 is IPermit, INonceManager {
     ) external;
     
     // Witness functions
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
-        ChainPermits calldata permits,
+        AllowanceOrTransfer[] calldata permits,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
     ) external;
     
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         UnhingedPermitProof calldata unhingedPermitProof,
         bytes32 witness,
@@ -91,7 +91,7 @@ interface IPermit3 is IPermit, INonceManager {
         external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
         
     // Hash functions
-    function hashChainPermits(ChainPermits memory permits) external pure returns (bytes32);
+    function hashChainPermits(ChainPermits memory chainPermits) external pure returns (bytes32);
     
     // Type hash functions
     function PERMIT_TRANSFER_FROM_TYPEHASH() external pure returns (bytes32);
