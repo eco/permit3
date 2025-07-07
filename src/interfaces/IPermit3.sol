@@ -3,13 +3,12 @@ pragma solidity ^0.8.0;
 
 import { INonceManager } from "./INonceManager.sol";
 import { IPermit } from "./IPermit.sol";
-import { IUnhingedMerkleTree } from "./IUnhingedMerkleTree.sol";
 
 /**
  * @title IPermit3
  * @notice Interface for the Permit3 cross-chain token approval and transfer system using UnhingedProofs
  */
-interface IPermit3 is IPermit, INonceManager, IUnhingedMerkleTree {
+interface IPermit3 is IPermit, INonceManager {
     /**
      * @notice Enum representing the type of permit operation
      * @param Transfer Execute immediate transfer

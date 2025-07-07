@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { IUnhingedMerkleTree } from "./IUnhingedMerkleTree.sol";
+
 /**
  * @title INonceManager
  * @notice Interface for managing non-sequential nonces used in permit operations
  */
-interface INonceManager {
+interface INonceManager is IUnhingedMerkleTree {
     /// @notice Thrown when a signature has expired
     error SignatureExpired();
 
@@ -43,7 +45,7 @@ interface INonceManager {
      */
     struct UnhingedCancelPermitProof {
         NoncesToInvalidate invalidations;
-        bytes32 unhingedRoot;
+        UnhingedProof unhingedProof;
     }
 
     /**
