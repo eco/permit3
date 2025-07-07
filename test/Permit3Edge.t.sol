@@ -56,7 +56,7 @@ contract Permit3EdgeTest is Test {
         bytes32 witness;
         string witnessTypeString;
         bytes32 salt;
-        uint256 deadline;
+        uint48 deadline;
         uint48 timestamp;
         bytes signature;
     }
@@ -106,7 +106,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x123));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp);
 
         // Sign the permit
@@ -133,7 +133,7 @@ contract Permit3EdgeTest is Test {
         params.witness = keccak256("witness data");
         params.witnessTypeString = "invalid(no closing parenthesis"; // Invalid - missing closing )
         params.salt = bytes32(uint256(0x456));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp);
 
         // Create a basic permit
@@ -171,7 +171,7 @@ contract Permit3EdgeTest is Test {
         params.witness = keccak256("witness data");
         params.witnessTypeString = "bytes32 customData)";
         params.salt = bytes32(uint256(0x789));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp);
 
         // Create basic transfer
@@ -208,13 +208,12 @@ contract Permit3EdgeTest is Test {
         vars.unhingedRoot = permit3Tester.calculateUnhingedRoot(vars.currentChainHash, vars.merkleProof);
 
         // Create the witness typehash - identical to what the contract would compute internally
-        vars.typeHash =
-            keccak256(abi.encodePacked(permit3.PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB(), params.witnessTypeString));
+        vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), params.witnessTypeString));
 
         // Create the signed hash
         vars.signedHash = keccak256(
             abi.encode(
-                vars.typeHash, vars.unhingedRoot, owner, params.salt, params.deadline, params.timestamp, params.witness
+                vars.typeHash, owner, params.salt, params.deadline, params.timestamp, vars.unhingedRoot, params.witness
             )
         );
 
@@ -245,7 +244,7 @@ contract Permit3EdgeTest is Test {
         // Test the _verifyUnhingedProof function with invalid input
         TestParams memory params;
         params.salt = bytes32(uint256(0xabc));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp);
 
         // Create basic transfer
@@ -301,7 +300,7 @@ contract Permit3EdgeTest is Test {
         // Test with zero subtree proof count to exercise specific code paths
         TestParams memory params;
         params.salt = bytes32(uint256(0xdef));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp);
 
         // Create basic transfer
@@ -345,7 +344,7 @@ contract Permit3EdgeTest is Test {
         // Create signature
         vars.signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_UNHINGED_PERMIT3_TYPEHASH(),
+                permit3.SIGNED_PERMIT3_TYPEHASH(),
                 owner,
                 params.salt,
                 params.deadline,
@@ -380,7 +379,7 @@ contract Permit3EdgeTest is Test {
         // Create a permit with zero delta but newer timestamp (should only update expiration)
         TestParams memory params;
         params.salt = bytes32(uint256(0xf00d));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp + 100); // Newer timestamp
 
         PermitInputs memory inputs;
@@ -423,7 +422,7 @@ contract Permit3EdgeTest is Test {
         // Try to increase it further - should remain at MAX_ALLOWANCE
         TestParams memory params;
         params.salt = bytes32(uint256(0xbeef));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp + 100); // Newer timestamp
 
         PermitInputs memory inputs;
@@ -489,12 +488,12 @@ contract Permit3EdgeTest is Test {
         // Create two permits with different timestamps
         TestParams memory olderParams;
         olderParams.salt = bytes32(uint256(0x111));
-        olderParams.deadline = block.timestamp + 1 hours;
+        olderParams.deadline = uint48(block.timestamp + 1 hours);
         olderParams.timestamp = uint48(9000); // Older timestamp
 
         TestParams memory newerParams;
         newerParams.salt = bytes32(uint256(0x222));
-        newerParams.deadline = block.timestamp + 1 hours;
+        newerParams.deadline = uint48(block.timestamp + 1 hours);
         newerParams.timestamp = uint48(11_000); // Newer timestamp
 
         // Create permits with different values
@@ -610,21 +609,11 @@ contract Permit3EdgeTest is Test {
     function test_typehashStubs() public view {
         // Test the view functions for typehash stubs
         string memory permitStub = permit3.PERMIT_WITNESS_TYPEHASH_STUB();
-        string memory batchStub = permit3.PERMIT_BATCH_WITNESS_TYPEHASH_STUB();
-        string memory unhingedStub = permit3.PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB();
 
         // Verify stubs match expected values
         assertEq(
             permitStub,
-            "PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,"
-        );
-        assertEq(
-            batchStub,
-            "PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,"
-        );
-        assertEq(
-            unhingedStub,
-            "PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,"
+            "PermitWitnessTransferFrom(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,"
         );
     }
 
@@ -647,7 +636,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory lockParams;
         lockParams.salt = bytes32(uint256(0x444));
-        lockParams.deadline = block.timestamp + 1 hours;
+        lockParams.deadline = uint48(block.timestamp + 1 hours);
         lockParams.timestamp = uint48(block.timestamp);
 
         // Sign the lock permit
@@ -696,7 +685,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory decreaseParams;
         decreaseParams.salt = bytes32(uint256(0x555));
-        decreaseParams.deadline = block.timestamp + 1 hours;
+        decreaseParams.deadline = uint48(block.timestamp + 1 hours);
         decreaseParams.timestamp = uint48(block.timestamp);
 
         // Sign the decrease permit
@@ -747,7 +736,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory lockParams;
         lockParams.salt = bytes32(uint256(0x666));
-        lockParams.deadline = block.timestamp + 1 hours;
+        lockParams.deadline = uint48(block.timestamp + 1 hours);
         lockParams.timestamp = uint48(block.timestamp);
 
         // Sign the lock permit
@@ -797,7 +786,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory unlockParams;
         unlockParams.salt = bytes32(uint256(0x777));
-        unlockParams.deadline = block.timestamp + 1 hours;
+        unlockParams.deadline = uint48(block.timestamp + 1 hours);
         unlockParams.timestamp = uint48(block.timestamp + 100); // Newer timestamp
 
         // Sign the unlock permit
@@ -853,7 +842,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory lockParams;
         lockParams.salt = bytes32(uint256(0x888));
-        lockParams.deadline = block.timestamp + 1 hours;
+        lockParams.deadline = uint48(block.timestamp + 1 hours);
         lockParams.timestamp = uint48(block.timestamp);
 
         // Sign the lock permit
@@ -897,7 +886,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory unlockParams;
         unlockParams.salt = bytes32(uint256(0x999));
-        unlockParams.deadline = block.timestamp + 1 hours;
+        unlockParams.deadline = uint48(block.timestamp + 1 hours);
         unlockParams.timestamp = uint48(block.timestamp - 100); // Older timestamp
 
         // Sign the unlock permit
@@ -947,7 +936,7 @@ contract Permit3EdgeTest is Test {
         // Create a permit to decrease the max allowance
         TestParams memory params;
         params.salt = bytes32(uint256(0xaaa));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp + 100);
 
         PermitInputs memory inputs;
@@ -989,7 +978,7 @@ contract Permit3EdgeTest is Test {
         // Create a permit to decrease by MAX_ALLOWANCE (should set to 0)
         TestParams memory params;
         params.salt = bytes32(uint256(0xbbb));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp + 100);
 
         PermitInputs memory inputs;
@@ -1064,7 +1053,7 @@ contract Permit3EdgeTest is Test {
         // Create a permit to increase with MAX_ALLOWANCE
         TestParams memory params;
         params.salt = bytes32(uint256(0xccc));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp + 100);
 
         PermitInputs memory inputs;
@@ -1106,7 +1095,7 @@ contract Permit3EdgeTest is Test {
         // Create a permit to decrease by less than the current allowance
         TestParams memory params;
         params.salt = bytes32(uint256(0xddd));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp + 100);
 
         PermitInputs memory inputs;
@@ -1205,7 +1194,7 @@ contract Permit3EdgeTest is Test {
         // Setup and sign the permit
         TestParams memory params;
         params.salt = bytes32(uint256(0xabcdef));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp + 10);
 
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -1250,7 +1239,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
-        params.deadline = block.timestamp - 1; // Expired deadline
+        params.deadline = uint48(block.timestamp - 1); // Expired deadline
         params.timestamp = uint48(block.timestamp);
 
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -1288,7 +1277,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp);
 
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -1337,7 +1326,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = newerTimestamp;
 
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -1378,7 +1367,7 @@ contract Permit3EdgeTest is Test {
 
         TestParams memory params;
         params.salt = bytes32(uint256(0x1337));
-        params.deadline = block.timestamp + 1 hours;
+        params.deadline = uint48(block.timestamp + 1 hours);
         params.timestamp = uint48(block.timestamp);
 
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);

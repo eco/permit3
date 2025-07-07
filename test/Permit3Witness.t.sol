@@ -44,7 +44,7 @@ contract Permit3WitnessTest is Test {
     string constant INVALID_WITNESS_TYPE_STRING = "bytes32 witnessData"; // Missing closing parenthesis
 
     bytes32 constant SIGNED_PERMIT3_WITNESS_TYPEHASH = keccak256(
-        "SignedPermit3Witness(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 permitHash,bytes32 witnessTypeHash,bytes32 witness)"
+        "SignedPermit3Witness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 permitHash,bytes32 witnessTypeHash,bytes32 witness)"
     );
 
     function setUp() public {
@@ -68,7 +68,7 @@ contract Permit3WitnessTest is Test {
         permit3.permitWitnessTransferFrom(
             owner,
             SALT,
-            block.timestamp + 1 hours,
+            uint48(block.timestamp + 1 hours),
             uint48(block.timestamp),
             _createBasicTransferPermit(),
             WITNESS,
@@ -84,7 +84,7 @@ contract Permit3WitnessTest is Test {
         // Reset recipient balance
         deal(address(token), recipient, 0);
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature =
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
@@ -106,7 +106,7 @@ contract Permit3WitnessTest is Test {
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
         // Set deadline in the past
-        uint256 deadline = block.timestamp - 1;
+        uint48 deadline = uint48(block.timestamp - 1);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature =
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
@@ -121,7 +121,7 @@ contract Permit3WitnessTest is Test {
         // Create the permit with wrong chain ID
         IPermit3.ChainPermits memory chainPermits = _createWrongChainTransferPermit();
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature =
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
@@ -135,7 +135,7 @@ contract Permit3WitnessTest is Test {
     // Helper struct for invalid signature test
     struct InvalidSignatureVars {
         IPermit3.ChainPermits chainPermits;
-        uint256 deadline;
+        uint48 deadline;
         uint48 timestamp;
         bytes32 permitDataHash;
         bytes32 typeHash;
@@ -153,7 +153,7 @@ contract Permit3WitnessTest is Test {
         // Create the permit
         vars.chainPermits = _createBasicTransferPermit();
 
-        vars.deadline = block.timestamp + 1 hours;
+        vars.deadline = uint48(block.timestamp + 1 hours);
         vars.timestamp = uint48(block.timestamp);
 
         // Create invalid signature by signing with wrong key
@@ -185,7 +185,7 @@ contract Permit3WitnessTest is Test {
         // Create allowance permit
         IPermit3.ChainPermits memory chainPermits = _createAllowancePermit();
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature =
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
@@ -215,7 +215,7 @@ contract Permit3WitnessTest is Test {
             bytes32 salt = bytes32(uint256(1));
             bytes32 witness = bytes32(uint256(0xDEADBEEF));
 
-            uint256 deadline = block.timestamp + 1 hours;
+            uint48 deadline = uint48(block.timestamp + 1 hours);
             uint48 timestamp = uint48(block.timestamp);
             bytes memory signature =
                 _signWitnessPermit(chainPermits, deadline, timestamp, salt, witness, WITNESS_TYPE_STRING);
@@ -231,7 +231,7 @@ contract Permit3WitnessTest is Test {
             bytes32 salt = bytes32(uint256(2));
             bytes32 witness = bytes32(uint256(0xBEEFDEAD));
 
-            uint256 deadline = block.timestamp + 1 hours;
+            uint48 deadline = uint48(block.timestamp + 1 hours);
             uint48 timestamp = uint48(block.timestamp);
             bytes memory signature =
                 _signWitnessPermit(chainPermits, deadline, timestamp, salt, witness, WITNESS_TYPE_STRING);
@@ -253,7 +253,7 @@ contract Permit3WitnessTest is Test {
         // Create unhinged permit proof
         IPermit3.UnhingedPermitProof memory proof = _createUnhingedProof();
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         // Use our proper signing function for unhinged proofs
         bytes memory signature =
@@ -351,7 +351,7 @@ contract Permit3WitnessTest is Test {
 
     function _signWitnessPermit(
         IPermit3.ChainPermits memory chainPermits,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         bytes32 salt,
         bytes32 witness,
@@ -367,7 +367,7 @@ contract Permit3WitnessTest is Test {
 
         // Compute the structured hash
         vars.structHash =
-            keccak256(abi.encode(vars.typeHash, vars.permitDataHash, owner, salt, deadline, timestamp, witness));
+            keccak256(abi.encode(vars.typeHash, owner, salt, deadline, timestamp, vars.permitDataHash, witness));
 
         // Get the EIP-712 digest
         vars.digest = _hashTypedDataV4(vars.structHash);
@@ -397,7 +397,7 @@ contract Permit3WitnessTest is Test {
 
     function _signWitnessUnhingedPermit(
         IPermit3.UnhingedPermitProof memory proof,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         bytes32 salt,
         bytes32 witness,
@@ -466,11 +466,11 @@ contract Permit3WitnessTest is Test {
         }
 
         // Compute witness-specific typehash
-        vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB(), witnessTypeString));
+        vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));
 
         // Compute the structured hash exactly as the contract would
         vars.structHash =
-            keccak256(abi.encode(vars.typeHash, vars.unhingedRoot, owner, salt, deadline, timestamp, witness));
+            keccak256(abi.encode(vars.typeHash, owner, salt, deadline, timestamp, vars.unhingedRoot, witness));
 
         // Get the EIP-712 digest
         vars.digest = _hashTypedDataV4(vars.structHash);

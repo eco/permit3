@@ -10,7 +10,7 @@ import "./utils/TestBase.sol";
  */
 contract Permit3Test is TestBase {
     bytes32 public constant SIGNED_PERMIT3_WITNESS_TYPEHASH = keccak256(
-        "SignedPermit3Witness(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 permitHash,bytes32 witnessTypeHash,bytes32 witness)"
+        "SignedPermit3Witness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 permitHash,bytes32 witnessTypeHash,bytes32 witness)"
     );
 
     function test_permitTransferFrom() public {
@@ -20,7 +20,7 @@ contract Permit3Test is TestBase {
         // Reset recipient balance
         deal(address(token), recipient, 0);
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
@@ -38,7 +38,7 @@ contract Permit3Test is TestBase {
         // Create the permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
-        uint256 deadline = block.timestamp - 1; // Expired
+        uint48 deadline = uint48(block.timestamp - 1); // Expired
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
@@ -51,7 +51,7 @@ contract Permit3Test is TestBase {
         // Create the permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
@@ -67,7 +67,7 @@ contract Permit3Test is TestBase {
         // Create the permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
@@ -99,7 +99,7 @@ contract Permit3Test is TestBase {
             permits: permits
         });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
@@ -121,7 +121,7 @@ contract Permit3Test is TestBase {
         IPermit3.ChainPermits memory chainPermits =
             IPermit3.ChainPermits({ chainId: uint256(block.chainid), permits: permits });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
@@ -163,7 +163,7 @@ contract Permit3Test is TestBase {
         // Reset balances
         deal(address(token), recipient, 0);
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
@@ -216,7 +216,7 @@ contract Permit3Test is TestBase {
         // Reset recipient balance
         deal(address(token), recipient, 0);
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
 
         // Create signature
@@ -255,7 +255,7 @@ contract Permit3Test is TestBase {
         IPermit3.UnhingedPermitProof memory permitProof =
             IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: invalidProof });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
 
         // Create a dummy signature
@@ -286,7 +286,7 @@ contract Permit3Test is TestBase {
         IPermit3.UnhingedPermitProof memory permitProof =
             IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: proof });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
 
         // Create a dummy signature
@@ -298,7 +298,7 @@ contract Permit3Test is TestBase {
         permit3.permit(owner, SALT, deadline, timestamp, permitProof, signature);
 
         // Test that expired deadline reverts with SignatureExpired error
-        uint256 expiredDeadline = block.timestamp - 1;
+        uint48 expiredDeadline = uint48(block.timestamp - 1);
 
         vm.expectRevert(INonceManager.SignatureExpired.selector);
         vm.prank(owner);

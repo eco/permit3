@@ -12,7 +12,7 @@ interface IPermit {
      * @dev Thrown when attempting to use a permit after its expiration
      * @param deadline The timestamp when the permit expired
      */
-    error AllowanceExpired(uint256 deadline);
+    error AllowanceExpired(uint48 deadline);
 
     /**
      * @dev Thrown when attempting to transfer more tokens than allowed
