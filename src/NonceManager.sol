@@ -17,9 +17,14 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 abstract contract NonceManager is INonceManager, EIP712 {
     using ECDSA for bytes32;
 
+    /// @dev Constant representing an unused nonce
+    uint256 private constant NONCE_NOT_USED = 0;
+    
+    /// @dev Constant representing a used nonce
+    uint256 private constant NONCE_USED = 1;
+
     /**
      * @notice Maps owner address to their used nonces
-     * @dev Status values: 0 = unused, 1 = used
      * @dev Non-sequential nonces allow parallel operations without conflicts
      */
     mapping(address => mapping(bytes32 => uint256)) internal usedNonces;
@@ -59,7 +64,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @return True if nonce has been used, false otherwise
      */
     function isNonceUsed(address owner, bytes32 salt) external view returns (bool) {
-        return usedNonces[owner][salt] == 1;
+        return usedNonces[owner][salt] == NONCE_USED;
     }
 
     /**
@@ -72,7 +77,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         uint256 length = salts.length;
 
         for (uint256 i = 0; i < length; i++) {
-            usedNonces[msg.sender][salts[i]] = 1;
+            usedNonces[msg.sender][salts[i]] = NONCE_USED;
             emit NonceInvalidated(msg.sender, salts[i]);
         }
     }
@@ -140,7 +145,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
     /**
      * @notice Process batch nonce invalidation
-     * @dev Marks all nonces in the batch as used (1)
+     * @dev Marks all nonces in the batch as used
      * @param owner Token owner requesting invalidation
      * @param invalidations Nonces to invalidate with chain ID
      */
@@ -148,7 +153,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         uint256 length = invalidations.salts.length;
 
         for (uint256 i = 0; i < length; i++) {
-            usedNonces[owner][invalidations.salts[i]] = 1;
+            usedNonces[owner][invalidations.salts[i]] = NONCE_USED;
             emit NonceInvalidated(owner, invalidations.salts[i]);
         }
     }
@@ -160,7 +165,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @param salt Salt value to consume
      */
     function _useNonce(address owner, bytes32 salt) internal {
-        require(usedNonces[owner][salt] == 0, NonceAlreadyUsed());
-        usedNonces[owner][salt] = 1;
+        require(usedNonces[owner][salt] == NONCE_NOT_USED, NonceAlreadyUsed());
+        usedNonces[owner][salt] = NONCE_USED;
     }
 }
