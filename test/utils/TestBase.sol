@@ -73,7 +73,7 @@ contract TestBase is Test {
     // Sign a permit
     function _signPermit(
         IPermit3.ChainPermits memory chainPermits,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         bytes32 salt
     ) internal view returns (bytes memory) {
@@ -107,7 +107,7 @@ contract TestBase is Test {
     // Sign an unhinged permit
     function _signUnhingedPermit(
         IPermit3.UnhingedPermitProof memory proof,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         bytes32 salt
     ) internal view returns (bytes memory) {
@@ -173,9 +173,7 @@ contract TestBase is Test {
 
         // Create the signature
         params.signedHash = keccak256(
-            abi.encode(
-                permit3.SIGNED_UNHINGED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, params.unhingedRoot
-            )
+            abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, params.unhingedRoot)
         );
 
         params.digest = _getDigest(params.signedHash);
@@ -193,15 +191,12 @@ contract TestBase is Test {
     // Helper for nonce invalidation struct hash
     function _getInvalidationStructHash(
         address ownerAddress,
-        uint256 deadline,
+        uint48 deadline,
         INonceManager.NoncesToInvalidate memory invalidations
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                permit3.SIGNED_CANCEL_PERMIT3_TYPEHASH(),
-                ownerAddress,
-                deadline,
-                permit3.hashNoncesToInvalidate(invalidations)
+                permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, permit3.hashNoncesToInvalidate(invalidations)
             )
         );
     }
@@ -209,7 +204,7 @@ contract TestBase is Test {
     // Helper for unhinged invalidation struct hash
     function _getUnhingedInvalidationStructHash(
         address ownerAddress,
-        uint256 deadline,
+        uint48 deadline,
         INonceManager.UnhingedCancelPermitProof memory proof
     ) internal view returns (bytes32) {
         // For tests, manually calculate what the library would calculate
@@ -217,13 +212,13 @@ contract TestBase is Test {
         bytes32 invalidationsHash = permit3.hashNoncesToInvalidate(proof.invalidations);
         // For a simple proof with no nodes, the root equals the leaf
         bytes32 unhingedRoot = invalidationsHash;
-        return keccak256(abi.encode(permit3.SIGNED_CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, unhingedRoot));
+        return keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, unhingedRoot));
     }
 
     // Helper struct for witness tests
     struct WitnessTestParams {
         bytes32 salt;
-        uint256 deadline;
+        uint48 deadline;
         uint48 timestamp;
         IPermit3.ChainPermits chainPermits;
         bytes32 witness;
@@ -238,7 +233,7 @@ contract TestBase is Test {
         INonceManager.NoncesToInvalidate invalidations;
         bytes32 unhingedRoot;
         INonceManager.UnhingedCancelPermitProof proof;
-        uint256 deadline;
+        uint48 deadline;
         bytes32 invalidationsHash;
         bytes32 signedHash;
         bytes32 digest;

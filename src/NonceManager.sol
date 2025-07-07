@@ -42,8 +42,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice EIP-712 typehash for invalidation signatures
      * @dev Includes owner, deadline, and unhinged root for batch operations
      */
-    bytes32 public constant SIGNED_CANCEL_PERMIT3_TYPEHASH =
-        keccak256("SignedCancelPermit3(address owner,uint256 deadline,bytes32 unhingedRoot)");
+    bytes32 public constant CANCEL_PERMIT3_TYPEHASH =
+        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 unhingedRoot)");
 
     /**
      * @notice Initialize EIP-712 domain separator
@@ -93,16 +93,15 @@ abstract contract NonceManager is INonceManager, EIP712 {
      */
     function invalidateNonces(
         address owner,
-        uint256 deadline,
+        uint48 deadline,
         NoncesToInvalidate memory invalidations,
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
         require(invalidations.chainId == block.chainid, WrongChainId(block.chainid, invalidations.chainId));
 
-        bytes32 signedHash = keccak256(
-            abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations))
-        );
+        bytes32 signedHash =
+            keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations)));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());
@@ -119,7 +118,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      */
     function invalidateNonces(
         address owner,
-        uint256 deadline,
+        uint48 deadline,
         UnhingedCancelPermitProof calldata proof,
         bytes calldata signature
     ) external {
@@ -135,7 +134,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
         bytes32 unhingedRoot = proof.unhingedProof.calculateRoot(invalidationsHash);
 
-        bytes32 signedHash = keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
+        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());

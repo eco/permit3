@@ -39,25 +39,11 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * Binds owner, deadline, and permit data hash for signature verification
      */
     bytes32 public constant SIGNED_PERMIT3_TYPEHASH =
-        keccak256("SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)");
-
-    /**
-     * @dev EIP-712 typehash for the unhinged merkle tree permit signature
-     * Used for enhanced cross-chain operations
-     */
-    bytes32 public constant SIGNED_UNHINGED_PERMIT3_TYPEHASH = keccak256(
-        "SignedUnhingedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)"
-    );
+        keccak256("Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot)");
 
     // Constants for witness type hash strings
     string public constant PERMIT_WITNESS_TYPEHASH_STUB =
-        "PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
-
-    string public constant PERMIT_BATCH_WITNESS_TYPEHASH_STUB =
-        "PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
-
-    string public constant PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
-        "PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,";
+        "PermitWitnessTransferFrom(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
 
     /**
      * @dev Sets up EIP-712 domain separator with protocol identifiers
@@ -113,7 +99,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         ChainPermits memory chain,
         bytes calldata signature
@@ -133,7 +119,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     struct PermitParams {
         address owner;
         bytes32 salt;
-        uint256 deadline;
+        uint48 deadline;
         uint48 timestamp;
         bytes32 currentChainHash;
         bytes32 unhingedRoot;
@@ -151,7 +137,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         UnhingedPermitProof calldata proof,
         bytes calldata signature
@@ -181,7 +167,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Verify signature with unhinged root
         bytes32 signedHash = keccak256(
             abi.encode(
-                SIGNED_UNHINGED_PERMIT3_TYPEHASH,
+                SIGNED_PERMIT3_TYPEHASH,
                 params.owner,
                 params.salt,
                 params.deadline,
@@ -210,7 +196,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function permitWitnessTransferFrom(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         ChainPermits memory chain,
         bytes32 witness,
@@ -228,7 +214,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
-        bytes32 signedHash = keccak256(abi.encode(typeHash, permitDataHash, owner, salt, deadline, timestamp, witness));
+        bytes32 signedHash = keccak256(abi.encode(typeHash, owner, salt, deadline, timestamp, permitDataHash, witness));
 
         _useNonce(owner, salt);
         _verifySignature(owner, signedHash, signature);
@@ -239,7 +225,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     struct WitnessParams {
         address owner;
         bytes32 salt;
-        uint256 deadline;
+        uint48 deadline;
         uint48 timestamp;
         bytes32 witness;
         bytes32 currentChainHash;
@@ -260,7 +246,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function permitWitnessTransferFrom(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         UnhingedPermitProof calldata proof,
         bytes32 witness,
@@ -294,15 +280,15 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.unhingedRoot = proof.unhingedProof.calculateRoot(params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash
-        bytes32 typeHash = _getUnhingedWitnessTypeHash(witnessTypeString);
+        bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
         bytes32 signedHash = keccak256(
             abi.encode(
                 typeHash,
-                params.unhingedRoot,
                 params.owner,
                 params.salt,
                 params.deadline,
                 params.timestamp,
+                params.unhingedRoot,
                 params.witness
             )
         );
@@ -412,17 +398,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         string calldata witnessTypeString
     ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(PERMIT_WITNESS_TYPEHASH_STUB, witnessTypeString));
-    }
-
-    /**
-     * @dev Constructs a complete unhinged witness type hash from type string and stub
-     * @param witnessTypeString The EIP-712 witness type string
-     * @return bytes32 The complete type hash for unhinged operations
-     */
-    function _getUnhingedWitnessTypeHash(
-        string memory witnessTypeString
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB, witnessTypeString));
     }
 
     /**
