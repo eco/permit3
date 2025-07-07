@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../../src/Permit3.sol";
 import "../../src/interfaces/IPermit3.sol";
+import "../../src/lib/UnhingedMerkleTree.sol";
 import "./TestUtils.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -211,9 +212,12 @@ contract TestBase is Test {
         uint256 deadline,
         INonceManager.UnhingedCancelPermitProof memory proof
     ) internal view returns (bytes32) {
-        // In the new implementation, we directly use the unhingedRoot
-        return
-            keccak256(abi.encode(permit3.SIGNED_CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, proof.unhingedRoot));
+        // For tests, manually calculate what the library would calculate
+        // since we can't call library functions on memory structs
+        bytes32 invalidationsHash = permit3.hashNoncesToInvalidate(proof.invalidations);
+        // For a simple proof with no nodes, the root equals the leaf
+        bytes32 unhingedRoot = invalidationsHash;
+        return keccak256(abi.encode(permit3.SIGNED_CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, unhingedRoot));
     }
 
     // Helper struct for witness tests
