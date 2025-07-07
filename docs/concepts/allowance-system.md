@@ -111,10 +111,9 @@ Removes the locked state from a token.
 ```
 
 **Behavior:**
-- Removes the locked state
-- Sets allowance to `amountDelta`
-- Updates timestamp to current operation time
-- Sets expiration to max (no expiration)
+- Removes the locked state by setting expiration to 0
+- Does not modify allowance amount or timestamp
+- Subsequent increase operation required to set allowance and expiration
 
 ### 5. Increase Mode (>3)
 

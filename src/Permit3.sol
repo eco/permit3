@@ -336,9 +336,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                     allowed.timestamp = timestamp;
                 } else if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
                     // Unlock allowance
-                    allowed.amount = p.amountDelta;
-                    allowed.expiration = 0;
-                    allowed.timestamp = timestamp;
+                    if (allowed.expiration == LOCKED_ALLOWANCE) {
+                        allowed.expiration = 0;
+                    }
                 } else {
                     if (p.amountDelta > 0) {
                         // Increase allowance
