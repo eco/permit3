@@ -11,9 +11,6 @@ interface IERC7702TokenApprover {
     /// @notice Thrown when no tokens are provided for approval
     error NoTokensProvided();
 
-    /// @notice Thrown when token approval fails
-    error ApprovalFailed(address token);
-
     /**
      * @notice The Permit3 contract address that will receive infinite approvals
      * @return The address of the Permit3 contract
