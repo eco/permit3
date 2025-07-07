@@ -1389,4 +1389,56 @@ contract Permit3EdgeTest is Test {
         assertEq(amount, AMOUNT);
         assertEq(expiration, EXPIRATION);
     }
+
+    function test_maxExpirationEnforcementWithSameTimestamp() public {
+        // Set up initial allowance with a lower expiration
+        vm.prank(owner);
+        permit3.approve(address(token), spender, AMOUNT, uint48(block.timestamp + 1 days));
+
+        // Create two permits with the same timestamp but different expirations
+        PermitInputs memory inputs;
+        inputs.permits = new IPermit3.AllowanceOrTransfer[](2);
+
+        // First permit with shorter expiration
+        inputs.permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(block.timestamp + 2 days), // Shorter expiration
+            token: address(token),
+            account: spender,
+            amountDelta: 500
+        });
+
+        // Second permit with longer expiration (maximum)
+        inputs.permits[1] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: type(uint48).max, // Maximum expiration
+            token: address(token),
+            account: spender,
+            amountDelta: 500
+        });
+
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: inputs.permits });
+
+        TestParams memory params;
+        params.salt = bytes32(uint256(0x999));
+        params.deadline = uint48(block.timestamp + 1 hours);
+        params.timestamp = uint48(block.timestamp + 100); // Same timestamp for both operations
+
+        // Sign and execute
+        bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
+        bytes32 signedHash = keccak256(
+            abi.encode(
+                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+            )
+        );
+
+        bytes32 digest = _getDigest(signedHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        params.signature = abi.encodePacked(r, s, v);
+
+        permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
+
+        // Verify the maximum expiration is enforced
+        (uint160 newAmount, uint48 newExpiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(newAmount, AMOUNT + 1000); // Original + both increases
+        assertEq(newExpiration, type(uint48).max); // Maximum expiration should be used
+    }
 }
