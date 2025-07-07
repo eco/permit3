@@ -126,7 +126,8 @@ contract Permit3WitnessTest is Test {
         bytes memory signature =
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(block.chainid), 1));
+        // Should revert with InvalidSignature (signature was created for wrong chain ID)
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector));
         permit3.permitWitness(
             owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
         );
@@ -502,7 +503,7 @@ contract Permit3WitnessTest is Test {
         return keccak256(
             abi.encode(
                 keccak256(
-                    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 transferOrExpiration,address token,address spender,uint160 amountDelta)"
+                    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
                 ),
                 chainPermits.chainId,
                 keccak256(abi.encodePacked(permitHashes))

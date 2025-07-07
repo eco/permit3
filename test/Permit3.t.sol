@@ -103,8 +103,8 @@ contract Permit3Test is TestBase {
         uint48 timestamp = uint48(block.timestamp);
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
-        // Should revert with WrongChainId
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(block.chainid), 999));
+        // Should revert with InvalidSignature (signature was created for wrong chain ID)
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector));
         permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
     }
 

@@ -131,7 +131,8 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(block.chainid), 1));
+        // Should revert with InvalidSignature (signature was created for wrong chain ID)
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector));
         permit3.invalidateNonces(owner, deadline, salts, signature);
     }
 
