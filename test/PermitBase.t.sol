@@ -90,9 +90,9 @@ contract PermitBaseTest is TestBase {
         assertEq(token.balanceOf(recipient), AMOUNT);
         assertEq(token.balanceOf(recipient2), AMOUNT);
 
-        // Batch transfer doesn't update allowance automatically
+        // Batch transfer now properly updates allowance
         (uint160 amount,,) = permit3.allowance(owner, address(token), spender);
-        assertEq(amount, AMOUNT * 2);
+        assertEq(amount, 0);
     }
 
     function test_transferFromInsufficientAllowance() public {

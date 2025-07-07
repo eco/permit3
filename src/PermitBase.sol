@@ -67,7 +67,7 @@ contract PermitBase is IPermit {
      * @param amount Transfer amount
      * @param token ERC20 token address
      */
-    function transferFrom(address from, address to, uint160 amount, address token) external override {
+    function transferFrom(address from, address to, uint160 amount, address token) public override {
         Allowance memory allowed = allowances[from][token][msg.sender];
 
         require(allowed.expiration != LOCKED_ALLOWANCE, AllowanceLocked());
@@ -92,7 +92,7 @@ contract PermitBase is IPermit {
         AllowanceTransferDetails[] calldata transfers
     ) external override {
         for (uint256 i = 0; i < transfers.length; i++) {
-            _transferFrom(transfers[i].from, transfers[i].to, transfers[i].amount, transfers[i].token);
+            transferFrom(transfers[i].from, transfers[i].to, transfers[i].amount, transfers[i].token);
         }
     }
 
