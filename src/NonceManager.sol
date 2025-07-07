@@ -125,12 +125,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
         require(block.timestamp <= deadline, SignatureExpired());
         require(proof.invalidations.chainId == block.chainid, WrongChainId(block.chainid, proof.invalidations.chainId));
 
-        // Verify the proof structure is valid
-        if (!proof.unhingedProof.verifyProofStructure()) {
-            revert InvalidUnhingedProof();
-        }
-
         // Calculate the root from the invalidations and proof
+        // calculateRoot performs validation internally and provides granular error messages
         bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
         bytes32 unhingedRoot = proof.unhingedProof.calculateRoot(invalidationsHash);
 
