@@ -22,7 +22,6 @@ import { PermitBase } from "./PermitBase.sol";
  */
 contract Permit3 is IPermit3, PermitBase, NonceManager {
     using ECDSA for bytes32;
-    using UnhingedMerkleTree for bytes32;
     using UnhingedMerkleTree for UnhingedProof;
 
     /**
