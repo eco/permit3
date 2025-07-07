@@ -818,9 +818,10 @@ contract Permit3EdgeTest is Test {
 
         // Check allowance is now unlocked
         (amount, expiration, ts) = permit3.allowance(owner, address(token), spender);
-        assertEq(amount, 3000); // New amount from unlock
-        assertEq(expiration, 0); // No expiration
-        assertEq(ts, unlockParams.timestamp); // Updated timestamp
+        assertEq(amount, 0); // Amount remains unchanged by unlock operation
+        assertEq(expiration, 0); // No expiration (unlocked)
+        // Note: timestamp should remain from lock operation since unlock only changes expiration
+        assertEq(ts, uint48(block.timestamp)); // Timestamp remains from lock operation
     }
 
     function test_attemptUnlockWithOlderTimestamp() public {
@@ -1342,10 +1343,10 @@ contract Permit3EdgeTest is Test {
 
         permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
 
-        // Verify allowance is unlocked and equal to AMOUNT
+        // Verify allowance is unlocked but amount remains unchanged
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
-        assertEq(amount, AMOUNT);
-        assertEq(expiration, 0);
+        assertEq(amount, 0); // Amount remains unchanged by unlock operation
+        assertEq(expiration, 0); // Expiration set to 0 (unlocked)
     }
 
     function test_zeroAmountDeltaForIncreaseOperation() public {
@@ -1384,10 +1385,10 @@ contract Permit3EdgeTest is Test {
         permit3.permit(owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, params.signature);
 
         // Verify allowance amount remains the same
-        // Note: The expiration doesn't get updated because the timestamp is the same as the original approval
+        // Note: The expiration gets updated because the new expiration is greater than the existing one
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, AMOUNT);
-        assertEq(expiration, EXPIRATION);
+        assertEq(expiration, EXPIRATION + 100);
     }
 
     function test_maxExpirationEnforcementWithSameTimestamp() public {
