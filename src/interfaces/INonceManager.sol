@@ -15,9 +15,8 @@ interface INonceManager is IPermit, IUnhingedMerkleTree {
     error SignatureExpired(uint48 deadline, uint48 currentTimestamp);
 
     /// @notice Thrown when a signature is invalid
-    /// @param expectedSigner The expected address that should have signed
-    /// @param actualSigner The actual address recovered from the signature
-    error InvalidSignature(address expectedSigner, address actualSigner);
+    /// @param signer The address whose signature failed verification
+    error InvalidSignature(address signer);
 
     /// @notice Thrown when a nonce has already been used
     /// @param owner The owner of the nonce
