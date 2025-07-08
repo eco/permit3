@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC7579Module } from "./interfaces/IERC7579Module.sol";
 import { IExecutorModule } from "./interfaces/IExecutorModule.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /**
  * @title Permit3ApproverModule
@@ -12,7 +12,6 @@ import { IExecutorModule } from "./interfaces/IExecutorModule.sol";
  *      It allows permissionless approval of tokens to the Permit3 contract
  */
 contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
-
     /// @notice The Permit3 contract address that will receive approvals
     address public immutable PERMIT3;
 
@@ -31,12 +30,13 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
     /// @notice Thrown when a zero address is provided where it's not allowed
     error ZeroAddress(string parameterName);
 
-
     /**
      * @notice Constructor to set the Permit3 contract address
      * @param permit3 Address of the Permit3 contract
      */
-    constructor(address permit3) {
+    constructor(
+        address permit3
+    ) {
         if (permit3 == address(0)) {
             revert ZeroAddress("permit3");
         }
@@ -48,7 +48,9 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
      * @dev No initialization data needed for this module
      * @param data Initialization data (unused)
      */
-    function onInstall(bytes calldata data) external override {
+    function onInstall(
+        bytes calldata data
+    ) external override {
         // No initialization needed
     }
 
@@ -57,7 +59,9 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
      * @dev No cleanup needed for this module
      * @param data Deinitialization data (unused)
      */
-    function onUninstall(bytes calldata data) external override {
+    function onUninstall(
+        bytes calldata data
+    ) external override {
         // No cleanup needed
     }
 
@@ -66,7 +70,9 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
      * @param smartAccount The smart account to check
      * @return True if initialized (always true for this module)
      */
-    function isInitialized(address smartAccount) external pure override returns (bool) {
+    function isInitialized(
+        address smartAccount
+    ) external pure override returns (bool) {
         return true;
     }
 
@@ -74,7 +80,9 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
      * @notice Get the type of the module
      * @return moduleTypeId The module type identifier
      */
-    function isModuleType(uint256 moduleTypeId) external pure override returns (bool) {
+    function isModuleType(
+        uint256 moduleTypeId
+    ) external pure override returns (bool) {
         return moduleTypeId == MODULE_TYPE;
     }
 
@@ -91,7 +99,7 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
     ) external view override returns (Execution[] memory executions) {
         // Decode the token addresses from the data
         address[] memory tokens = abi.decode(data, (address[]));
-        
+
         uint256 tokensLength = tokens.length;
         if (tokensLength == 0) {
             revert NoTokensProvided();
@@ -99,12 +107,12 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
 
         // Create execution array for approvals
         executions = new Execution[](tokensLength);
-        
+
         for (uint256 i = 0; i < tokensLength; ++i) {
             if (tokens[i] == address(0)) {
                 revert ZeroAddress("token");
             }
-            
+
             // Create execution for each token approval
             executions[i] = Execution({
                 target: tokens[i],
@@ -120,7 +128,9 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
      * @param tokens Array of token addresses to approve
      * @return data Encoded data for the execute function
      */
-    function getExecutionData(address[] calldata tokens) external pure returns (bytes memory data) {
+    function getExecutionData(
+        address[] calldata tokens
+    ) external pure returns (bytes memory data) {
         return abi.encode(tokens);
     }
 
@@ -129,8 +139,9 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
      * @param interfaceId The interface identifier to check
      * @return True if the interface is supported
      */
-    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        return interfaceId == type(IERC7579Module).interfaceId ||
-               interfaceId == type(IExecutorModule).interfaceId;
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return interfaceId == type(IERC7579Module).interfaceId || interfaceId == type(IExecutorModule).interfaceId;
     }
 }

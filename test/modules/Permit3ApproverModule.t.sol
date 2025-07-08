@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { Test } from "forge-std/Test.sol";
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { Permit3ApproverModule } from "../../src/modules/Permit3ApproverModule.sol";
 import { IERC7579Module } from "../../src/modules/interfaces/IERC7579Module.sol";
 import { IExecutorModule } from "../../src/modules/interfaces/IExecutorModule.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { Test } from "forge-std/Test.sol";
 
 contract MockERC20 is IERC20 {
     mapping(address => uint256) public balanceOf;
@@ -33,7 +33,7 @@ contract MockERC20 is IERC20 {
 
 contract MockSmartAccount {
     mapping(address => bool) public installedModules;
-    
+
     function installModule(uint256 moduleType, address module, bytes calldata data) external {
         installedModules[module] = true;
         IERC7579Module(module).onInstall(data);
@@ -48,10 +48,10 @@ contract MockSmartAccount {
         require(installedModules[executor], "Module not installed");
         // Get executions from the module
         IExecutorModule.Execution[] memory executions = IExecutorModule(executor).execute(address(this), data);
-        
+
         // Execute each call
         for (uint256 i = 0; i < executions.length; i++) {
-            (bool success,) = executions[i].target.call{value: executions[i].value}(executions[i].data);
+            (bool success,) = executions[i].target.call{ value: executions[i].value }(executions[i].data);
             require(success, "Execution failed");
         }
     }
@@ -63,7 +63,6 @@ contract Permit3ApproverModuleTest is Test {
     MockERC20 public token1;
     MockERC20 public token2;
     address public constant PERMIT3 = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
-
 
     function setUp() public {
         module = new Permit3ApproverModule(PERMIT3);
@@ -115,7 +114,6 @@ contract Permit3ApproverModuleTest is Test {
         // Get execution data
         bytes memory execData = module.getExecutionData(tokens);
 
-
         // Execute through smart account
         smartAccount.executeFromExecutor(address(module), execData);
 
@@ -132,7 +130,7 @@ contract Permit3ApproverModuleTest is Test {
 
         // Call execute to get the executions
         IExecutorModule.Execution[] memory executions = module.execute(address(smartAccount), execData);
-        
+
         // Verify executions
         assertEq(executions.length, 2);
         assertEq(executions[0].target, address(token1));
@@ -143,7 +141,7 @@ contract Permit3ApproverModuleTest is Test {
 
     function testExecuteNoTokens() public {
         smartAccount.installModule(2, address(module), "");
-        
+
         address[] memory tokens = new address[](0);
         bytes memory execData = abi.encode(tokens);
 
@@ -153,7 +151,7 @@ contract Permit3ApproverModuleTest is Test {
 
     function testExecuteZeroAddressToken() public {
         smartAccount.installModule(2, address(module), "");
-        
+
         address[] memory tokens = new address[](2);
         tokens[0] = address(token1);
         tokens[1] = address(0);

@@ -13,8 +13,5 @@ interface IExecutor {
      * @param data Execution data specific to the module's logic
      * @return result The result of the execution
      */
-    function execute(
-        address account,
-        bytes calldata data
-    ) external returns (bytes memory result);
+    function execute(address account, bytes calldata data) external returns (bytes memory result);
 }
