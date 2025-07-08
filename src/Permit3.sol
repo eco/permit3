@@ -58,9 +58,10 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     function hashChainPermits(
         ChainPermits memory chainPermits
     ) public pure returns (bytes32) {
-        bytes32[] memory permitHashes = new bytes32[](chainPermits.permits.length);
+        uint256 permitsLength = chainPermits.permits.length;
+        bytes32[] memory permitHashes = new bytes32[](permitsLength);
 
-        for (uint256 i = 0; i < chainPermits.permits.length; i++) {
+        for (uint256 i = 0; i < permitsLength; i++) {
             permitHashes[i] = keccak256(
                 abi.encode(
                     chainPermits.permits[i].modeOrExpiration,
@@ -110,7 +111,12 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         AllowanceOrTransfer[] calldata permits,
         bytes calldata signature
     ) external {
-        require(block.timestamp <= deadline, SignatureExpired());
+        if (owner == address(0)) {
+            revert ZeroAddress("owner");
+        }
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline, uint48(block.timestamp));
+        }
 
         if (permits.length == 0) {
             revert EmptyArray();
@@ -154,10 +160,15 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         UnhingedPermitProof calldata proof,
         bytes calldata signature
     ) external {
-        require(block.timestamp <= deadline, SignatureExpired());
-        require(
-            proof.permits.chainId == uint64(block.chainid), WrongChainId(uint64(block.chainid), proof.permits.chainId)
-        );
+        if (owner == address(0)) {
+            revert ZeroAddress("owner");
+        }
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline, uint48(block.timestamp));
+        }
+        if (proof.permits.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), proof.permits.chainId);
+        }
 
         // Use a struct to avoid stack-too-deep errors
         PermitParams memory params;
@@ -212,7 +223,12 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         string calldata witnessTypeString,
         bytes calldata signature
     ) external {
-        require(block.timestamp <= deadline, SignatureExpired());
+        if (owner == address(0)) {
+            revert ZeroAddress("owner");
+        }
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline, uint48(block.timestamp));
+        }
 
         if (permits.length == 0) {
             revert EmptyArray();
@@ -267,10 +283,15 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         string calldata witnessTypeString,
         bytes calldata signature
     ) external {
-        require(block.timestamp <= deadline, SignatureExpired());
-        require(
-            proof.permits.chainId == uint64(block.chainid), WrongChainId(uint64(block.chainid), proof.permits.chainId)
-        );
+        if (owner == address(0)) {
+            revert ZeroAddress("owner");
+        }
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline, uint48(block.timestamp));
+        }
+        if (proof.permits.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), proof.permits.chainId);
+        }
 
         // Validate witness type string format
         _validateWitnessTypeString(witnessTypeString);
@@ -310,102 +331,211 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     }
 
     /**
-     * @dev Core permit processing logic
-     * @param owner Token owner
+     * @dev Core permit processing logic that executes multiple permit operations in a single transaction
+     * @param owner Token owner authorizing the operations
      * @param timestamp Block timestamp for validation and allowance updates
-     * @param chainPermits Bundle of permit operations to process
-     * @notice Handles multiple types of operations:
-     * @notice modeOrExpiration Mode indicators:
-     *        = 0: Immediate transfer mode
-     *        = 1: Decrease allowance mode
-     *        = 2: Lock allowance mode
-     *        = 3: Unlock allowance mode
-     *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
+     * @param chainPermits Bundle of permit operations to process on the current chain
+     * @notice Handles multiple types of operations based on modeOrExpiration:
+     *        = 0: Immediate transfer mode - transfers tokens directly
+     *        = 1: Decrease allowance mode - reduces existing allowance
+     *        = 2: Lock allowance mode - locks allowance to prevent usage
+     *        = 3: Unlock allowance mode - unlocks previously locked allowance
+     *        > 3: Increase allowance mode with expiration timestamp
+     * @notice The function enforces timestamp-based locking mechanisms and handles
+     *         special MAX_ALLOWANCE values for infinite approvals
      */
     function _processChainPermits(address owner, uint48 timestamp, ChainPermits memory chainPermits) internal {
-        for (uint256 i = 0; i < chainPermits.permits.length; i++) {
+        uint256 permitsLength = chainPermits.permits.length;
+        for (uint256 i = 0; i < permitsLength; i++) {
             AllowanceOrTransfer memory p = chainPermits.permits[i];
 
             if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
                 _transferFrom(owner, p.account, p.amountDelta, p.token);
             } else {
-                Allowance memory allowed = allowances[owner][p.token][p.account];
-
-                // Check if allowance is locked
-                // If the allowance is locked, only allow unlock operation with newer timestamp
-                if (allowed.expiration == LOCKED_ALLOWANCE) {
-                    // Special handling for unlock operation
-                    if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
-                        // Only allow unlock if timestamp is newer than lock timestamp
-                        if (timestamp <= allowed.timestamp) {
-                            revert AllowanceLocked();
-                        }
-                    } else {
-                        // For all other operations, reject if allowance is locked
-                        revert AllowanceLocked();
-                    }
-                }
-
-                if (p.modeOrExpiration == uint48(PermitType.Decrease)) {
-                    // Decrease allowance
-                    if (allowed.amount != MAX_ALLOWANCE || p.amountDelta == MAX_ALLOWANCE) {
-                        allowed.amount = p.amountDelta > allowed.amount ? 0 : allowed.amount - p.amountDelta;
-                    }
-                } else if (p.modeOrExpiration == uint48(PermitType.Lock)) {
-                    // Lockdown allowance
-                    allowed.amount = 0;
-                    allowed.expiration = LOCKED_ALLOWANCE;
-                    allowed.timestamp = timestamp;
-                } else if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
-                    // Unlock allowance
-                    if (allowed.expiration == LOCKED_ALLOWANCE) {
-                        allowed.expiration = 0;
-                    }
-                } else {
-                    if (p.amountDelta > 0) {
-                        // Increase allowance
-                        if (allowed.amount != MAX_ALLOWANCE) {
-                            if (p.amountDelta == MAX_ALLOWANCE) {
-                                allowed.amount = MAX_ALLOWANCE;
-                            } else {
-                                allowed.amount += p.amountDelta;
-                            }
-                        }
-                    }
-
-                    if (timestamp > allowed.timestamp) {
-                        allowed.expiration = p.modeOrExpiration;
-                        allowed.timestamp = timestamp;
-                    } else if (timestamp == allowed.timestamp && p.modeOrExpiration > allowed.expiration) {
-                        allowed.expiration = p.modeOrExpiration;
-                    }
-                }
-
-                emit Permit(owner, p.token, p.account, allowed.amount, allowed.expiration, timestamp);
-
-                allowances[owner][p.token][p.account] = allowed;
+                _processAllowanceOperation(owner, timestamp, p);
             }
         }
     }
 
     /**
-     * @dev Validates that a witness type string is properly formatted
+     * @dev Processes allowance-related operations for a single permit
+     * @param owner Token owner authorizing the operation
+     * @param timestamp Current timestamp for validation
+     * @param p The permit operation to process
+     */
+    function _processAllowanceOperation(address owner, uint48 timestamp, AllowanceOrTransfer memory p) private {
+        if (p.token == address(0)) {
+            revert ZeroAddress("token");
+        }
+        if (p.account == address(0)) {
+            revert ZeroAddress("account");
+        }
+
+        Allowance memory allowed = allowances[owner][p.token][p.account];
+
+        // Validate lock status before processing
+        _validateLockStatus(owner, p, allowed, p.modeOrExpiration, timestamp);
+
+        // Process the operation based on its type
+        if (p.modeOrExpiration == uint48(PermitType.Decrease)) {
+            _decreaseAllowance(allowed, p.amountDelta);
+        } else if (p.modeOrExpiration == uint48(PermitType.Lock)) {
+            _lockAllowance(allowed, timestamp);
+        } else if (p.modeOrExpiration == uint48(PermitType.Unlock)) {
+            _unlockAllowance(allowed);
+        } else {
+            _processIncreaseOrUpdate(allowed, p, timestamp);
+        }
+
+        emit Permit(owner, p.token, p.account, allowed.amount, allowed.expiration, timestamp);
+        allowances[owner][p.token][p.account] = allowed;
+    }
+
+    /**
+     * @dev Validates if an operation can proceed based on lock status
+     * @param owner Token owner
+     * @param p Permit operation being processed
+     * @param allowed Current allowance state
+     * @param operationType Type of operation being performed
+     * @param timestamp Current timestamp
+     */
+    function _validateLockStatus(
+        address owner,
+        AllowanceOrTransfer memory p,
+        Allowance memory allowed,
+        uint48 operationType,
+        uint48 timestamp
+    ) private pure {
+        if (allowed.expiration == LOCKED_ALLOWANCE) {
+            if (operationType == uint48(PermitType.Unlock)) {
+                // Only allow unlock if timestamp is newer than lock timestamp
+                if (timestamp <= allowed.timestamp) {
+                    revert AllowanceLocked(owner, p.token, p.account);
+                }
+            } else {
+                // For all other operations, reject if allowance is locked
+                revert AllowanceLocked(owner, p.token, p.account);
+            }
+        }
+    }
+
+    /**
+     * @dev Decreases an allowance, handling MAX_ALLOWANCE cases
+     * @param allowed Current allowance to modify
+     * @param amountDelta Amount to decrease by
+     */
+    function _decreaseAllowance(Allowance memory allowed, uint160 amountDelta) private pure {
+        if (allowed.amount != MAX_ALLOWANCE || amountDelta == MAX_ALLOWANCE) {
+            allowed.amount = amountDelta > allowed.amount ? 0 : allowed.amount - amountDelta;
+        }
+    }
+
+    /**
+     * @dev Locks an allowance to prevent further usage
+     * @param allowed Allowance to lock
+     * @param timestamp Current timestamp for lock tracking
+     */
+    function _lockAllowance(Allowance memory allowed, uint48 timestamp) private pure {
+        allowed.amount = 0;
+        allowed.expiration = LOCKED_ALLOWANCE;
+        allowed.timestamp = timestamp;
+    }
+
+    /**
+     * @dev Unlocks a previously locked allowance
+     * @param allowed Allowance to unlock
+     */
+    function _unlockAllowance(
+        Allowance memory allowed
+    ) private pure {
+        if (allowed.expiration == LOCKED_ALLOWANCE) {
+            allowed.expiration = 0;
+        }
+    }
+
+    /**
+     * @dev Processes increase operations and updates expiration/timestamp
+     * @param allowed Current allowance to modify
+     * @param p Permit operation containing new values
+     * @param timestamp Current timestamp
+     */
+    function _processIncreaseOrUpdate(
+        Allowance memory allowed,
+        AllowanceOrTransfer memory p,
+        uint48 timestamp
+    ) private pure {
+        // Handle amount increase if specified
+        if (p.amountDelta > 0) {
+            _increaseAllowanceAmount(allowed, p.amountDelta);
+        }
+
+        // Update expiration and timestamp based on precedence rules
+        _updateExpirationAndTimestamp(allowed, p.modeOrExpiration, timestamp);
+    }
+
+    /**
+     * @dev Increases allowance amount, handling MAX_ALLOWANCE cases
+     * @param allowed Allowance to modify
+     * @param amountDelta Amount to increase by
+     */
+    function _increaseAllowanceAmount(Allowance memory allowed, uint160 amountDelta) private pure {
+        if (allowed.amount != MAX_ALLOWANCE) {
+            if (amountDelta == MAX_ALLOWANCE) {
+                allowed.amount = MAX_ALLOWANCE;
+            } else {
+                allowed.amount += amountDelta;
+            }
+        }
+    }
+
+    /**
+     * @dev Updates expiration and timestamp based on precedence rules
+     * @param allowed Allowance to modify
+     * @param newExpiration New expiration value
+     * @param timestamp Current timestamp
+     */
+    function _updateExpirationAndTimestamp(
+        Allowance memory allowed,
+        uint48 newExpiration,
+        uint48 timestamp
+    ) private pure {
+        if (timestamp > allowed.timestamp) {
+            allowed.expiration = newExpiration;
+            allowed.timestamp = timestamp;
+        } else if (timestamp == allowed.timestamp && newExpiration > allowed.expiration) {
+            allowed.expiration = newExpiration;
+        }
+    }
+
+    /**
+     * @dev Validates that a witness type string is properly formatted for EIP-712 compliance
      * @param witnessTypeString The EIP-712 type string to validate
+     * @notice This function ensures:
+     *         - The string is not empty
+     *         - The string ends with a closing parenthesis ')'
+     * @notice Reverts with InvalidWitnessTypeString() if validation fails
      */
     function _validateWitnessTypeString(
         string calldata witnessTypeString
     ) internal pure {
         // Validate minimum length
-        require(bytes(witnessTypeString).length > 0, InvalidWitnessTypeString());
+        if (bytes(witnessTypeString).length == 0) {
+            revert InvalidWitnessTypeString(witnessTypeString);
+        }
 
         // Validate proper ending with closing parenthesis
-        require(bytes(witnessTypeString)[bytes(witnessTypeString).length - 1] == ")", InvalidWitnessTypeString());
+        uint256 witnessTypeStringLength = bytes(witnessTypeString).length;
+        if (bytes(witnessTypeString)[witnessTypeStringLength - 1] != ")") {
+            revert InvalidWitnessTypeString(witnessTypeString);
+        }
     }
 
     /**
-     * @dev Constructs a complete witness type hash from type string and stub
-     * @param witnessTypeString The EIP-712 witness type string
-     * @return bytes32 The complete type hash
+     * @dev Constructs a complete witness type hash from type string and stub for EIP-712
+     * @param witnessTypeString The EIP-712 witness type string suffix to append
+     * @return The keccak256 hash of the complete type string
+     * @notice Combines PERMIT_WITNESS_TYPEHASH_STUB with the provided witnessTypeString
+     *         to form a complete EIP-712 type definition, then returns its hash
      */
     function _getWitnessTypeHash(
         string calldata witnessTypeString
@@ -414,14 +544,22 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     }
 
     /**
-     * @dev Validate EIP-712 signature against expected signer
-     * @param owner Expected message signer
-     * @param structHash Hash of the signed data structure
-     * @param signature Raw signature bytes (v, r, s)
+     * @dev Validate EIP-712 signature against expected signer using ECDSA recovery
+     * @param owner Expected message signer to validate against
+     * @param structHash Hash of the signed data structure (pre-hashed message)
+     * @param signature Raw signature bytes in (v, r, s) format for ECDSA recovery
+     * @notice This function:
+     *         1. Computes the EIP-712 compliant digest using _hashTypedDataV4
+     *         2. Recovers the signer address from the signature
+     *         3. Verifies the recovered address matches the expected owner
+     * @notice Reverts with InvalidSignature() if the signature is invalid or
+     *         the recovered signer doesn't match the expected owner
      */
     function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
         bytes32 digest = _hashTypedDataV4(structHash);
         address signer = digest.recover(signature);
-        require(signer == owner, InvalidSignature());
+        if (signer != owner) {
+            revert InvalidSignature(owner, signer);
+        }
     }
 }

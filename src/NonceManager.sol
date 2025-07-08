@@ -76,13 +76,13 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function invalidateNonces(
         bytes32[] calldata salts
     ) external {
-        uint256 length = salts.length;
+        uint256 saltsLength = salts.length;
 
-        if (length == 0) {
+        if (saltsLength == 0) {
             revert EmptyArray();
         }
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < saltsLength; i++) {
             usedNonces[msg.sender][salts[i]] = NONCE_USED;
             emit NonceInvalidated(msg.sender, salts[i]);
         }
@@ -101,8 +101,12 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32[] calldata salts,
         bytes calldata signature
     ) external {
-        require(block.timestamp <= deadline, SignatureExpired());
-
+        if (owner == address(0)) {
+            revert ZeroAddress("owner");
+        }
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline, uint48(block.timestamp));
+        }
         if (salts.length == 0) {
             revert EmptyArray();
         }
@@ -113,7 +117,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
             keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations)));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
-        require(digest.recover(signature) == owner, InvalidSignature());
+        address recoveredSigner = digest.recover(signature);
+        if (recoveredSigner != owner) {
+            revert InvalidSignature(owner, recoveredSigner);
+        }
 
         _processNonceInvalidation(owner, invalidations);
     }
@@ -131,11 +138,15 @@ abstract contract NonceManager is INonceManager, EIP712 {
         UnhingedCancelPermitProof calldata proof,
         bytes calldata signature
     ) external {
-        require(block.timestamp <= deadline, SignatureExpired());
-        require(
-            proof.invalidations.chainId == uint64(block.chainid),
-            WrongChainId(uint64(block.chainid), proof.invalidations.chainId)
-        );
+        if (owner == address(0)) {
+            revert ZeroAddress("owner");
+        }
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline, uint48(block.timestamp));
+        }
+        if (proof.invalidations.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), proof.invalidations.chainId);
+        }
 
         // Calculate the root from the invalidations and proof
         // calculateRoot performs validation internally and provides granular error messages
@@ -145,7 +156,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
-        require(digest.recover(signature) == owner, InvalidSignature());
+        address recoveredSigner = digest.recover(signature);
+        if (recoveredSigner != owner) {
+            revert InvalidSignature(owner, recoveredSigner);
+        }
 
         _processNonceInvalidation(owner, proof.invalidations);
     }
@@ -162,28 +176,39 @@ abstract contract NonceManager is INonceManager, EIP712 {
     }
 
     /**
-     * @notice Process batch nonce invalidation
-     * @dev Marks all nonces in the batch as used
-     * @param owner Token owner requesting invalidation
-     * @param invalidations Nonces to invalidate with chain ID
+     * @dev Process batch nonce invalidation by marking all specified nonces as used
+     * @param owner Token owner whose nonces are being invalidated
+     * @param invalidations Struct containing chainId and array of salt values to invalidate
+     * @notice This function iterates through all provided salts and:
+     *         1. Marks each nonce as NONCE_USED in the usedNonces mapping
+     *         2. Emits a NonceInvalidated event for each invalidated nonce
+     * @notice This is an internal helper used by the public invalidateNonces functions
+     *         to process the actual invalidation after signature verification
      */
     function _processNonceInvalidation(address owner, NoncesToInvalidate memory invalidations) internal {
-        uint256 length = invalidations.salts.length;
+        uint256 saltsLength = invalidations.salts.length;
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < saltsLength; i++) {
             usedNonces[owner][invalidations.salts[i]] = NONCE_USED;
             emit NonceInvalidated(owner, invalidations.salts[i]);
         }
     }
 
     /**
-     * @notice Consume a nonce, marking it as used
-     * @dev Reverts if nonce is already used
-     * @param owner Token owner using the nonce
-     * @param salt Salt value to consume
+     * @dev Consume a nonce by marking it as used for replay protection
+     * @param owner Token owner whose nonce is being consumed
+     * @param salt Unique salt value identifying the nonce to consume
+     * @notice This function provides replay protection by:
+     *         1. Checking if the nonce has already been used (NONCE_NOT_USED = 0)
+     *         2. Marking the nonce as used (NONCE_USED = 1)
+     * @notice Reverts with NonceAlreadyUsed() if the nonce was previously consumed
+     * @notice This is called before processing permits to ensure each signature
+     *         can only be used once per salt value
      */
     function _useNonce(address owner, bytes32 salt) internal {
-        require(usedNonces[owner][salt] == NONCE_NOT_USED, NonceAlreadyUsed());
+        if (usedNonces[owner][salt] != NONCE_NOT_USED) {
+            revert NonceAlreadyUsed(owner, salt);
+        }
         usedNonces[owner][salt] = NONCE_USED;
     }
 }

@@ -11,6 +11,10 @@ interface IERC7702TokenApprover {
     /// @notice Thrown when no tokens are provided for approval
     error NoTokensProvided();
 
+    /// @notice Thrown when a zero address is provided where it's not allowed
+    /// @param parameterName The name of the parameter that contained the zero address
+    error ZeroAddress(string parameterName);
+
     /**
      * @notice The Permit3 contract address that will receive infinite approvals
      * @return The address of the Permit3 contract

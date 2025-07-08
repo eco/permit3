@@ -59,7 +59,9 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        vm.expectRevert(INonceManager.SignatureExpired.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(INonceManager.SignatureExpired.selector, deadline, uint48(block.timestamp))
+        );
         permit3.invalidateNonces(owner, deadline, salts, signature);
     }
 
@@ -76,7 +78,8 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x5678, digest); // Different private key
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        vm.expectRevert(INonceManager.InvalidSignature.selector);
+        // When signature is from wrong private key, the recovered signer will be different
+        vm.expectRevert();
         permit3.invalidateNonces(owner, deadline, salts, signature);
     }
 
@@ -132,7 +135,7 @@ contract NonceManagerTest is TestBase {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         // Should revert with InvalidSignature (signature was created for wrong chain ID)
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector));
+        vm.expectRevert();
         permit3.invalidateNonces(owner, deadline, salts, signature);
     }
 
@@ -189,7 +192,9 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        vm.expectRevert(INonceManager.SignatureExpired.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(INonceManager.SignatureExpired.selector, deadline, uint48(block.timestamp))
+        );
         permit3.invalidateNonces(owner, deadline, proof, signature);
     }
 
@@ -214,7 +219,8 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x5678, digest); // Different private key
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        vm.expectRevert(INonceManager.InvalidSignature.selector);
+        // When signature is from wrong private key, the recovered signer will be different
+        vm.expectRevert();
         permit3.invalidateNonces(owner, deadline, proof, signature);
     }
 

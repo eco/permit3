@@ -239,4 +239,26 @@ contract TestBase is Test {
         bytes32 digest;
         bytes signature;
     }
+
+    // Helper function for witness signing
+    function _signWitnessPermit(
+        IPermit3.ChainPermits memory chainPermits,
+        bytes32 witness,
+        string memory witnessTypeString,
+        uint48 deadline,
+        uint48 timestamp,
+        bytes32 salt
+    ) internal view returns (bytes memory) {
+        bytes32 permitDataHash = IPermit3(address(permit3)).hashChainPermits(chainPermits);
+
+        // Get witness type hash
+        bytes32 typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));
+
+        // Create signed hash
+        bytes32 signedHash = keccak256(abi.encode(typeHash, owner, salt, deadline, timestamp, permitDataHash, witness));
+
+        bytes32 digest = _getDigest(signedHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        return abi.encodePacked(r, s, v);
+    }
 }

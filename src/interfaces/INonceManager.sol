@@ -10,19 +10,26 @@ import { IUnhingedMerkleTree } from "./IUnhingedMerkleTree.sol";
  */
 interface INonceManager is IPermit, IUnhingedMerkleTree {
     /// @notice Thrown when a signature has expired
-    error SignatureExpired();
+    /// @param deadline The timestamp when the signature expired
+    /// @param currentTimestamp The current block timestamp
+    error SignatureExpired(uint48 deadline, uint48 currentTimestamp);
 
     /// @notice Thrown when a signature is invalid
-    error InvalidSignature();
+    /// @param expectedSigner The expected address that should have signed
+    /// @param actualSigner The actual address recovered from the signature
+    error InvalidSignature(address expectedSigner, address actualSigner);
 
     /// @notice Thrown when a nonce has already been used
-    error NonceAlreadyUsed();
+    /// @param owner The owner of the nonce
+    /// @param salt The salt value that was already used
+    error NonceAlreadyUsed(address owner, bytes32 salt);
 
     /// @notice Thrown when a chain ID is invalid
     error WrongChainId(uint256 expected, uint256 provided);
 
     /// @notice Thrown when a witness type string is invalid
-    error InvalidWitnessTypeString();
+    /// @param witnessTypeString The invalid witness type string provided
+    error InvalidWitnessTypeString(string witnessTypeString);
 
     /// @notice Emitted when a nonce is invalidated
     /// @param owner The owner of the nonce
