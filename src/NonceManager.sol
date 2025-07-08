@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import { INonceManager } from "./interfaces/INonceManager.sol";
 import { EIP712 } from "./lib/EIP712.sol";
 import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /**
  * @title NonceManager
@@ -16,7 +16,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  * - EIP-712 compliant signatures
  */
 abstract contract NonceManager is INonceManager, EIP712 {
-    using ECDSA for bytes32;
+    using SignatureChecker for address;
     using UnhingedMerkleTree for UnhingedProof;
 
     /// @dev Constant representing an unused nonce
@@ -117,9 +117,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
             keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations)));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
-        address recoveredSigner = digest.recover(signature);
-        if (recoveredSigner != owner) {
-            revert InvalidSignature(owner, recoveredSigner);
+        if (!owner.isValidSignatureNow(digest, signature)) {
+            revert InvalidSignature(owner);
         }
 
         _processNonceInvalidation(owner, invalidations);
@@ -156,9 +155,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
-        address recoveredSigner = digest.recover(signature);
-        if (recoveredSigner != owner) {
-            revert InvalidSignature(owner, recoveredSigner);
+        if (!owner.isValidSignatureNow(digest, signature)) {
+            revert InvalidSignature(owner);
         }
 
         _processNonceInvalidation(owner, proof.invalidations);

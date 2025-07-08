@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import { IPermit3 } from "./interfaces/IPermit3.sol";
 import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
@@ -21,7 +21,7 @@ import { PermitBase } from "./PermitBase.sol";
  * 6. UnhingedProofs: Optimized proof structure for cross-chain verification
  */
 contract Permit3 is IPermit3, PermitBase, NonceManager {
-    using ECDSA for bytes32;
+    using SignatureChecker for address;
     using UnhingedMerkleTree for UnhingedProof;
 
     /**
@@ -557,9 +557,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      */
     function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
         bytes32 digest = _hashTypedDataV4(structHash);
-        address signer = digest.recover(signature);
-        if (signer != owner) {
-            revert InvalidSignature(owner, signer);
+        if (!owner.isValidSignatureNow(digest, signature)) {
+            revert InvalidSignature(owner);
         }
     }
 }
