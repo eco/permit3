@@ -2,9 +2,10 @@
 pragma solidity ^0.8.27;
 
 import { Permit3ApproverModule } from "../../src/modules/Permit3ApproverModule.sol";
-import { IERC7579Module } from "../../src/modules/interfaces/IERC7579Module.sol";
-import { IExecutorModule } from "../../src/modules/interfaces/IExecutorModule.sol";
+
+import { CallType, ERC7579Utils, ExecType, Mode } from "@openzeppelin/contracts/account/utils/draft-ERC7579Utils.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { Execution, IERC7579Execution, IERC7579Module } from "@openzeppelin/contracts/interfaces/draft-IERC7579.sol";
 import { Test } from "forge-std/Test.sol";
 
 contract MockERC20 is IERC20 {
@@ -31,7 +32,7 @@ contract MockERC20 is IERC20 {
     }
 }
 
-contract MockSmartAccount {
+contract MockSmartAccount is IERC7579Execution {
     mapping(address => bool) public installedModules;
 
     function installModule(uint256 moduleType, address module, bytes calldata data) external {
@@ -44,15 +45,35 @@ contract MockSmartAccount {
         IERC7579Module(module).onUninstall(data);
     }
 
-    function executeFromExecutor(address executor, bytes calldata data) external {
-        require(installedModules[executor], "Module not installed");
-        // Get executions from the module
-        IExecutorModule.Execution[] memory executions = IExecutorModule(executor).execute(address(this), data);
+    function execute(bytes32 mode, bytes calldata executionCalldata) external payable {
+        revert("Not implemented - use executeFromExecutor");
+    }
 
-        // Execute each call
-        for (uint256 i = 0; i < executions.length; i++) {
-            (bool success,) = executions[i].target.call{ value: executions[i].value }(executions[i].data);
-            require(success, "Execution failed");
+    function executeFromExecutor(
+        bytes32 mode,
+        bytes calldata executionCalldata
+    ) external payable returns (bytes[] memory returnData) {
+        require(installedModules[msg.sender], "Module not installed");
+
+        // Decode the mode
+        CallType callType = CallType.wrap(bytes1(mode));
+        ExecType execType = ExecType.wrap(bytes1(mode << 8));
+
+        // Handle batch execution
+        if (callType == ERC7579Utils.CALLTYPE_BATCH) {
+            Execution[] memory executions = ERC7579Utils.decodeBatch(executionCalldata);
+            returnData = new bytes[](executions.length);
+
+            for (uint256 i = 0; i < executions.length; i++) {
+                (bool success, bytes memory result) =
+                    executions[i].target.call{ value: executions[i].value }(executions[i].callData);
+                if (execType == ERC7579Utils.EXECTYPE_DEFAULT) {
+                    require(success, "Execution failed");
+                }
+                returnData[i] = result;
+            }
+        } else {
+            revert("Unsupported call type");
         }
     }
 }
@@ -73,8 +94,8 @@ contract Permit3ApproverModuleTest is Test {
 
     function testModuleConstants() public {
         assertEq(module.MODULE_TYPE(), 2);
-        assertEq(module.NAME(), "Permit3ApproverModule");
-        assertEq(module.VERSION(), "1.0.0");
+        assertEq(module.name(), "Permit3ApproverModule");
+        assertEq(module.version(), "1.0.0");
         assertEq(module.PERMIT3(), PERMIT3);
     }
 
@@ -87,13 +108,11 @@ contract Permit3ApproverModuleTest is Test {
 
     function testSupportsInterface() public {
         assertTrue(module.supportsInterface(type(IERC7579Module).interfaceId));
-        assertTrue(module.supportsInterface(type(IExecutorModule).interfaceId));
     }
 
     function testInstallModule() public {
         smartAccount.installModule(2, address(module), "");
         assertTrue(smartAccount.installedModules(address(module)));
-        assertTrue(module.isInitialized(address(smartAccount)));
     }
 
     function testUninstallModule() public {
@@ -114,29 +133,30 @@ contract Permit3ApproverModuleTest is Test {
         // Get execution data
         bytes memory execData = module.getExecutionData(tokens);
 
-        // Execute through smart account
-        smartAccount.executeFromExecutor(address(module), execData);
+        // Execute through module (which will call executeFromExecutor on the smart account)
+        module.execute(address(smartAccount), execData);
 
         // Check approvals
         assertEq(token1.allowance(address(smartAccount), PERMIT3), type(uint256).max);
         assertEq(token2.allowance(address(smartAccount), PERMIT3), type(uint256).max);
     }
 
-    function testExecuteView() public {
+    function testExecuteEncoding() public {
+        // Install module
+        smartAccount.installModule(2, address(module), "");
+
         address[] memory tokens = new address[](2);
         tokens[0] = address(token1);
         tokens[1] = address(token2);
         bytes memory execData = abi.encode(tokens);
 
-        // Call execute to get the executions
-        IExecutorModule.Execution[] memory executions = module.execute(address(smartAccount), execData);
+        // Test that execute properly encodes and calls executeFromExecutor
+        // We'll verify this by checking the execution happens correctly
+        module.execute(address(smartAccount), execData);
 
-        // Verify executions
-        assertEq(executions.length, 2);
-        assertEq(executions[0].target, address(token1));
-        assertEq(executions[0].value, 0);
-        assertEq(executions[1].target, address(token2));
-        assertEq(executions[1].value, 0);
+        // If the encoding was correct, approvals should be set
+        assertEq(token1.allowance(address(smartAccount), PERMIT3), type(uint256).max);
+        assertEq(token2.allowance(address(smartAccount), PERMIT3), type(uint256).max);
     }
 
     function testExecuteNoTokens() public {
@@ -146,7 +166,7 @@ contract Permit3ApproverModuleTest is Test {
         bytes memory execData = abi.encode(tokens);
 
         vm.expectRevert(Permit3ApproverModule.NoTokensProvided.selector);
-        smartAccount.executeFromExecutor(address(module), execData);
+        module.execute(address(smartAccount), execData);
     }
 
     function testExecuteZeroAddressToken() public {
@@ -158,7 +178,7 @@ contract Permit3ApproverModuleTest is Test {
         bytes memory execData = abi.encode(tokens);
 
         vm.expectRevert(abi.encodeWithSelector(Permit3ApproverModule.ZeroAddress.selector, "token"));
-        smartAccount.executeFromExecutor(address(module), execData);
+        module.execute(address(smartAccount), execData);
     }
 
     function testConstructorZeroAddress() public {

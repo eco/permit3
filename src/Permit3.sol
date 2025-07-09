@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import { IPermit3 } from "./interfaces/IPermit3.sol";
@@ -22,6 +23,7 @@ import { PermitBase } from "./PermitBase.sol";
  */
 contract Permit3 is IPermit3, PermitBase, NonceManager {
     using SignatureChecker for address;
+    using ECDSA for bytes32;
     using UnhingedMerkleTree for UnhingedProof;
 
     /**
@@ -550,14 +552,27 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param signature Raw signature bytes in (v, r, s) format for ECDSA recovery
      * @notice This function:
      *         1. Computes the EIP-712 compliant digest using _hashTypedDataV4
-     *         2. Recovers the signer address from the signature
-     *         3. Verifies the recovered address matches the expected owner
+     *         2. For short signatures (<=65 bytes), tries ECDSA recovery first
+     *         3. Falls back to ERC-1271 validation for contract wallets or if ECDSA fails
+     *         4. Handles EIP-7702 delegated EOAs correctly
      * @notice Reverts with InvalidSignature() if the signature is invalid or
      *         the recovered signer doesn't match the expected owner
      */
     function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
         bytes32 digest = _hashTypedDataV4(structHash);
-        if (!owner.isValidSignatureNow(digest, signature)) {
+
+        // For signatures <= 65 bytes (supporting ERC-2098 compact signatures),
+        // try ECDSA recovery first before falling back to ERC-1271
+        uint256 signatureLength = signature.length;
+        if (signatureLength == 64 || signatureLength == 65) {
+            if (digest.recover(signature) == owner) {
+                return;
+            }
+        }
+
+        // For longer signatures or when ECDSA failed with a contract/EIP-7702 EOA,
+        // use ERC-1271 validation
+        if (owner.code.length == 0 || !owner.isValidERC1271SignatureNow(digest, signature)) {
             revert InvalidSignature(owner);
         }
     }
