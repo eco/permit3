@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-
 import { IPermit3 } from "./interfaces/IPermit3.sol";
 import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
 
@@ -22,8 +19,6 @@ import { PermitBase } from "./PermitBase.sol";
  * 6. UnhingedProofs: Optimized proof structure for cross-chain verification
  */
 contract Permit3 is IPermit3, PermitBase, NonceManager {
-    using SignatureChecker for address;
-    using ECDSA for bytes32;
     using UnhingedMerkleTree for UnhingedProof;
 
     /**
@@ -543,37 +538,5 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         string calldata witnessTypeString
     ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(PERMIT_WITNESS_TYPEHASH_STUB, witnessTypeString));
-    }
-
-    /**
-     * @dev Validate EIP-712 signature against expected signer using ECDSA recovery
-     * @param owner Expected message signer to validate against
-     * @param structHash Hash of the signed data structure (pre-hashed message)
-     * @param signature Raw signature bytes in (v, r, s) format for ECDSA recovery
-     * @notice This function:
-     *         1. Computes the EIP-712 compliant digest using _hashTypedDataV4
-     *         2. For short signatures (<=65 bytes), tries ECDSA recovery first
-     *         3. Falls back to ERC-1271 validation for contract wallets or if ECDSA fails
-     *         4. Handles EIP-7702 delegated EOAs correctly
-     * @notice Reverts with InvalidSignature() if the signature is invalid or
-     *         the recovered signer doesn't match the expected owner
-     */
-    function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
-        bytes32 digest = _hashTypedDataV4(structHash);
-
-        // For signatures <= 65 bytes (supporting ERC-2098 compact signatures),
-        // try ECDSA recovery first before falling back to ERC-1271
-        uint256 signatureLength = signature.length;
-        if (signatureLength == 64 || signatureLength == 65) {
-            if (digest.recover(signature) == owner) {
-                return;
-            }
-        }
-
-        // For longer signatures or when ECDSA failed with a contract/EIP-7702 EOA,
-        // use ERC-1271 validation
-        if (owner.code.length == 0 || !owner.isValidERC1271SignatureNow(digest, signature)) {
-            revert InvalidSignature(owner);
-        }
     }
 }
