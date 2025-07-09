@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { Permit3ApproverModule } from "../../src/modules/Permit3ApproverModule.sol";
-
 import { CallType, ERC7579Utils, ExecType, Mode } from "@openzeppelin/contracts/account/utils/draft-ERC7579Utils.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { Execution, IERC7579Execution, IERC7579Module } from "@openzeppelin/contracts/interfaces/draft-IERC7579.sol";
 import { Test } from "forge-std/Test.sol";
+
+import { Permit3ApproverModule } from "../../src/modules/Permit3ApproverModule.sol";
 
 contract MockERC20 is IERC20 {
     mapping(address => uint256) public balanceOf;

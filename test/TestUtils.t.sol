@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { Test } from "forge-std/Test.sol";
+
 import { Permit3 } from "../src/Permit3.sol";
 import { IPermit3 } from "../src/interfaces/IPermit3.sol";
 import { MockToken, Permit3TestUtils } from "./utils/TestUtils.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { Test } from "forge-std/Test.sol";
 
 /**
  * @title TestUtilsTest
