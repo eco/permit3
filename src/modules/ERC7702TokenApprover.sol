@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IERC7702TokenApprover } from "./interfaces/IERC7702TokenApprover.sol";
+import { IERC7702TokenApprover } from "../interfaces/IERC7702TokenApprover.sol";
 
 /**
  * @title ERC7702TokenApprover

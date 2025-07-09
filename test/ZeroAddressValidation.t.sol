@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { ERC7702TokenApprover } from "../src/ERC7702TokenApprover.sol";
+import { ERC7702TokenApprover } from "../src/modules/ERC7702TokenApprover.sol";
 import { Permit3 } from "../src/Permit3.sol";
 import { PermitBase } from "../src/PermitBase.sol";
 import { IERC7702TokenApprover } from "../src/interfaces/IERC7702TokenApprover.sol";

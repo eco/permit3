@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {Permit3} from "../src/Permit3.sol";
-import {ERC7702TokenApprover} from "../src/ERC7702TokenApprover.sol";
+import {ERC7702TokenApprover} from "../src/modules/ERC7702TokenApprover.sol";
 import {CommonBase} from "forge-std/Base.sol";
 import {Script} from "forge-std/Script.sol";
 import {StdChains} from "forge-std/StdChains.sol";
