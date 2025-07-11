@@ -112,22 +112,7 @@ struct NoncesToInvalidate {
 <a id="unhingedmerkletree-structures"></a>
 ## UnhingedMerkleTree Structures
 
-### UnhingedProof (Deprecated)
-
-**Note**: The `UnhingedProof` struct has been removed from the codebase. Merkle proofs are now represented directly as `bytes32[]` arrays for simplicity and gas efficiency.
-
-Previously, the proof structure wrapped a `bytes32[]` array. Now, functions that previously accepted `UnhingedProof` directly accept `bytes32[] unhingedProof` parameters instead.
-
-#### Migration
-
-- Old: `UnhingedProof memory proof = UnhingedProof({ nodes: proofArray });`
-- New: `bytes32[] memory unhingedProof = proofArray;`
-
-The proof array still contains sibling hashes that form the merkle proof:
-  - Each hash is a sibling node needed to reconstruct the path to the root
-  - Follows standard merkle proof format
-  - Uses ordered hashing (smaller value first) for consistency
-  - Based on OpenZeppelin's MerkleProof implementation
+The UnhingedMerkleTree uses standard `bytes32[]` arrays for merkle proofs. Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
 
 <a id="relations-between-structures"></a>
 ## Relations Between Structures

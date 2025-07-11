@@ -180,9 +180,6 @@ Interface for the UnhingedMerkleTree library providing merkle proof functionalit
 
 ```solidity
 interface IUnhingedMerkleTree {
-    // Core structs
-    // UnhingedProof struct removed - now using bytes32[] directly for merkle proofs
-    
     // Error definitions
     error InvalidMerkleProof();
     error InvalidParameters();

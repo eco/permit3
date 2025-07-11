@@ -7,8 +7,6 @@ pragma solidity ^0.8.0;
  * @dev The Unhinged Merkle Tree uses standard merkle tree verification with ordered hashing
  */
 interface IUnhingedMerkleTree {
-    // UnhingedProof struct removed - now using bytes32[] directly for merkle proofs
-
     /**
      * @notice Error when the merkle proof verification fails
      */
