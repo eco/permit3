@@ -9,17 +9,17 @@ import { PermitBase } from "./PermitBase.sol";
 
 /**
  * @title Permit3
- * @notice A cross-chain token approval and transfer system using EIP-712 signatures with UnhingedProofs
+ * @notice A cross-chain token approval and transfer system using EIP-712 signatures with merkle proofs
  * @dev Key features and components:
  * 1. Cross-chain Compatibility: Single signature can authorize operations across multiple chains
  * 2. Batched Operations: Process multiple token approvals and transfers in one transaction
  * 3. Flexible Nonce System: Non-sequential nonces for concurrent operations and gas optimization
  * 4. Time-bound Approvals: Permissions can be set to expire automatically
  * 5. EIP-712 Typed Signatures: Enhanced security through structured data signing
- * 6. UnhingedProofs: Optimized proof structure for cross-chain verification
+ * 6. Merkle Proofs: Optimized proof structure for cross-chain verification
  */
 contract Permit3 is IPermit3, PermitBase, NonceManager {
-    using UnhingedMerkleTree for UnhingedProof;
+    using UnhingedMerkleTree for bytes32[];
 
     /**
      * @dev EIP-712 typehash for bundled chain permits
@@ -179,7 +179,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
         // Calculate the unhinged root from the proof components
         // calculateRoot performs validation internally and provides granular error messages
-        params.unhingedRoot = proof.unhingedProof.calculateRoot(params.currentChainHash);
+        params.unhingedRoot = UnhingedMerkleTree.calculateRoot(proof.unhingedProof, params.currentChainHash);
 
         // Verify signature with unhinged root
         bytes32 signedHash = keccak256(
@@ -306,7 +306,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
         // Calculate the unhinged root
         // calculateRoot performs validation internally and provides granular error messages
-        params.unhingedRoot = proof.unhingedProof.calculateRoot(params.currentChainHash);
+        params.unhingedRoot = UnhingedMerkleTree.calculateRoot(proof.unhingedProof, params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);

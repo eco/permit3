@@ -75,7 +75,7 @@ contract Permit3EdgeTest is Test {
         bytes32 s;
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
-        IUnhingedMerkleTree.UnhingedProof merkleProof;
+        bytes32[] merkleProof;
         IPermit3.UnhingedPermitProof unhingedProof;
     }
 
@@ -194,7 +194,7 @@ contract Permit3EdgeTest is Test {
 
         // Create the optimized proof explicitly with no preHash flag
         bytes32[] memory emptyNodes = new bytes32[](0);
-        vars.merkleProof = IUnhingedMerkleTree.UnhingedProof({ nodes: emptyNodes });
+        vars.merkleProof = emptyNodes;
 
         vars.unhingedProof =
             IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: vars.merkleProof });
@@ -258,10 +258,8 @@ contract Permit3EdgeTest is Test {
         // Create invalid unhinged proof with insufficient nodes for a valid tree
         bytes32[] memory nodes = new bytes32[](0); // Empty proof is invalid for multi-chain permits
 
-        IUnhingedMerkleTree.UnhingedProof memory invalidProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
-
         IPermit3.UnhingedPermitProof memory unhingedProof =
-            IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: invalidProof });
+            IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: nodes });
 
         // Create a simple signature (won't reach validation)
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
@@ -276,7 +274,7 @@ contract Permit3EdgeTest is Test {
         bytes32 preHash;
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
-        IUnhingedMerkleTree.UnhingedProof proof;
+        bytes32[] proof;
         IPermit3.UnhingedPermitProof unhingedProof;
         bytes32 currentChainHash;
         bytes32 unhingedRoot;
@@ -321,7 +319,7 @@ contract Permit3EdgeTest is Test {
         nodes[1] = vars.followingHashes[0];
 
         // Create the proof with explicit hasPreHash flag
-        vars.proof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
+        vars.proof = nodes;
 
         vars.unhingedProof = IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: vars.proof });
 
@@ -589,7 +587,7 @@ contract Permit3EdgeTest is Test {
         nodes[0] = bytes32(uint256(1));
         nodes[1] = bytes32(uint256(2));
 
-        IUnhingedMerkleTree.UnhingedProof memory invalidProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
+        bytes32[] memory invalidProof = nodes;
 
         // Try to calculate the root - with the new simple structure, this won't revert
         // as it's just a simple merkle proof calculation
@@ -1108,7 +1106,7 @@ contract Permit3EdgeTest is Test {
         // Test with a proof that has no nodes (valid for single leaf)
         bytes32[] memory nodes = new bytes32[](0);
 
-        IUnhingedMerkleTree.UnhingedProof memory emptyProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
+        bytes32[] memory emptyProof = nodes;
 
         // Test it with leaf node
         bytes32 leaf = keccak256("test leaf");

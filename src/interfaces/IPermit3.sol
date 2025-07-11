@@ -59,11 +59,11 @@ interface IPermit3 is IPermit, INonceManager {
     /**
      * @notice Proof format using Unhinged Merkle Tree structure for cross-chain operations
      * @param permits Permit operations for the current chain
-     * @param unhingedProof Unhinged Merkle Tree proof structure
+     * @param unhingedProof Array of sibling hashes forming the merkle proof path
      */
     struct UnhingedPermitProof {
         ChainPermits permits;
-        UnhingedProof unhingedProof;
+        bytes32[] unhingedProof;
     }
 
     /**

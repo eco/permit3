@@ -67,15 +67,15 @@ Combines a chain's permits with a proof of inclusion in the cross-chain permit r
 
 ```solidity
 struct UnhingedPermitProof {
-    ChainPermits permits;                       // Chain-specific permit data
-    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Proof of inclusion 
+    ChainPermits permits;           // Chain-specific permit data
+    bytes32[] unhingedProof;        // Proof of inclusion (merkle proof nodes)
 }
 ```
 
 #### Fields
 
 - **permits**: The permits to execute on the current chain
-- **unhingedProof**: Proof that these permits are part of the signed unhinged root
+- **unhingedProof**: Array of merkle proof nodes that prove these permits are part of the signed unhinged root
 
 ### Allowance
 
@@ -112,19 +112,18 @@ struct NoncesToInvalidate {
 <a id="unhingedmerkletree-structures"></a>
 ## UnhingedMerkleTree Structures
 
-### UnhingedProof
+### UnhingedProof (Deprecated)
 
-Simple structure for merkle proof verification.
+**Note**: The `UnhingedProof` struct has been removed from the codebase. Merkle proofs are now represented directly as `bytes32[]` arrays for simplicity and gas efficiency.
 
-```solidity
-struct UnhingedProof {
-    bytes32[] nodes;       // Array of sibling hashes forming the merkle proof path
-}
-```
+Previously, the proof structure wrapped a `bytes32[]` array. Now, functions that previously accepted `UnhingedProof` directly accept `bytes32[] unhingedProof` parameters instead.
 
-#### Fields
+#### Migration
 
-- **nodes**: Array of sibling hashes that form the merkle proof
+- Old: `UnhingedProof memory proof = UnhingedProof({ nodes: proofArray });`
+- New: `bytes32[] memory unhingedProof = proofArray;`
+
+The proof array still contains sibling hashes that form the merkle proof:
   - Each hash is a sibling node needed to reconstruct the path to the root
   - Follows standard merkle proof format
   - Uses ordered hashing (smaller value first) for consistency

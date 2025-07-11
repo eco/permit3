@@ -12,30 +12,30 @@ import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerklePr
 library UnhingedMerkleTree {
     /**
      * @dev Verifies an Unhinged Merkle proof
-     * @param proof The merkle proof - array of sibling hashes
+     * @param unhingedProof The merkle proof - array of sibling hashes
      * @param unhingedRoot The expected root of the merkle tree
      * @param leaf The leaf node being proven
      * @return True if the proof is valid, false otherwise
      */
     function verify(
-        IUnhingedMerkleTree.UnhingedProof calldata proof,
+        bytes32[] calldata unhingedProof,
         bytes32 unhingedRoot,
         bytes32 leaf
     ) internal pure returns (bool) {
-        return MerkleProof.verify(proof.nodes, unhingedRoot, leaf);
+        return MerkleProof.verify(unhingedProof, unhingedRoot, leaf);
     }
 
     /**
      * @dev Calculates the merkle root from a leaf and proof
-     * @param proof The merkle proof - array of sibling hashes
+     * @param unhingedProof The merkle proof - array of sibling hashes
      * @param leaf The leaf node to calculate from
      * @return The calculated merkle root
      */
     function calculateRoot(
-        IUnhingedMerkleTree.UnhingedProof calldata proof,
+        bytes32[] calldata unhingedProof,
         bytes32 leaf
     ) internal pure returns (bytes32) {
-        return MerkleProof.processProof(proof.nodes, leaf);
+        return MerkleProof.processProof(unhingedProof, leaf);
     }
 
     /**

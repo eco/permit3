@@ -101,8 +101,8 @@ contract TestBase is Test {
         // Calculate the merkle root using standard merkle tree logic
         bytes32 unhingedRoot = currentChainHash;
 
-        for (uint256 i = 0; i < proof.unhingedProof.nodes.length; i++) {
-            bytes32 proofElement = proof.unhingedProof.nodes[i];
+        for (uint256 i = 0; i < proof.unhingedProof.length; i++) {
+            bytes32 proofElement = proof.unhingedProof[i];
 
             // Standard merkle ordering: smaller value first
             if (unhingedRoot <= proofElement) {

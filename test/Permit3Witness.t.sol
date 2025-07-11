@@ -332,9 +332,7 @@ contract Permit3WitnessTest is Test {
         nodes[0] = bytes32(uint256(0x1234)); // preHash
         nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
-
-        return IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: unhingedProof });
+        return IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: nodes });
     }
 
     // Helper struct for signing witness permits
@@ -403,7 +401,7 @@ contract Permit3WitnessTest is Test {
 
         // In the new simple structure, calculate merkle root using the proof
         // The UnhingedMerkleTree library now uses OpenZeppelin's MerkleProof
-        vars.unhingedRoot = UnhingedMerkleTree.calculateRoot(vars.currentChainHash, proof.unhingedProof.nodes);
+        vars.unhingedRoot = UnhingedMerkleTree.calculateRoot(vars.currentChainHash, proof.unhingedProof);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));

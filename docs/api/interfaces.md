@@ -29,7 +29,7 @@ interface IPermit3 is IPermit, INonceManager {
     
     struct UnhingedPermitProof {
         ChainPermits permits;
-        IUnhingedMerkleTree.UnhingedProof unhingedProof;
+        bytes32[] unhingedProof;
     }
     
     enum PermitType {
@@ -181,9 +181,7 @@ Interface for the UnhingedMerkleTree library providing merkle proof functionalit
 ```solidity
 interface IUnhingedMerkleTree {
     // Core structs
-    struct UnhingedProof {
-        bytes32[] nodes;  // Array of sibling hashes forming the merkle proof path
-    }
+    // UnhingedProof struct removed - now using bytes32[] directly for merkle proofs
     
     // Error definitions
     error InvalidMerkleProof();
@@ -193,13 +191,13 @@ interface IUnhingedMerkleTree {
 // Library functions (not part of interface, but available)
 library UnhingedMerkleTree {
     function verify(
-        UnhingedProof calldata proof,
+        bytes32[] calldata unhingedProof,
         bytes32 unhingedRoot,
         bytes32 leaf
     ) internal pure returns (bool);
     
     function calculateRoot(
-        UnhingedProof calldata proof,
+        bytes32[] calldata unhingedProof,
         bytes32 leaf
     ) internal pure returns (bytes32);
     

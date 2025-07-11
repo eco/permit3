@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
  * @notice Tests for simple UnhingedMerkleTree functionality using OpenZeppelin's MerkleProof
  */
 contract UnhingedMerkleTreeTest is Test {
-    using UnhingedMerkleTree for IUnhingedMerkleTree.UnhingedProof;
+    using UnhingedMerkleTree for bytes32[];
 
     // Test verifying a simple merkle proof with single leaf
     function test_singleLeafVerification() public pure {
@@ -27,7 +27,7 @@ contract UnhingedMerkleTreeTest is Test {
         assert(result == true);
 
         // Also verify using the library function directly
-        // (UnhingedProof struct is only used internally by the library)
+        // (bytes32[] array is used for merkle proofs)
         assert(UnhingedMerkleTree.verifyProof(root, leaf, proofNodes) == true);
     }
 
@@ -177,7 +177,7 @@ contract UnhingedMerkleTreeTest is Test {
         assert(UnhingedMerkleTree.verifyProof(root3, leaf, proof3));
     }
 
-    // Test proof structure with UnhingedProof type
+    // Test proof structure with bytes32[] type
     function test_unhingedProofStructure() public pure {
         bytes32 leaf = bytes32(uint256(0x1111));
         bytes32 sibling = bytes32(uint256(0x2222));
@@ -191,7 +191,7 @@ contract UnhingedMerkleTreeTest is Test {
         proofNodes[0] = sibling;
 
         // Verify using the proof nodes directly
-        // (UnhingedProof struct is only used internally)
+        // (bytes32[] array is used for merkle proofs)
         bool result = UnhingedMerkleTree.verifyProof(root, leaf, proofNodes);
         assert(result == true);
     }
