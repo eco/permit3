@@ -119,11 +119,10 @@ The UnhingedMerkleTree uses standard `bytes32[]` arrays for merkle proofs. Each 
 
 ```
 ┌─────────────────┐     ┌───────────────────┐     ┌───────────────────┐
-│ UnhingedProof   │     │ UnhingedPermitProof│     │ ChainPermits      │
-├─────────────────┤     ├───────────────────┤     ├───────────────────┤
-│ nodes           │◄────┤ unhingedProof     │     │ chainId           │
-│ counts          │     ├───────────────────┤     ├───────────────────┤
-└─────────────────┘     │ permits           │◄────┤ permits[]         │◄─┐
+│ bytes32[]       │     │ UnhingedPermitProof│     │ ChainPermits      │
+│ (merkle proof)  │◄────┤ unhingedProof     │     │ chainId           │
+└─────────────────┘     ├───────────────────┤     ├───────────────────┤
+                        │ permits           │◄────┤ permits[]         │◄─┐
                         └───────────────────┘     └───────────────────┘  │
                                                                         │
                         ┌───────────────────┐                          │

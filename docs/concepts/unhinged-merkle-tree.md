@@ -242,9 +242,7 @@ bytes32[] memory arbitrumProof = generateMerkleProof(leaves, 1); // Index 1 for 
 
 UnhingedPermitProof memory proof = {
     permits: arbitrumPermits,
-    unhingedProof: UnhingedProof({
-        nodes: arbitrumProof
-    })
+    unhingedProof: arbitrumProof
 };
 
 // Verify and process

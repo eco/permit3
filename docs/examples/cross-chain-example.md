@@ -146,25 +146,19 @@ function generateMerkleProof(leaves, targetIndex) {
 // On Ethereum (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 0)
-    }
+    unhingedProof: generateMerkleProof(leaves, 0)
 };
 
 // On Arbitrum (index 1)
 const arbitrumProof = {
     permits: arbitrumPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 1)
-    }
+    unhingedProof: generateMerkleProof(leaves, 1)
 };
 
 // On Optimism (index 2)
 const optimismProof = {
     permits: optimismPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 2)
-    }
+    unhingedProof: generateMerkleProof(leaves, 2)
 };
 ```
 

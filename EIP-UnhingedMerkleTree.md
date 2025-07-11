@@ -88,96 +88,62 @@ The final `result` is the Unhinged Root that can be signed using EIP-712 or othe
 
 ### Proof Format
 
-The proof format for an Unhinged Merkle Tree is defined as a highly optimized structure:
+The proof format for an Unhinged Merkle Tree uses standard merkle proofs:
 
 ```solidity
-struct UnhingedProof {
-    bytes32[] nodes;             // All nodes: [preHash (if present), subtreeProof nodes..., followingHashes...]
-    bytes32 counts;              // Packed data including counts and flags
-}
+bytes32[] unhingedProof;  // Array of sibling hashes forming the merkle proof
 ```
 
 Where:
-- `nodes`: A single array containing all relevant nodes in order: preHash (if present), subtree proof nodes, and following hashes
-- `counts`: A packed bytes32 value that efficiently stores:
-  - First 120 bits: subtreeProofCount (number of nodes in subtree proof)
-  - Next 120 bits: followingHashesCount (number of nodes in following hashes)
-  - Next 15 bits: Reserved for future use
-  - Last bit: hasPreHash flag (1 if preHash is present, 0 if not)
+- `unhingedProof`: A standard merkle proof containing sibling hashes needed to reconstruct the path from a leaf to the root
+- Uses ordered hashing (smaller value first) for consistency
+- Compatible with OpenZeppelin's MerkleProof library
 
-#### Critical Design Constraint: Mutual Exclusivity
+#### Verification Process
 
-**IMPORTANT**: The `preHash` and `subtreeProof` components are mutually exclusive and cannot both be present in the same proof structure. This is a fundamental design constraint enforced by the system:
+The Unhinged Merkle Tree uses standard merkle tree verification:
 
-- **When hasPreHash=true**: The proof uses `preHash` mode with no subtree proof nodes (subtreeProofCount MUST be 0)
-- **When hasPreHash=false**: The proof uses `subtreeProof` mode with no preHash value
+1. Start with the leaf (the hash of the current chain's permissions)
+2. For each element in the proof array:
+   - Apply ordered hashing: hash(min(current, proofElement), max(current, proofElement))
+   - The result becomes the new current value
+3. The final result should match the signed root
 
-This mutual exclusivity enables two distinct verification algorithms optimized for different scenarios:
-
-1. **preHash Mode (hasPreHash=true)**: Efficient for chains late in the sequence
-   - Structure: `[preHash, followingHashes...]`
-   - Verification: Direct hash with leaf, then append following hashes
-   - Gas optimized: Minimal proof data for expensive chains
-
-2. **subtreeProof Mode (hasPreHash=false)**: Efficient for chains early in the sequence
-   - Structure: `[subtreeProof..., followingHashes...]`
-   - Verification: Full balanced Merkle tree verification, then append following hashes
-   - Gas optimized: Larger proofs acceptable on cheaper chains
-
-This optimized format has several advantages:
-1. It avoids separate array allocations for subtree proofs and following hashes
-2. It allows omitting the preHash entirely when not needed, saving significant gas costs
-3. It packs all metadata into a single bytes32 value, reducing storage and calldata costs
-4. It reserves bits for future extensions without breaking the interface
-
-#### Gas Optimization with hasPreHash Flag
-
-The hasPreHash flag (last bit in the counts value) enables significant gas optimization by allowing proofs to completely omit the preHash value from the nodes array when it's not needed. This provides multiple benefits:
-
-1. **Reduced Calldata Size**: By omitting the 32-byte preHash value, transaction calldata is smaller, directly reducing gas costs
-2. **Simplified Verification**: When hasPreHash=false, verification starts directly with the subtree root
-3. **Optimized for Common Cases**: Particularly effective for first chains in sequences or single-chain operations
-
-Gas measurements demonstrate significant savings for typical transactions using this optimization.
+This approach provides several advantages:
+1. Simple and well-understood verification algorithm
+2. Compatible with existing merkle proof libraries
+3. Efficient gas usage with minimal overhead
+4. No complex proof structure parsing required
 
 ### Verification Algorithm
 
 To verify an element is included in an Unhinged Merkle Tree:
 
-1. **Extract metadata from packed counts**:
-   - Extract subtreeProofCount (120 bits): `uint120 subtreeProofCount = uint120(value >> 136)`
-   - Extract followingHashesCount (120 bits): `uint120 followingHashesCount = uint120((value >> 16) & ((1 << 120) - 1))`
-   - Extract hasPreHash flag (1 bit): `bool hasPreHash = (value & 1) == 1`
+1. **Start with the leaf**: The hash of the current chain's permissions
+2. **Process each proof element**: For each `bytes32` in the proof array:
+   - Determine ordering: `if (currentHash <= proofElement)`
+   - Apply ordered hash: `currentHash = keccak256(currentHash, proofElement)` or `keccak256(proofElement, currentHash)`
+3. **Compare with root**: The final hash should match the signed unhinged root
 
-2. **Validate mutual exclusivity constraint**:
-   - Verify that `preHash` and `subtreeProof` are not both present
-   - If hasPreHash=true, subtreeProofCount MUST be 0
-   - If hasPreHash=false, no preHash value should be in nodes[0]
-
-3. **Extract nodes from the array based on mode**:
-   - **preHash Mode (hasPreHash=true)**:
-     - Get preHash from nodes[0]
-     - Extract following hashes from nodes[1] onwards
-     - No subtree proof nodes present
-   - **subtreeProof Mode (hasPreHash=false)**:
-     - Extract subtree proof nodes from nodes[0] to nodes[subtreeProofCount-1]
-     - Extract following hashes from remaining nodes
-     - No preHash value present
-
-4. **Perform verification based on mode**:
-   - **preHash Mode**: 
-     - Start with preHash from nodes[0]
-     - Hash directly with leaf: `result = keccak256(abi.encodePacked(preHash, leaf))`
-   - **subtreeProof Mode**:
-     - Verify balanced subtree proof using standard Merkle verification
-     - Calculate subtree root: `result = computeBalancedRoot(leaf, subtreeProof)`
-
-5. **Complete the unhinged chain**:
-   - Sequentially append each following hash: `result = keccak256(abi.encodePacked(result, followingHash))`
-
-5. **Verification**:
-   - Compare the final calculated hash against the signed Unhinged Root
-   - If they match, the proof is valid
+Example verification in Solidity:
+```solidity
+function verify(
+    bytes32[] calldata proof,
+    bytes32 root,
+    bytes32 leaf
+) internal pure returns (bool) {
+    bytes32 computedHash = leaf;
+    for (uint256 i = 0; i < proof.length; i++) {
+        bytes32 proofElement = proof[i];
+        if (computedHash <= proofElement) {
+            computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+        } else {
+            computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+        }
+    }
+    return computedHash == root;
+}
+```
 
 ### Generating an Unhinged Merkle Tree
 
