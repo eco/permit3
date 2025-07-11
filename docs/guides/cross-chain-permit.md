@@ -1,359 +1,587 @@
-# 🔏 Permit3 Cross-Chain Permit Guide 🌉
+# Cross-Chain Permit Guide
 
-This guide explains how to create and use cross-chain permits with Permit3, allowing users to authorize operations across multiple blockchains with a single signature.
+Learn how to use Permit3's UnhingedMerkleTree for seamless cross-chain token operations.
 
-## 🧠 Understanding Cross-Chain Permits
+## 🌐 Understanding Cross-Chain Permits
 
-Cross-chain permits are designed to solve a key problem in multi-chain environments: requiring separate signatures for each blockchain. With Permit3, users can sign once and execute operations across any number of supported chains.
+Cross-chain permits allow you to sign once and execute token operations across multiple chains. This is powered by the UnhingedMerkleTree, which uses standard merkle proofs to efficiently verify permissions on each chain.
 
-### 💡 Core Concepts
+### Key Benefits
 
-1. 🌲 **UnhingedMerkleTree**: A hybrid data structure combining:
-   - A balanced Merkle tree for efficient per-chain data verification
-   - A sequential hash chain for connecting across chains
+- ✍️ **Single Signature**: Sign once, execute everywhere
+- ⛽ **Gas Efficient**: Each chain only processes its relevant data
+- 🔒 **Secure**: Cryptographically proven with merkle trees
+- 🚀 **Fast**: Parallel execution across chains
 
-2. 🔄 **Chain Ordering**: Chains are processed in a specific canonical order (typically by chain ID)
+## 📦 Basic Cross-Chain Setup
 
-3. 🔍 **Proofs**: Each chain receives a specialized proof demonstrating that its operations are part of the signed root
+### Step 1: Install Dependencies
 
-4. 🧂 **Common Salt/Timestamp**: The same salt (nonce) and timestamp are used across all chains for correlation
+```bash
+npm install ethers merkletreejs keccak256
+```
 
-## 🔧 Implementation Steps
-
-### 1️⃣ Step 1: Define Chain-Specific Permits
-
-Start by defining the operations you want to perform on each chain:
+### Step 2: Create Permits for Each Chain
 
 ```javascript
-// Ethereum mainnet permits
-const ethereumPermits = {
-    chainId: 1,
-    permits: [{
-        modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours
-        token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
-        account: "0x1111111111111111111111111111111111111111", // Spender
-        amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC
-    }]
-};
+const { ethers } = require('ethers');
+const { MerkleTree } = require('merkletreejs');
+const keccak256 = require('keccak256');
 
-// Arbitrum permits
-const arbitrumPermits = {
-    chainId: 42161,
-    permits: [{
-        modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours
-        token: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", // USDC on Arbitrum
-        account: "0x2222222222222222222222222222222222222222", // Spender
-        amountDelta: ethers.utils.parseUnits("500", 6) // 500 USDC
-    }]
-};
-
-// Optimism permits
-const optimismPermits = {
-    chainId: 10,
-    permits: [{
-        modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours
-        token: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", // USDC on Optimism
-        account: "0x3333333333333333333333333333333333333333", // Spender
-        amountDelta: ethers.utils.parseUnits("200", 6) // 200 USDC
-    }]
+// Define your permits for each chain
+const permits = {
+    ethereum: {
+        chainId: 1,
+        permits: [{
+            modeOrExpiration: (BigInt(parseEther("100")) << 48n) | BigInt(expiration),
+            token: USDC_MAINNET,
+            account: spenderAddress
+        }]
+    },
+    arbitrum: {
+        chainId: 42161,
+        permits: [{
+            modeOrExpiration: (BigInt(parseEther("50")) << 48n) | BigInt(expiration),
+            token: USDC_ARBITRUM,
+            account: spenderAddress
+        }]
+    },
+    optimism: {
+        chainId: 10,
+        permits: [{
+            modeOrExpiration: (BigInt(parseEther("75")) << 48n) | BigInt(expiration),
+            token: USDC_OPTIMISM,
+            account: spenderAddress
+        }]
+    }
 };
 ```
 
-### 2️⃣ Step 2: Calculate Chain Hashes
-
-Next, calculate a hash for each chain's permits using the `hashChainPermits` function:
+### Step 3: Build the Merkle Tree
 
 ```javascript
-const Permit3 = new ethers.Contract(PERMIT3_ADDRESS, PERMIT3_ABI, provider);
+// Helper function to build merkle tree with ordered hashing
+function buildMerkleTree(leaves) {
+    return new MerkleTree(leaves, keccak256, { sortPairs: true });
+}
 
-// Calculate hashes for each chain
-const ethereumHash = await Permit3.hashChainPermits(ethereumPermits);
-const arbitrumHash = await Permit3.hashChainPermits(arbitrumPermits);
-const optimismHash = await Permit3.hashChainPermits(optimismPermits);
+// Hash each chain's permits
+const leaves = [];
+const chainToIndex = {};
+
+const orderedChains = Object.keys(permits).sort(); // Consistent ordering
+
+for (let i = 0; i < orderedChains.length; i++) {
+    const chain = orderedChains[i];
+    const permit3 = new ethers.Contract(PERMIT3_ADDRESS[chain], PERMIT3_ABI, provider[chain]);
+    
+    // Hash the chain permits
+    const leaf = await permit3.hashChainPermits(permits[chain]);
+    leaves.push(leaf);
+    chainToIndex[chain] = i;
+}
+
+// Build the merkle tree
+const merkleTree = buildMerkleTree(leaves);
+const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```
 
-### 3️⃣ Step 3: Create the Unhinged Root
-
-Generate the unhinged root by sequentially linking the chain hashes in order of chain ID:
+### Step 4: Sign the Root
 
 ```javascript
-// Import UnhingedMerkleTree utility
-const UnhingedMerkleTree = {
-    hashLink: (a, b) => ethers.utils.keccak256(
-        ethers.utils.defaultAbiCoder.encode(
-            ['bytes32', 'bytes32'],
-            [a, b]
-        )
-    )
-};
+// Create signature
+const salt = ethers.utils.randomBytes(32);
+const timestamp = Math.floor(Date.now() / 1000);
+const deadline = timestamp + 3600; // 1 hour validity
 
-// Link hashes in order (chainId ascending)
-const combinedHash1 = UnhingedMerkleTree.hashLink(ethereumHash, arbitrumHash);
-const unhingedRoot = UnhingedMerkleTree.hashLink(combinedHash1, optimismHash);
-```
-
-### 4️⃣ Step 4: Sign the Unhinged Root
-
-Create and sign an EIP-712 message containing the unhinged root:
-
-```javascript
-// Common parameters for all chains
-const salt = ethers.utils.randomBytes(32); // Random salt (nonce)
-const timestamp = Math.floor(Date.now() / 1000); // Current time
-const deadline = timestamp + 3600; // 1 hour deadline
-
-// Create EIP-712 domain (can use any chain for signature)
 const domain = {
     name: "Permit3",
     version: "1",
-    chainId: 1, // Using Ethereum for signing
-    verifyingContract: PERMIT3_ADDRESS
+    chainId: 1, // Use mainnet for signing
+    verifyingContract: PERMIT3_ADDRESS.ethereum
 };
 
-// Define EIP-712 types
 const types = {
     SignedPermit3: [
-        { name: 'owner', type: 'address' },
-        { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
-        { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: "owner", type: "address" },
+        { name: "salt", type: "bytes32" },
+        { name: "deadline", type: "uint48" },
+        { name: "timestamp", type: "uint48" },
+        { name: "unhingedRoot", type: "bytes32" }
     ]
 };
 
-// Create the message to sign
 const value = {
-    owner: wallet.address,
+    owner: await signer.getAddress(),
     salt,
     deadline,
     timestamp,
     unhingedRoot
 };
 
-// Sign the message
-const signature = await wallet._signTypedData(domain, types, value);
+const signature = await signer._signTypedData(domain, types, value);
 ```
 
-### 5️⃣ Step 5: Create Chain-Specific Proofs
-
-For each chain, generate a merkle proof that proves its permits are included in the merkle root:
+### Step 5: Generate Proofs for Each Chain
 
 ```javascript
-// Generate merkle proofs for each chain
-// In production, use a merkle tree library
-function generateMerkleProof(leaves, targetIndex) {
-    // This is a simplified example - use a proper library in production
-    const proof = [];
-    let currentIndex = targetIndex;
-    let currentLevel = [...leaves];
+// Generate merkle proof for each chain
+const proofs = {};
+
+for (const chain of orderedChains) {
+    const index = chainToIndex[chain];
+    const leaf = leaves[index];
+    const proof = merkleTree.getProof(leaf);
     
-    while (currentLevel.length > 1) {
-        const pairs = [];
-        const siblingNodes = [];
-        
-        for (let i = 0; i < currentLevel.length; i += 2) {
-            const left = currentLevel[i];
-            const right = currentLevel[i + 1] || currentLevel[i];
-            
-            // Track sibling for proof
-            if (i === currentIndex || i + 1 === currentIndex) {
-                const sibling = i === currentIndex ? right : left;
-                proof.push(sibling);
-                currentIndex = Math.floor(i / 2);
-            }
-            
-            // Build next level
-            const [first, second] = left < right ? [left, right] : [right, left];
-            pairs.push(ethers.utils.keccak256(
-                ethers.utils.defaultAbiCoder.encode(['bytes32', 'bytes32'], [first, second])
-            ));
-        }
-        currentLevel = pairs;
-    }
-    
-    return proof;
+    proofs[chain] = {
+        permits: permits[chain],
+        unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+    };
 }
-
-// Ethereum (first chain) proof
-const ethereumProof = {
-    permits: ethereumPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 0)
-    }
-};
-
-// Arbitrum (middle chain) proof
-const arbitrumProof = {
-    permits: arbitrumPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 1)
-    }
-};
-
-// Optimism (last chain) proof
-const optimismProof = {
-    permits: optimismPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 2)
-    }
-};
 ```
 
-### 6️⃣ Step 6: Execute on Each Chain
-
-Finally, execute the permit on each chain using the appropriate proof:
+### Step 6: Execute on Each Chain
 
 ```javascript
-// On Ethereum
-const ethereumTx = await ethereumPermit3.permit(
-    wallet.address,
+// Execute on Ethereum
+const permit3Ethereum = new ethers.Contract(
+    PERMIT3_ADDRESS.ethereum,
+    PERMIT3_ABI,
+    signerEthereum
+);
+
+await permit3Ethereum.permitUnhinged(
+    owner,
     salt,
     deadline,
     timestamp,
-    ethereumProof,
+    proofs.ethereum,
     signature
 );
 
-// On Arbitrum
-const arbitrumTx = await arbitrumPermit3.permit(
-    wallet.address,
-    salt,
-    deadline,
-    timestamp,
-    arbitrumProof,
-    signature
+// Execute on Arbitrum (in parallel)
+const permit3Arbitrum = new ethers.Contract(
+    PERMIT3_ADDRESS.arbitrum,
+    PERMIT3_ABI,
+    signerArbitrum
 );
 
-// On Optimism
-const optimismTx = await optimismPermit3.permit(
-    wallet.address,
+await permit3Arbitrum.permitUnhinged(
+    owner,
     salt,
     deadline,
     timestamp,
-    optimismProof,
+    proofs.arbitrum,
     signature
 );
 ```
 
-## 🔬 Advanced Usage: Including Balanced Subtrees
+## 🎯 Advanced Patterns
 
-For chains with many operations, you can use balanced Merkle trees to optimize gas usage:
+### Multiple Operations Per Chain
+
+When you have multiple operations on a single chain, include them all in the permits array:
 
 ```javascript
-// Multiple operations on Ethereum
-const ethereumComplexPermits = {
+const ethereumPermits = {
     chainId: 1,
     permits: [
-        // Operation 1: Approve DEX A
-        { modeOrExpiration: expiration, token: USDC, account: DEX_A, amountDelta: 1000e6 },
-        // Operation 2: Approve DEX B
-        { modeOrExpiration: expiration, token: WETH, account: DEX_B, amountDelta: 2e18 },
-        // Operation 3: Approve DEX C
-        { modeOrExpiration: expiration, token: DAI, account: DEX_C, amountDelta: 5000e18 }
+        {
+            // Approve USDC for DEX
+            modeOrExpiration: (BigInt(parseEther("1000")) << 48n) | BigInt(expiration),
+            token: USDC_ADDRESS,
+            account: DEX_ADDRESS
+        },
+        {
+            // Approve WETH for Lending
+            modeOrExpiration: (BigInt(parseEther("10")) << 48n) | BigInt(expiration),
+            token: WETH_ADDRESS,
+            account: LENDING_ADDRESS
+        },
+        {
+            // Approve DAI for Yield Farm
+            modeOrExpiration: (BigInt(parseEther("5000")) << 48n) | BigInt(expiration),
+            token: DAI_ADDRESS,
+            account: YIELD_FARM_ADDRESS
+        }
     ]
 };
+```
 
-// Create a balanced tree for the operations
-function createBalancedTree(permits) {
-    // Hash each permit
-    const leaves = permits.map(permit => 
-        ethers.utils.keccak256(
-            ethers.utils.defaultAbiCoder.encode(
-                ['uint48', 'address', 'address', 'uint160'],
-                [permit.modeOrExpiration, permit.token, permit.account, permit.amountDelta]
-            )
-        )
-    );
-    
-    // Build the tree layer by layer
-    let currentLayer = leaves;
-    while (currentLayer.length > 1) {
-        const nextLayer = [];
-        for (let i = 0; i < currentLayer.length; i += 2) {
-            if (i + 1 < currentLayer.length) {
-                // Hash the pair in sorted order
-                const a = currentLayer[i];
-                const b = currentLayer[i + 1];
-                nextLayer.push(ethers.utils.keccak256(
-                    ethers.utils.defaultAbiCoder.encode(
-                        ['bytes32', 'bytes32'],
-                        [a < b ? a : b, a < b ? b : a]
-                    )
-                ));
-            } else {
-                // Odd number of elements, promote the last one
-                nextLayer.push(currentLayer[i]);
-            }
-        }
-        currentLayer = nextLayer;
+### Dynamic Chain Selection
+
+Build permits dynamically based on user's needs:
+
+```javascript
+class CrossChainPermitBuilder {
+    constructor() {
+        this.chainPermits = new Map();
     }
     
-    return currentLayer[0]; // Root hash
+    addPermit(chain, token, spender, amount, expiration) {
+        if (!this.chainPermits.has(chain)) {
+            this.chainPermits.set(chain, {
+                chainId: CHAIN_IDS[chain],
+                permits: []
+            });
+        }
+        
+        const permit = {
+            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
+            token,
+            account: spender
+        };
+        
+        this.chainPermits.get(chain).permits.push(permit);
+        return this;
+    }
+    
+    async build(signer) {
+        // Convert map to array and sort by chain
+        const chains = Array.from(this.chainPermits.keys()).sort();
+        const permits = {};
+        const leaves = [];
+        
+        // Hash each chain's permits
+        for (const chain of chains) {
+            const chainData = this.chainPermits.get(chain);
+            permits[chain] = chainData;
+            
+            const permit3 = new ethers.Contract(
+                PERMIT3_ADDRESS[chain],
+                PERMIT3_ABI,
+                providers[chain]
+            );
+            
+            const leaf = await permit3.hashChainPermits(chainData);
+            leaves.push(leaf);
+        }
+        
+        // Build merkle tree
+        const merkleTree = buildMerkleTree(leaves);
+        const root = '0x' + merkleTree.getRoot().toString('hex');
+        
+        // Create signature
+        const salt = ethers.utils.randomBytes(32);
+        const timestamp = Math.floor(Date.now() / 1000);
+        const deadline = timestamp + 3600;
+        
+        // ... (signing logic)
+        
+        // Generate proofs
+        const proofs = {};
+        chains.forEach((chain, index) => {
+            const proof = merkleTree.getProof(leaves[index]);
+            proofs[chain] = {
+                permits: permits[chain],
+                unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+            };
+        });
+        
+        return { proofs, signature, salt, deadline, timestamp, root };
+    }
 }
 
-// Build a proof for a specific permit
-function createBalancedProof(permits, index) {
-    // Similar to createBalancedTree but generates a proof
-    // This would return an array of sibling hashes needed for verification
-    // ...implementation omitted for brevity...
-}
+// Usage
+const builder = new CrossChainPermitBuilder();
 
-// Create the balanced tree
-const ethereumRoot = createBalancedTree(ethereumComplexPermits.permits);
+builder
+    .addPermit('ethereum', USDC_ETH, DEX_ADDRESS, parseEther('1000'), expiration)
+    .addPermit('ethereum', WETH_ETH, LENDING_ADDRESS, parseEther('10'), expiration)
+    .addPermit('arbitrum', USDC_ARB, DEX_ADDRESS, parseEther('500'), expiration)
+    .addPermit('optimism', USDC_OPT, YIELD_ADDRESS, parseEther('2000'), expiration);
 
-// To prove a specific operation (e.g., operation index 1)
-const operationProof = createBalancedProof(ethereumComplexPermits.permits, 1);
-
-// Use in the unhinged proof
-const ethereumComplexProof = {
-    permits: ethereumComplexPermits,
-    unhingedProof: createOptimizedProof(
-        ethers.constants.HashZero, // No preHash for first chain
-        operationProof, // Include the balanced subtree proof
-        [arbitrumHash, optimismHash] // Following hashes
-    )
-};
+const crossChainPermit = await builder.build(signer);
 ```
 
 ## ⚡ Gas Optimization Tips
 
-1. 🚫 **hasPreHash Flag**: For the first chain, omit the preHash by setting the flag to 0
-2. 📊 **Chain Ordering**: Place the chains with most frequent operations first to reduce gas costs
-3. 📦 **Batching**: Group multiple operations per chain to amortize the proof verification cost
-4. 🧩 **Witness Combination**: For advanced use cases, combine witness functionality with cross-chain proofs
+### 1. 📊 **Chain Ordering**
+Order chains by frequency of use. Put the most frequently used chains first in the tree for slightly better proof sizes.
+
+### 2. 📦 **Batching**
+Group multiple operations per chain to amortize the verification cost:
+
+```javascript
+// Good: One permit with multiple operations
+const batchedPermit = {
+    chainId: 1,
+    permits: [operation1, operation2, operation3]
+};
+
+// Less efficient: Multiple separate permits
+// Would require multiple signatures and transactions
+```
+
+### 3. 🔧 **Proof Caching**
+Cache merkle proofs when the same tree is used multiple times:
+
+```javascript
+class ProofCache {
+    constructor() {
+        this.cache = new Map();
+    }
+    
+    getCacheKey(root, chainId) {
+        return `${root}-${chainId}`;
+    }
+    
+    set(root, chainId, proof) {
+        this.cache.set(this.getCacheKey(root, chainId), proof);
+    }
+    
+    get(root, chainId) {
+        return this.cache.get(this.getCacheKey(root, chainId));
+    }
+}
+```
+
+### 4. 🧩 **Selective Execution**
+Only execute on chains where you need the permissions immediately:
+
+```javascript
+// Execute only on chains with immediate needs
+const urgentChains = ['ethereum', 'arbitrum'];
+const deferredChains = ['optimism', 'polygon'];
+
+// Execute urgent chains now
+await Promise.all(
+    urgentChains.map(chain => 
+        executeOnChain(chain, proofs[chain], signature, salt, deadline, timestamp)
+    )
+);
+
+// Save deferred chains for later
+// The signature remains valid until the deadline
+saveForLater(deferredChains, proofs, signature, salt, deadline, timestamp);
+```
 
 ## 🔍 Verification Process
 
 When a chain receives a cross-chain permit:
 
-1. ✅ It first verifies that the chainId in the permit matches the current chain
-2. 🧮 It calculates the hash of the current chain's permits
-3. 📥 It retrieves preHash (if present) from the proof
-4. 🔗 If preHash is present, it concatenates (preHash + currentHash), otherwise uses currentHash
-5. ➕ It concatenates this result with each of the following hashes
-6. 🔄 It compares the final result with the signed unhingedRoot
-7. ✨ If matching, it processes the permits as authorized
+1. ✅ Verifies the chainId matches
+2. ✅ Validates the signature against the unhinged root
+3. ✅ Verifies the merkle proof connecting the chain's permits to the root
+4. ✅ Processes the permits if all checks pass
 
-## 🛡️ Security Considerations
+### Understanding Merkle Proof Verification
 
-1. 🔄 **Chain Consistency**: Use the same salt, deadline, and timestamp for all chains
-2. ⚡ **Gas Estimation**: Cross-chain proofs use more gas than single-chain permits
-3. 📋 **Order Dependency**: Operations must be executed in the correct chain order for consistent results
-4. ⚠️ **Partial Execution**: Prepare for cases where execution fails on some chains but succeeds on others
+```javascript
+// How the contract verifies your proof
+function verifyMerkleProof(leaf, proof, root) {
+    let computedHash = leaf;
+    
+    for (let i = 0; i < proof.length; i++) {
+        const proofElement = proof[i];
+        
+        // Ordered hashing (smaller value first)
+        if (computedHash <= proofElement) {
+            computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+        } else {
+            computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+        }
+    }
+    
+    return computedHash == root;
+}
+```
 
-## ⚠️ Error Handling
+## 🛠️ Troubleshooting
 
-Common errors when working with cross-chain permits:
+### Common Issues and Solutions
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| 🚫 `WrongChainId` | Permit's chainId doesn't match blockchain | Verify correct proof is sent to each chain |
-| ❌ `InvalidUnhingedProof` | Proof doesn't verify against root | Check chain order and hash calculations |
-| ⏱️ `SignatureExpired` | Deadline has passed | Use longer deadlines for cross-chain operations |
-| 🔢 `NonceAlreadyUsed` | Salt already used on this chain | Generate new salt and signatures |
+#### "Invalid merkle proof"
+- Ensure leaves are hashed in the same order when building the tree and generating proofs
+- Verify you're using the same hashing function (keccak256)
+- Check that `sortPairs: true` is set when creating the MerkleTree
 
-## 🎯 Conclusion
+#### "Wrong chain ID"
+- Make sure the chainId in your permit matches the actual chain you're executing on
+- Use the correct chainId constants (1 for Ethereum, 42161 for Arbitrum, etc.)
 
-Cross-chain permits provide a powerful way to authorize operations across multiple blockchains with a single signature. By following this guide, you can implement efficient and secure cross-chain token approvals in your application.
+#### "Signature expired"
+- Check that your deadline hasn't passed
+- Ensure your system clock is synchronized
+- Consider using longer deadlines for cross-chain operations
 
-For more examples, see the [🌉 Cross-Chain Example](../examples/cross-chain-example.md) for a complete implementation.
+### Debugging Helper
+
+```javascript
+function debugCrossChainPermit(permits, merkleTree, proofs) {
+    console.log("=== Cross-Chain Permit Debug ===");
+    
+    // Log tree structure
+    console.log("Merkle Root:", '0x' + merkleTree.getRoot().toString('hex'));
+    console.log("Tree Depth:", merkleTree.getDepth());
+    
+    // Log each chain's data
+    Object.entries(permits).forEach(([chain, permit]) => {
+        console.log(`\n${chain}:`);
+        console.log("  Chain ID:", permit.chainId);
+        console.log("  Permits:", permit.permits.length);
+        console.log("  Proof Length:", proofs[chain].unhingedProof.length);
+        
+        // Verify proof locally
+        const leaf = ethers.utils.keccak256(/* hash chain permits */);
+        const valid = merkleTree.verify(
+            proofs[chain].unhingedProof,
+            leaf,
+            merkleTree.getRoot()
+        );
+        console.log("  Local Verification:", valid ? "✅ PASS" : "❌ FAIL");
+    });
+}
+```
+
+## 📚 Complete Example
+
+Here's a full working example of cross-chain permits:
+
+```javascript
+const { ethers } = require('ethers');
+const { MerkleTree } = require('merkletreejs');
+const keccak256 = require('keccak256');
+
+async function executeCrossChainPermits() {
+    // Setup providers and signers
+    const providers = {
+        ethereum: new ethers.providers.JsonRpcProvider(ETH_RPC),
+        arbitrum: new ethers.providers.JsonRpcProvider(ARB_RPC),
+        optimism: new ethers.providers.JsonRpcProvider(OPT_RPC)
+    };
+    
+    const signers = {
+        ethereum: new ethers.Wallet(PRIVATE_KEY, providers.ethereum),
+        arbitrum: new ethers.Wallet(PRIVATE_KEY, providers.arbitrum),
+        optimism: new ethers.Wallet(PRIVATE_KEY, providers.optimism)
+    };
+    
+    // Step 1: Create permits
+    const expiration = Math.floor(Date.now() / 1000) + 86400; // 24 hours
+    
+    const permits = {
+        ethereum: {
+            chainId: 1,
+            permits: [{
+                modeOrExpiration: (BigInt(ethers.utils.parseEther("1000")) << 48n) | BigInt(expiration),
+                token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
+                account: "0x1111111111111111111111111111111111111111" // DEX
+            }]
+        },
+        arbitrum: {
+            chainId: 42161,
+            permits: [{
+                modeOrExpiration: (BigInt(ethers.utils.parseEther("500")) << 48n) | BigInt(expiration),
+                token: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", // USDC.e
+                account: "0x2222222222222222222222222222222222222222" // Lending
+            }]
+        },
+        optimism: {
+            chainId: 10,
+            permits: [{
+                modeOrExpiration: (BigInt(ethers.utils.parseEther("750")) << 48n) | BigInt(expiration),
+                token: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", // USDC
+                account: "0x3333333333333333333333333333333333333333" // Yield
+            }]
+        }
+    };
+    
+    // Step 2: Hash permits and build merkle tree
+    const chains = Object.keys(permits).sort();
+    const leaves = [];
+    
+    for (const chain of chains) {
+        const permit3 = new ethers.Contract(
+            PERMIT3_ADDRESS[chain],
+            PERMIT3_ABI,
+            providers[chain]
+        );
+        
+        const leaf = await permit3.hashChainPermits(permits[chain]);
+        leaves.push(leaf);
+    }
+    
+    const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+    const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
+    
+    // Step 3: Create signature
+    const owner = await signers.ethereum.getAddress();
+    const salt = ethers.utils.randomBytes(32);
+    const timestamp = Math.floor(Date.now() / 1000);
+    const deadline = timestamp + 3600;
+    
+    const domain = {
+        name: "Permit3",
+        version: "1",
+        chainId: 1,
+        verifyingContract: PERMIT3_ADDRESS.ethereum
+    };
+    
+    const types = {
+        SignedPermit3: [
+            { name: "owner", type: "address" },
+            { name: "salt", type: "bytes32" },
+            { name: "deadline", type: "uint48" },
+            { name: "timestamp", type: "uint48" },
+            { name: "unhingedRoot", type: "bytes32" }
+        ]
+    };
+    
+    const value = { owner, salt, deadline, timestamp, unhingedRoot };
+    const signature = await signers.ethereum._signTypedData(domain, types, value);
+    
+    // Step 4: Generate proofs
+    const proofs = {};
+    chains.forEach((chain, index) => {
+        const proof = merkleTree.getProof(leaves[index]);
+        proofs[chain] = {
+            permits: permits[chain],
+            unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+        };
+    });
+    
+    // Step 5: Execute on all chains
+    const executions = chains.map(async (chain) => {
+        const permit3 = new ethers.Contract(
+            PERMIT3_ADDRESS[chain],
+            PERMIT3_ABI,
+            signers[chain]
+        );
+        
+        console.log(`Executing on ${chain}...`);
+        
+        const tx = await permit3.permitUnhinged(
+            owner,
+            salt,
+            deadline,
+            timestamp,
+            proofs[chain],
+            signature
+        );
+        
+        const receipt = await tx.wait();
+        console.log(`✅ ${chain} complete: ${receipt.transactionHash}`);
+        
+        return { chain, tx: receipt.transactionHash };
+    });
+    
+    const results = await Promise.all(executions);
+    console.log("🎉 All chains complete!", results);
+    
+    return results;
+}
+
+// Run the example
+executeCrossChainPermits().catch(console.error);
+```
+
+## 🎓 Key Takeaways
+
+1. **UnhingedMerkleTree uses standard merkle proofs** - Simple `bytes32[]` arrays
+2. **Sign once, execute anywhere** - One signature works across all chains
+3. **Order matters** - Keep chain ordering consistent
+4. **Gas efficient** - Each chain only verifies its own proof
+5. **Flexible** - Add as many chains and operations as needed
+
+The simplified merkle tree approach makes cross-chain permits easier to understand and implement while maintaining security and efficiency.

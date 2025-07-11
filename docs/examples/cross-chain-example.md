@@ -267,16 +267,17 @@ const balancedTreeNodes = createBalancedTree(ethereumPermits.permits);
 const balancedRoot = balancedTreeNodes[0];
 
 // Generate proof for a specific operation within the tree
-const operationProof = generateMerkleProof(balancedTreeNodes, 1); // Proof for operation 2
+// For complex operations, you can include multiple operations in one chain's permits
+// Each chain processes its operations independently while the merkle tree ensures integrity
 
-// Create optimized proof including the balanced tree
+// Build merkle tree with all chains
+const allLeaves = [ethHash, arbHash, optHash];
+const completeTree = new MerkleTree(allLeaves, keccak256, { sortPairs: true });
+
+// Get proof for Ethereum (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethers.constants.HashZero, // No preHash for first chain
-        operationProof, // Subtree proof nodes for the balanced tree
-        [arbHash, optHash] // Following hashes are the other chains
-    )
+    unhingedProof: completeTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
 };
 ```
 
