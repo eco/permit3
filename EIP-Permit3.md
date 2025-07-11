@@ -45,7 +45,7 @@ The limitations of existing token approval systems across multiple blockchains c
 
 ## Specification
 
-> **Note:** For a detailed explanation of the UnhingedMerkleTree data structure used in this EIP, please see [EIP-UnhingedMerkleTree](./EIP-UnhingedMerkleTree.md).
+> **Note:** UnhingedMerkleTree is a standard merkle tree implementation based on OpenZeppelin's MerkleProof library, optimized for cross-chain proof verification.
 
 ### Core Data Structures
 
@@ -172,22 +172,22 @@ if (allowed.expiration == LOCKED_ALLOWANCE &&
 
 ### Cross-Chain Operations with Gas Optimization
 
-#### UnhingedProofs Structure for Optimal Gas Efficiency
+#### Merkle Tree Structure for Gas Efficiency
 ```javascript
-// Example: Three-chain operation with UnhingedProofs
-// Chains ordered from cheapest to most expensive calldata
-const cheapChainRoot = permit3.hashChainPermits(ArbitrumPermissions);  // L2 with lower calldata costs
-const mediumChainRoot = permit3.hashChainPermits(OptimismPermissions); // L2 with moderate calldata costs
-const expensiveChainRoot = permit3.hashChainPermits(EthereumPermissions); // L1 with highest calldata costs
+// Example: Three-chain operation with merkle tree
+const arbLeaf = permit3.hashChainPermits(ArbitrumPermissions);   // L2
+const optLeaf = permit3.hashChainPermits(OptimismPermissions);   // L2
+const ethLeaf = permit3.hashChainPermits(EthereumPermissions);   // L1
 
-// Order chains strategically: cheapest first, most expensive last
-const unhingedRoot = UnhingedMerkleTree.createUnhingedRoot([cheapChainRoot, mediumChainRoot, expensiveChainRoot]);
+// Build merkle tree from all leaves
+const merkleRoot = buildMerkleRoot([arbLeaf, optLeaf, ethLeaf]);
 ```
 
-This strategic ordering optimizes gas consumption across all chains:
-- Chains with expensive calldata (like Ethereum mainnet) are positioned last, requiring only a minimal preHash value
-- Chains with cheaper calldata (like L2s) are positioned earlier, where larger proof structures are more economical
-- Overall cross-chain transaction costs are minimized, making complex operations viable
+Merkle trees provide predictable gas costs:
+- Each proof requires only log₂(n) hashes for verification
+- Gas usage scales logarithmically with the number of chains
+- Verification uses OpenZeppelin's optimized implementation
+- Overall cross-chain transaction costs remain manageable
 
 ### How It Works
 
@@ -220,15 +220,21 @@ Imagine you want to give permissions on three chains: Ethereum, Arbitrum, and Op
 }
 ```
 
-2. **Step 2: Build the Unhinged Merkle Tree**
+2. **Step 2: Build the Merkle Tree**
 ```
-UnhingedMerkleTree([Ethereum Permissions, Arbitrum Permissions, Optimism Permissions])
+// Hash each chain's permissions
+ethLeaf = hash(Ethereum Permissions)
+arbLeaf = hash(Arbitrum Permissions)  
+optLeaf = hash(Optimism Permissions)
+
+// Build standard merkle tree
+merkleRoot = buildMerkleTree([ethLeaf, arbLeaf, optLeaf])
 ```
 
 3. **Step 3: Create One Master Signature**
-    - Takes all permissions in the Unhinged Merkle Tree
-    - Creates a secure proof that works across all chains
-    - Signs the UnhingedRoot for universal verification
+    - Takes the merkle root representing all permissions
+    - Creates merkle proofs for each chain
+    - Signs the merkle root for universal verification
 
 ### Special Features
 
@@ -255,46 +261,42 @@ transferOrExpiration = timestamp; // Expires at a specific time
 
 ### The Magic Behind Connecting Chains
 
-Here's how we link permissions across chains securely using UnhingedProofs:
+Here's how we link permissions across chains securely using merkle proofs:
 
-1. **Building the Unhinged Merkle Tree**
+1. **Building the Merkle Tree**
 ```solidity
-// Take three permissions:
-root1 = permit3.hashChainPermits(EthereumPermissions);
-root2 = permit3.hashChainPermits(ArbitrumPermissions);
-root3 = permit3.hashChainPermits(OptimismPermissions);
+// Hash each chain's permissions:
+leaf1 = permit3.hashChainPermits(EthereumPermissions);
+leaf2 = permit3.hashChainPermits(ArbitrumPermissions);
+leaf3 = permit3.hashChainPermits(OptimismPermissions);
 
-// Create the unhinged root:
-unhingedRoot = UnhingedMerkleTree.hashLink(UnhingedMerkleTree.hashLink(root1, root2), root3);
+// Build merkle tree from all leaves:
+merkleRoot = buildMerkleRoot([leaf1, leaf2, leaf3]);
 ```
 
-2. **Using UnhingedProofs with Cost Optimization**
+2. **Using Merkle Proofs**
 ```solidity
-// For Ethereum (expensive chain, positioned last in the tree):
+// For Ethereum (proving leaf1 is in the tree):
 {
     "unhingedProof": {
-        "preHash": keccak256(root1, root2), // Combined hash of cheaper chains
-        "subtreeProof": [proofForEthereumPermissions],
-        "followingHashes": [] // No following hashes needed (minimal calldata)
+        "nodes": [siblingHash1, siblingHash2] // Merkle proof path
     },
     "permits": EthereumPermissions
 }
 
-// For Arbitrum (cheap chain, positioned first in the tree):
+// For Arbitrum (proving leaf2 is in the tree):
 {
     "unhingedProof": {
-        "preHash": bytes32(0), // No preHash needed for first chain
-        "subtreeProof": [proofForArbitrumPermissions],
-        "followingHashes": [root2, root3] // More data, but on a cheaper chain
+        "nodes": [siblingHash3, siblingHash4] // Different proof path
     },
     "permits": ArbitrumPermissions
 }
 ```
 
-This approach ensures that:
-- The expensive chain (Ethereum) uses minimal calldata (just a preHash)
-- Cheaper chains carry more of the proof data burden
-- Overall gas costs across the ecosystem are minimized
+This approach ensures:
+- Standard merkle tree verification (well-understood security)
+- Compact proofs (logarithmic size)
+- Gas-efficient verification using proven libraries
 
 ## Security
 
@@ -333,28 +335,28 @@ permit3.approve(token, spender, amount);
 Here are examples showing how it works:
 
 ```solidity
-// Test 1: Basic cross-chain permission with UnhingedProofs
+// Test 1: Basic cross-chain permission with merkle proofs
 function testCrossChainPermit() {
     // Give permission on Ethereum
     ChainPermits memory ethPermits = createEthPermits();
     
-    // Use it on Arbitrum with UnhingedProofs
-    UnhingedPermitProof memory proof = UnhingedMerkleTree.createOptimizedProof(
-        preHash,
-        subtreeProof,
-        followingHashes
-    );
+    // Use it on Arbitrum with merkle proof
+    bytes32[] memory proofNodes = generateMerkleProof(allLeaves, arbIndex);
+    UnhingedPermitProof memory proof = UnhingedPermitProof({
+        permits: arbPermits,
+        unhingedProof: UnhingedProof({ nodes: proofNodes })
+    });
     permit3.permit(owner, salt, deadline, timestamp, proof, signature);
 }
 
-// Test 2: Emergency cancellation with UnhingedProofs
+// Test 2: Emergency cancellation with merkle proofs
 function testEmergencyLockdown() {
-    // Cancel all permissions everywhere using UnhingedProofs
-    UnhingedCancelPermitProof memory proof = UnhingedMerkleTree.createOptimizedProof(
-        preHash,
-        subtreeProof,
-        followingHashes
-    );
+    // Cancel all permissions everywhere
+    bytes32[] memory proofNodes = generateMerkleProof(allSalts, saltIndex);
+    UnhingedCancelPermitProof memory proof = UnhingedCancelPermitProof({
+        salts: saltsToCancel,
+        unhingedProof: UnhingedProof({ nodes: proofNodes })
+    });
     permit3.invalidateNonces(owner, proof, signature);
 }
 ```

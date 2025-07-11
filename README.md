@@ -11,21 +11,21 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 - 🌉 **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
 - 🔐 **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
 - 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
-- 🌲 **Unhinged Merkle Trees**: A novel two-part data structure that combines:
+- 🌲 **Unhinged Merkle Trees**: Standard merkle tree implementation optimized for cross-chain proofs:
   ```
-               [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
-            /      \      \      \
-          [BR]    [D5]   [D6]   [D7]      ← Additional chain data
-         /     \
-     [BH1]     [BH2]                      ← Balanced tree (bottom part)
-    /    \     /    \
-  [D1]  [D2] [D3]  [D4]                   ← Leaf data
+                    ROOT
+                   /    \
+                 H1      H2
+                /  \    /  \
+              H3   H4  H5   H6
+             / \  / \ / \  / \
+            D1 D2 D3 D4 D5 D6 D7 D8
   ```
-  - 🔽 Bottom part: Standard balanced tree for efficient membership proofs within a chain
-  - 🔼 Top part: Sequential hash chain incorporating the balanced root and cross-chain data
-  - 🎯 Benefits: Optimal gas usage by processing only what each chain needs
-  - 💰 Calldata Optimization: Chains should be ordered by calldata cost (cheapest first, most expensive last)
-  - ⚡ Gas Efficiency: Expensive chains (like Ethereum) only need to verify a minimal preHash value
+  - 🔗 Built on OpenZeppelin's proven MerkleProof library
+  - 🔐 Uses ordered hashing (smaller value first) for consistency
+  - 🎯 Benefits: Simple, secure, and gas-efficient verification
+  - 💰 Compact Proofs: Only log₂(n) hashes needed for verification
+  - ⚡ Gas Efficiency: Predictable O(log n) verification complexity
 - 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
 - 🔄 **Flexible Allowance Management**:
     - ⬆️ Increase/decrease allowances asynchronously
@@ -250,14 +250,17 @@ const arbPermits = {
     }]
 };
 
-// Generate subtree roots for each chain
-const ethRoot = permit3.hashChainPermits(ethPermits);
-const arbRoot = permit3.hashChainPermits(arbPermits);
+// Hash each chain's permits to create leaf nodes
+const ethLeaf = permit3.hashChainPermits(ethPermits);
+const arbLeaf = permit3.hashChainPermits(arbPermits);
 
-// Create unhinged root and proof using UnhingedMerkleTree library
-const unhingedRoot = UnhingedMerkleTree.hashLink(ethRoot, arbRoot);
-const unhingedProof = UnhingedMerkleTree.createOptimizedProof(ethRoot, [], [arbRoot]);
-// Note: Implementation uses calldata for optimal gas efficiency
+// Build merkle tree and get root (typically done off-chain)
+const leaves = [ethLeaf, arbLeaf];
+const merkleRoot = buildMerkleRoot(leaves);
+
+// Generate merkle proof for specific chain
+const arbProof = generateMerkleProof(leaves, 1); // Index 1 for Arbitrum
+const unhingedProof = { nodes: arbProof };
 
 // Create and sign with the unhinged root
 const signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);

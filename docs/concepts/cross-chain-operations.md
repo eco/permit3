@@ -10,12 +10,9 @@ This document explains how Permit3 enables token operations across multiple bloc
 <a id="overview"></a>
 ## Overview
 
-One of the most powerful features of Permit3 is the ability to authorize token operations across multiple blockchains with a single signature. This is achieved through two complementary techniques:
+One of the most powerful features of Permit3 is the ability to authorize token operations across multiple blockchains with a single signature. This is achieved through the use of Unhinged Merkle Trees - a standard merkle tree implementation based on OpenZeppelin's MerkleProof library.
 
-1. **Legacy Hash Chaining**: The original method that creates a sequential hash chain
-2. **Unhinged Merkle Trees**: An optimized approach that combines balanced Merkle trees with sequential hash chaining
-
-Both approaches allow different portions of a signed message to be verified and executed on different chains, with Unhinged Merkle Trees providing better gas efficiency.
+This approach allows different portions of a signed message to be verified and executed on different chains with optimal gas efficiency.
 
 <a id="how-cross-chain-operations-work"></a>
 ## How Cross-Chain Operations Work
@@ -23,79 +20,53 @@ Both approaches allow different portions of a signed message to be verified and 
 The cross-chain mechanism in Permit3 involves these key steps:
 
 1. **Create Permits for Each Chain**: Define permit operations for each target blockchain
-2. **Proof Structure Creation**: Combine the permit data using either hash chaining or Unhinged Merkle Trees
-3. **Signature Creation**: Sign the root hash with the user's private key
-4. **Cross-Chain Proof**: Create a proof for each chain that links the chain's permits to the root hash
+2. **Build Merkle Tree**: Hash each chain's permits and build a merkle tree from all leaves
+3. **Signature Creation**: Sign the merkle root with the user's private key
+4. **Generate Proofs**: Create a merkle proof for each chain's operations
 5. **Execution**: Submit the proof and signature on each chain for verification and execution
 
 <a id="legacy-hash-chaining-mechanism"></a>
-### Legacy Hash Chaining Mechanism
+### Merkle Tree Construction
 
-The original hash chaining technique creates a single root hash that represents permit operations across multiple chains:
+The merkle tree approach creates a single root hash that represents permit operations across multiple chains:
 
 ```
-chainA_hash = hash(chainA_permits)
-chainB_hash = hash(chainB_permits)
-chainC_hash = hash(chainC_permits)
+chainA_leaf = hash(chainA_permits)
+chainB_leaf = hash(chainB_permits)
+chainC_leaf = hash(chainC_permits)
 
-// Create an unbalanced hash chain
-root_hash = hash(hash(hash(chainA_hash), chainB_hash), chainC_hash)
+// Build standard merkle tree
+//        root
+//       /    \
+//     H1      chainC_leaf
+//    /  \
+// chainA  chainB
+root = buildMerkleRoot([chainA_leaf, chainB_leaf, chainC_leaf])
 ```
 
 <a id="unhinged-merkle-tree-approach"></a>
-### Unhinged Merkle Tree Approach
-
-The newer, more gas-efficient approach uses Unhinged Merkle Trees:
-
-```
-chainA_hash = hash(chainA_permits)
-chainB_hash = hash(chainB_permits)
-chainC_hash = hash(chainC_permits)
-
-// Create balanced subtrees for each chain's operations
-chainA_root = createBalancedMerkleRoot(chainA_operations)
-chainB_root = createBalancedMerkleRoot(chainB_operations)
-chainC_root = createBalancedMerkleRoot(chainC_operations)
-
-// Chain the roots sequentially
-unhinged_root = chainA_root
-unhinged_root = hash(unhinged_root, chainB_root)
-unhinged_root = hash(unhinged_root, chainC_root)
-```
-
-This root hash is what the user signs. When executing on any specific chain, a proof is provided that links that chain's permits to the root hash.
+When executing on any specific chain, a merkle proof is provided that proves that chain's permits are included in the signed root. This uses standard merkle tree verification with ordered hashing (smaller value first) for consistency.
 
 <a id="proof-structures"></a>
-## Proof Structures
+## Proof Structure
 
-Permit3 offers two proof structures for cross-chain operations:
+Permit3 uses a simple and efficient proof structure for cross-chain operations:
 
-### Legacy Permit3Proof Structure
-
-```solidity
-struct Permit3Proof {
-    bytes32 preHash;          // Hash of previous chain operations
-    ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] followingHashes; // Hashes of subsequent chain operations
-}
-```
-
-### Optimized UnhingedPermitProof Structure
+### UnhingedPermitProof Structure
 
 ```solidity
 struct UnhingedPermitProof {
-    ChainPermits permits;                  // Permit operations for the current chain
-    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Optimized proof structure
+    ChainPermits permits;                              // Permit operations for the current chain
+    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Merkle proof structure
 }
 
-// The optimized UnhingedProof structure
+// The simple UnhingedProof structure
 struct UnhingedProof {
-    bytes32[] nodes;    // All nodes: [preHash, subtreeProof nodes..., followingHashes...]
-    bytes32 counts;     // Packed counts (subtreeProofCount << 128 | followingHashesCount)
+    bytes32[] nodes;    // Array of sibling hashes forming the merkle proof path
 }
 ```
 
-The Unhinged Merkle Tree approach is more gas-efficient as it packs data more compactly and optimizes verification.
+This approach is gas-efficient as it contains only the essential merkle proof data needed for verification.
 
 <a id="example-cross-chain-token-approval"></a>
 ## Example: Cross-Chain Token Approval
@@ -145,9 +116,9 @@ const optPermits = {
 };
 ```
 
-### Legacy Hash Chain Approach
+### Merkle Tree Approach
 
-#### Step 2A: Create Hash Chain
+#### Step 2: Create Merkle Tree
 
 ```javascript
 // Helper function to hash chain permits
@@ -157,17 +128,17 @@ function hashChainPermits(permits) {
     return ethers.utils.keccak256(/* implementation */);
 }
 
-// Hash each chain's permits
-const ethHash = hashChainPermits(ethPermits);
-const arbHash = hashChainPermits(arbPermits);
-const optHash = hashChainPermits(optPermits);
+// Hash each chain's permits to create leaves
+const ethLeaf = hashChainPermits(ethPermits);
+const arbLeaf = hashChainPermits(arbPermits);
+const optLeaf = hashChainPermits(optPermits);
 
-// Create the unhinged merkle tree root
-const combinedHash1 = UnhingedMerkleTree.hashLink(ethHash, arbHash);
-const rootHash = UnhingedMerkleTree.hashLink(combinedHash1, optHash);
+// Build merkle tree and get root (typically done off-chain)
+const leaves = [ethLeaf, arbLeaf, optLeaf];
+const merkleRoot = buildMerkleRoot(leaves);
 ```
 
-#### Step 3A: Create and Sign Permit
+#### Step 3: Create and Sign Permit
 
 ```javascript
 // Create permit data
@@ -176,123 +147,7 @@ const permitData = {
     salt: ethers.utils.randomBytes(32),
     deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
     timestamp: Math.floor(Date.now() / 1000),
-    unbalancedPermitsRoot: rootHash
-};
-
-// Set up EIP-712 domain
-const domain = {
-    name: 'Permit3',
-    version: '1',
-    chainId: 0, // CROSS_CHAIN_ID for cross-chain operations
-    verifyingContract: permit3Address
-};
-
-// Define types
-const types = {
-    SignedPermit3: [
-        { name: 'owner', type: 'address' },
-        { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
-        { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
-    ]
-};
-
-// Sign the permit
-const signature = await signer._signTypedData(domain, types, permitData);
-```
-
-#### Step 4A: Create Chain-Specific Proofs
-
-```javascript
-// Ethereum proof
-const ethProof = {
-    preHash: ethers.constants.HashZero, // No previous chains
-    permits: ethPermits,
-    followingHashes: [arbHash, optHash] // Subsequent chain hashes
-};
-
-// Arbitrum proof
-const arbProof = {
-    preHash: ethHash, // Ethereum came before
-    permits: arbPermits,
-    followingHashes: [optHash] // Optimism comes after
-};
-
-// Optimism proof
-const optProof = {
-    preHash: ethers.utils.keccak256(
-        ethers.utils.solidityPack(['bytes32', 'bytes32'], [ethHash, arbHash])
-    ),
-    permits: optPermits,
-    followingHashes: [] // No subsequent chains
-};
-```
-
-#### Step 5A: Execute on Each Chain
-
-```javascript
-// On Ethereum
-await permit3.permit(
-    permitData.owner,
-    permitData.salt,
-    permitData.deadline,
-    permitData.timestamp,
-    ethProof,
-    signature
-);
-
-// On Arbitrum
-await permit3.permit(
-    permitData.owner,
-    permitData.salt,
-    permitData.deadline,
-    permitData.timestamp,
-    arbProof,
-    signature
-);
-
-// On Optimism
-await permit3.permit(
-    permitData.owner,
-    permitData.salt,
-    permitData.deadline,
-    permitData.timestamp,
-    optProof,
-    signature
-);
-```
-
-### Unhinged Merkle Tree Approach
-
-#### Step 2B: Create Unhinged Merkle Tree
-
-```javascript
-// Hash each chain's permits
-const ethHash = hashChainPermits(ethPermits);
-const arbHash = hashChainPermits(arbPermits);
-const optHash = hashChainPermits(optPermits);
-
-// Create the unhinged chain
-let unhingedRoot = ethHash;
-unhingedRoot = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'bytes32'], [unhingedRoot, arbHash])
-);
-unhingedRoot = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'bytes32'], [unhingedRoot, optHash])
-);
-```
-
-#### Step 3B: Create and Sign Unhinged Permit
-
-```javascript
-// Create permit data
-const permitData = {
-    owner: userAddress,
-    salt: ethers.utils.randomBytes(32),
-    deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-    timestamp: Math.floor(Date.now() / 1000),
-    unhingedRoot: unhingedRoot
+    unhingedRoot: merkleRoot
 };
 
 // Set up EIP-712 domain
@@ -318,55 +173,41 @@ const types = {
 const signature = await signer._signTypedData(domain, types, permitData);
 ```
 
-#### Step 4B: Create Optimized Unhinged Proofs
+#### Step 4: Create Merkle Proofs
 
 ```javascript
-// Helper for packing counts
-function packCounts(subtreeProofCount, followingHashesCount) {
-    const packedValue = (BigInt(subtreeProofCount) << 128n) | BigInt(followingHashesCount);
-    return ethers.utils.hexZeroPad(ethers.utils.hexlify(packedValue), 32);
-}
+// Generate merkle proofs for each chain
+// The proof contains sibling hashes needed to reconstruct the root
 
-// Ethereum proof
+// Ethereum proof (for leaf at index 0)
+const ethProof = generateMerkleProof(leaves, 0);
 const ethUnhingedProof = {
     permits: ethPermits,
     unhingedProof: {
-        nodes: [
-            ethers.constants.HashZero, // preHash: No previous chains
-            arbHash, optHash           // followingHashes: Arbitrum and Optimism come after
-        ],
-        counts: packCounts(0, 2)       // 0 subtree proofs, 2 following hashes
+        nodes: ethProof // Array of sibling hashes
     }
 };
 
-// Arbitrum proof
+// Arbitrum proof (for leaf at index 1)
+const arbProof = generateMerkleProof(leaves, 1);
 const arbUnhingedProof = {
     permits: arbPermits,
     unhingedProof: {
-        nodes: [
-            ethHash,    // preHash: Ethereum came before
-            optHash     // followingHashes: Optimism comes after
-        ],
-        counts: packCounts(0, 1) // 0 subtree proofs, 1 following hash
+        nodes: arbProof // Array of sibling hashes
     }
 };
 
-// Optimism proof
+// Optimism proof (for leaf at index 2)
+const optProof = generateMerkleProof(leaves, 2);
 const optUnhingedProof = {
     permits: optPermits,
     unhingedProof: {
-        nodes: [
-            ethers.utils.keccak256( // preHash: Combined hash of Ethereum and Arbitrum
-                ethers.utils.solidityPack(['bytes32', 'bytes32'], [ethHash, arbHash])
-            )
-            // No following hashes
-        ],
-        counts: packCounts(0, 0) // 0 subtree proofs, 0 following hashes
+        nodes: optProof // Array of sibling hashes
     }
 };
 ```
 
-#### Step 5B: Execute with Unhinged Proofs
+#### Step 5: Execute with Merkle Proofs
 
 ```javascript
 // On Ethereum
@@ -414,13 +255,13 @@ const witness = ethers.utils.keccak256(
 );
 const witnessTypeString = "Order order)Order(uint256 orderId)";
 
-// Use witnessPermitTransferFrom instead of permit
+// Use permitWitness for witness functionality
 await permit3.permitWitness(
     permitData.owner,
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
-    ethProof, // Chain-specific proof
+    ethUnhingedProof, // Chain-specific merkle proof
     witness,
     witnessTypeString,
     signature
@@ -428,36 +269,24 @@ await permit3.permitWitness(
 ```
 
 <a id="chain-ordering-and-gas-optimization"></a>
-## Chain Ordering and Gas Optimization
+## Gas Optimization with Merkle Trees
 
-The order of chains in the Unhinged Merkle Tree structure is critically important for gas optimization. To minimize overall transaction costs across all chains, you should order chains strategically based on their calldata costs:
+Merkle trees provide predictable and efficient gas costs for cross-chain operations:
 
-### Strategic Chain Ordering
+### Gas Characteristics
 
-1. **Lowest Cost Chains First**: Place chains with the lowest calldata/blob gas cost (typically L2s like Arbitrum, Optimism, etc.) at the beginning of the hash chain
-2. **Highest Cost Chains Last**: Place chains with the highest calldata/blob gas cost (like Ethereum mainnet) at the end of the hash chain
+1. **Logarithmic Scaling**: Proof size grows as O(log n) with the number of operations
+2. **Consistent Verification**: Each proof verification has predictable gas costs
+3. **Compact Proofs**: Only sibling hashes are needed, minimizing calldata
 
-### Why This Ordering Matters
+### Example Gas Analysis
 
-This ordering strategy provides significant gas savings because:
+For a merkle tree with 8 chains:
+- Each proof requires only 3 hashes (log₂(8) = 3)
+- Total calldata per chain: 96 bytes (3 × 32 bytes)
+- Verification complexity: O(log n) hash operations
 
-- **Proof Size vs. Chain Position**: Earlier chains in the sequence require more data in their proofs (followingHashes), while later chains require less (just a preHash)
-- **Minimal Calldata on Expensive Chains**: Chains at the end of the sequence only need to verify a single preHash value, requiring minimal calldata on the most expensive networks
-- **Larger Proofs on Cheaper Chains**: The larger proof requirements for chains at the beginning of the sequence are more affordable on networks with lower calldata costs
-
-### Example Gas Savings
-
-Consider a scenario with operations on Ethereum (high calldata cost) and two L2s (lower calldata cost):
-
-**Inefficient Ordering (Ethereum First):**
-- Ethereum: No preHash, but two followingHashes (64+ bytes of expensive calldata)
-- L2s: Larger preHash data, but on cheaper networks
-
-**Efficient Ordering (Ethereum Last):**
-- L2s: More proof data, but on cheaper networks
-- Ethereum: Single preHash value (32 bytes of expensive calldata)
-
-The efficient ordering could save 50% or more on the total gas cost for cross-chain operations, making previously uneconomical cross-chain interactions viable.
+This ensures that cross-chain operations remain gas-efficient even as the number of supported chains grows.
 
 <a id="security-considerations"></a>
 ## Security Considerations
@@ -476,7 +305,7 @@ When working with cross-chain operations in Permit3, keep these security conside
 - **Atomicity**: Cross-chain operations are not atomic; each chain's operations execute independently
 - **Timing**: Operations may execute at different times on different chains
 - **Order Dependency**: If operations have dependencies across chains, consider the execution order
-- **Gas Costs**: Cross-chain proofs incur additional gas costs, especially for chains early in the hash chain
+- **Gas Costs**: Merkle proofs have predictable O(log n) gas costs
 - **Signature Reuse**: The same signature can be used on multiple chains, which can be a feature or a risk depending on your use case
 
 ## Conclusion

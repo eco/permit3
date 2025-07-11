@@ -96,8 +96,7 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
-            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
 
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
@@ -155,8 +154,7 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
-            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
 
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
@@ -180,8 +178,7 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
-            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
 
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
@@ -207,8 +204,7 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
-            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof = IUnhingedMerkleTree.UnhingedProof({ nodes: nodes });
 
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
@@ -274,10 +270,8 @@ contract NonceManagerTest is TestBase {
 
         // Create a simple proof structure where the leaf is the root (no proof needed)
         bytes32[] memory proofNodes = new bytes32[](0);
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof = IUnhingedMerkleTree.UnhingedProof({
-            counts: bytes32(0), // No subtree proof, no following hashes, no preHash
-            nodes: proofNodes
-        });
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
+            IUnhingedMerkleTree.UnhingedProof({ nodes: proofNodes });
 
         p.proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: p.invalidations, unhingedProof: unhingedProof });

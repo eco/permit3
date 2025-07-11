@@ -136,61 +136,66 @@ const signature = await wallet._signTypedData(domain, types, value);
 
 ### 5️⃣ Step 5: Create Chain-Specific Proofs
 
-For each chain, create a specialized proof that connects it to the unhinged root:
+For each chain, generate a merkle proof that proves its permits are included in the merkle root:
 
 ```javascript
-// Create optimized proof utility
-function createOptimizedProof(preHash, subtreeProof, followingHashes) {
-    // Note: preHash and subtreeProof are mutually exclusive
-    const subtreeProofCount = subtreeProof.length;
-    const followingHashesCount = followingHashes.length;
-    const hasPreHash = preHash !== ethers.constants.HashZero;
+// Generate merkle proofs for each chain
+// In production, use a merkle tree library
+function generateMerkleProof(leaves, targetIndex) {
+    // This is a simplified example - use a proper library in production
+    const proof = [];
+    let currentIndex = targetIndex;
+    let currentLevel = [...leaves];
     
-    // Combine all bits into a packed bytes32
-    let countValue = ethers.BigNumber.from(0);
-    countValue = countValue.or(ethers.BigNumber.from(subtreeProofCount).shl(136)); // First 120 bits
-    countValue = countValue.or(ethers.BigNumber.from(followingHashesCount).shl(16)); // Next 120 bits
-    if (hasPreHash) countValue = countValue.or(1); // Last bit
+    while (currentLevel.length > 1) {
+        const pairs = [];
+        const siblingNodes = [];
+        
+        for (let i = 0; i < currentLevel.length; i += 2) {
+            const left = currentLevel[i];
+            const right = currentLevel[i + 1] || currentLevel[i];
+            
+            // Track sibling for proof
+            if (i === currentIndex || i + 1 === currentIndex) {
+                const sibling = i === currentIndex ? right : left;
+                proof.push(sibling);
+                currentIndex = Math.floor(i / 2);
+            }
+            
+            // Build next level
+            const [first, second] = left < right ? [left, right] : [right, left];
+            pairs.push(ethers.utils.keccak256(
+                ethers.utils.defaultAbiCoder.encode(['bytes32', 'bytes32'], [first, second])
+            ));
+        }
+        currentLevel = pairs;
+    }
     
-    // Combine the nodes array
-    const nodes = [];
-    if (hasPreHash) nodes.push(preHash);
-    nodes.push(...subtreeProof, ...followingHashes);
-    
-    return {
-        nodes,
-        counts: ethers.utils.hexZeroPad(countValue.toHexString(), 32)
-    };
+    return proof;
 }
 
 // Ethereum (first chain) proof
 const ethereumProof = {
     permits: ethereumPermits,
-    unhingedProof: createOptimizedProof(
-        ethers.constants.HashZero, // No preHash for first chain
-        [], // No subtree proof
-        [arbitrumHash, optimismHash] // Following hashes
-    )
+    unhingedProof: {
+        nodes: generateMerkleProof(leaves, 0)
+    }
 };
 
 // Arbitrum (middle chain) proof
 const arbitrumProof = {
     permits: arbitrumPermits,
-    unhingedProof: createOptimizedProof(
-        ethereumHash, // preHash is Ethereum's hash
-        [], // No subtree proof 
-        [optimismHash] // Following hash
-    )
+    unhingedProof: {
+        nodes: generateMerkleProof(leaves, 1)
+    }
 };
 
 // Optimism (last chain) proof
 const optimismProof = {
     permits: optimismPermits,
-    unhingedProof: createOptimizedProof(
-        UnhingedMerkleTree.hashLink(ethereumHash, arbitrumHash), // preHash is the combined hash
-        [], // No subtree proof
-        [] // No following hashes for last chain
-    )
+    unhingedProof: {
+        nodes: generateMerkleProof(leaves, 2)
+    }
 };
 ```
 

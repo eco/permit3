@@ -570,22 +570,32 @@ IPermit3.ChainPermits memory arbPermits = IPermit3.ChainPermits({
     ]
 });
 
-// Generate roots for each chain
-bytes32 ethRoot = permit3.hashChainPermits(ethPermits);
-bytes32 arbRoot = permit3.hashChainPermits(arbPermits);
+// Generate leaf hashes for each chain
+bytes32 ethLeaf = permit3.hashChainPermits(ethPermits);
+bytes32 arbLeaf = permit3.hashChainPermits(arbPermits);
 
-// Create unhinged root and sign
-bytes32 unhingedRoot = UnhingedMerkleTree.hashLink(ethRoot, arbRoot);
-bytes memory signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);
+// Build merkle tree and get root
+bytes32[] memory leaves = new bytes32[](2);
+leaves[0] = ethLeaf;
+leaves[1] = arbLeaf;
+
+// Calculate merkle root (in production use a library)
+bytes32 merkleRoot = buildMerkleRoot(leaves);
+bytes memory signature = signPermit3(owner, salt, deadline, timestamp, merkleRoot);
+
+// Generate merkle proofs
+bytes32[] memory ethProofNodes = new bytes32[](1);
+ethProofNodes[0] = arbLeaf; // Sibling for Ethereum
+
+bytes32[] memory arbProofNodes = new bytes32[](1);
+arbProofNodes[0] = ethLeaf; // Sibling for Arbitrum
 
 // Execute on Ethereum chain
 IPermit3.UnhingedPermitProof memory ethProof = IPermit3.UnhingedPermitProof({
     permits: ethPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        bytes32(0), // No prehash for first chain
-        new bytes32[](0), // No subtree proof
-        [arbRoot] // Following chain root
-    )
+    unhingedProof: IUnhingedMerkleTree.UnhingedProof({
+        nodes: ethProofNodes
+    })
 });
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
@@ -593,11 +603,9 @@ permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 // Execute on Arbitrum chain
 IPermit3.UnhingedPermitProof memory arbProof = IPermit3.UnhingedPermitProof({
     permits: arbPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethRoot, // Prehash is the Ethereum root
-        new bytes32[](0), // No subtree proof
-        new bytes32[](0) // No following hashes
-    )
+    unhingedProof: IUnhingedMerkleTree.UnhingedProof({
+        nodes: arbProofNodes
+    })
 });
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);

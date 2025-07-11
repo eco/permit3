@@ -176,37 +176,38 @@ interface INonceManager {
 <a id="iunhingedmerkletree"></a>
 ## 🌲 IUnhingedMerkleTree
 
-Interface for the UnhingedMerkleTree library providing cross-chain proof functionality.
+Interface for the UnhingedMerkleTree library providing merkle proof functionality.
 
 ```solidity
-library UnhingedMerkleTree {
+interface IUnhingedMerkleTree {
     // Core structs
     struct UnhingedProof {
-        bytes32[] nodes;
-        bytes32 counts;
+        bytes32[] nodes;  // Array of sibling hashes forming the merkle proof path
     }
     
-    // Key functions
+    // Error definitions
+    error InvalidMerkleProof();
+    error InvalidParameters();
+}
+
+// Library functions (not part of interface, but available)
+library UnhingedMerkleTree {
     function verify(
-        bytes32 leaf,
         UnhingedProof calldata proof,
-        bytes32 unhingedRoot
-    ) external pure returns (bool);
+        bytes32 unhingedRoot,
+        bytes32 leaf
+    ) internal pure returns (bool);
     
-    function hashLink(
-        bytes32 current,
-        bytes32 next
-    ) external pure returns (bytes32);
+    function calculateRoot(
+        UnhingedProof calldata proof,
+        bytes32 leaf
+    ) internal pure returns (bytes32);
     
-    function createOptimizedProof(
-        bytes32 preHash,
-        bytes32[] calldata subtreeProof,
-        bytes32[] calldata followingHashes
-    ) external pure returns (UnhingedProof memory);
-    
-    function extractCounts(
-        bytes32 counts
-    ) external pure returns (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash);
+    function verifyProof(
+        bytes32 root,
+        bytes32 leaf,
+        bytes32[] memory proof
+    ) internal pure returns (bool);
 }
 ```
 
