@@ -31,10 +31,7 @@ library UnhingedMerkleTree {
      * @param leaf The leaf node to calculate from
      * @return The calculated merkle root
      */
-    function calculateRoot(
-        bytes32[] calldata unhingedProof,
-        bytes32 leaf
-    ) internal pure returns (bytes32) {
+    function calculateRoot(bytes32[] calldata unhingedProof, bytes32 leaf) internal pure returns (bytes32) {
         return MerkleProof.processProof(unhingedProof, leaf);
     }
 

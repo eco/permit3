@@ -262,8 +262,7 @@ contract NonceManagerTest is TestBase {
 
         // Create a simple proof structure where the leaf is the root (no proof needed)
         bytes32[] memory proofNodes = new bytes32[](0);
-        p.proof =
-            INonceManager.UnhingedCancelPermitProof({ invalidations: p.invalidations, unhingedProof: proofNodes });
+        p.proof = INonceManager.UnhingedCancelPermitProof({ invalidations: p.invalidations, unhingedProof: proofNodes });
 
         // Set up deadline
         p.deadline = uint48(block.timestamp + 1 hours);

@@ -14,10 +14,7 @@ contract Permit3Tester is Permit3 {
      * @notice Exposes the UnhingedMerkleTree.calculateRoot function for testing
      */
 
-    function calculateUnhingedRoot(
-        bytes32 leaf,
-        bytes32[] calldata unhingedProof
-    ) external pure returns (bytes32) {
+    function calculateUnhingedRoot(bytes32 leaf, bytes32[] calldata unhingedProof) external pure returns (bytes32) {
         return UnhingedMerkleTree.calculateRoot(unhingedProof, leaf);
     }
 
