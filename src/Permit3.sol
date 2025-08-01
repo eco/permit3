@@ -315,6 +315,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     /**
      * @dev Core permit processing logic
      * @param owner Token owner
+     * @param timestamp Block timestamp for validation and allowance updates
      * @param chain Bundle of permit operations to process
      * @notice Handles multiple types of operations:
      * @notice modeOrExpiration Mode indicators:
