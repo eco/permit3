@@ -43,7 +43,7 @@ contract Permit3EdgeTest is Test {
     // Constants
     bytes32 constant SALT = bytes32(uint256(0));
     uint160 constant AMOUNT = 1000;
-    uint48 constant EXPIRATION = 1000;
+    uint48 constant EXPIRATION = 2000;
     uint48 constant TIMESTAMP = 1000;
 
     // Witness data for testing

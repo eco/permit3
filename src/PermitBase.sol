@@ -53,6 +53,15 @@ contract PermitBase is IPermit {
      * @param expiration Optional expiration timestamp
      */
     function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
+        // Prevent overriding locked allowances
+        if (allowances[msg.sender][token][spender].expiration == LOCKED_ALLOWANCE) {
+            revert AllowanceLocked();
+        }
+
+        require(token != address(0), TokenCannotBeZeroAddress());
+        require(amount != 0, InvalidAmount(amount));
+        require(expiration == 0 || expiration > block.timestamp, InvalidExpiration(expiration));
+
         allowances[msg.sender][token][spender] =
             Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
 

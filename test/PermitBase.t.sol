@@ -9,6 +9,8 @@ import "./utils/TestBase.sol";
  * @notice Consolidated tests for PermitBase functionality
  */
 contract PermitBaseTest is TestBase {
+    uint48 constant FUTURE_EXPIRATION = NOW + 1000;
+
     function test_allowance() public {
         // Test initial allowance
         (uint160 amount, uint48 expiration, uint48 nonce) = permit3.allowance(owner, address(token), spender);
@@ -17,36 +19,39 @@ contract PermitBaseTest is TestBase {
         assertEq(nonce, 0);
 
         // Set allowance
+        uint48 futureExpiration = NOW + 1000;
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT, futureExpiration);
 
         // Check updated allowance
         (amount, expiration, nonce) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, AMOUNT);
-        assertEq(expiration, EXPIRATION);
+        assertEq(expiration, futureExpiration);
         assertEq(nonce, NOW); // block timestamp is NOW
     }
 
     function test_approve() public {
+        uint48 futureExpiration = NOW + 1000;
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT, futureExpiration);
 
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, AMOUNT);
-        assertEq(expiration, EXPIRATION);
+        assertEq(expiration, futureExpiration);
     }
 
     function test_approveEmitsEvent() public {
+        uint48 futureExpiration = NOW + 1000;
         vm.prank(owner);
         vm.expectEmit(true, true, true, true);
-        emit IPermit.Approval(owner, address(token), spender, AMOUNT, EXPIRATION);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
+        emit IPermit.Approval(owner, address(token), spender, AMOUNT, futureExpiration);
+        permit3.approve(address(token), spender, AMOUNT, futureExpiration);
     }
 
     function test_transferFrom() public {
         // Setup approval
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT, FUTURE_EXPIRATION);
 
         // Reset recipient balance
         deal(address(token), recipient, 0);
@@ -66,7 +71,7 @@ contract PermitBaseTest is TestBase {
     function test_transferFromBatch() public {
         // Setup approval for double the amount
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT * 2, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT * 2, FUTURE_EXPIRATION);
 
         // Reset recipient balances
         address recipient2 = address(0x5);
@@ -98,7 +103,7 @@ contract PermitBaseTest is TestBase {
     function test_transferFromInsufficientAllowance() public {
         // Setup approval with less than needed
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT - 1, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT - 1, FUTURE_EXPIRATION);
 
         // Attempt transfer should fail
         vm.prank(spender);
@@ -107,20 +112,24 @@ contract PermitBaseTest is TestBase {
     }
 
     function test_transferFromExpiredAllowance() public {
-        // Setup approval with past expiration
+        // Setup approval with a short expiration
+        uint48 shortExpiration = NOW + 100;
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT, NOW - 1); // expired
+        permit3.approve(address(token), spender, AMOUNT, shortExpiration);
+
+        // Warp time to after expiration
+        vm.warp(shortExpiration + 1);
 
         // Attempt transfer should fail
         vm.prank(spender);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceExpired.selector, NOW - 1));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceExpired.selector, shortExpiration));
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
     }
 
     function test_maxAllowance() public {
         // Setup max allowance
         vm.prank(owner);
-        permit3.approve(address(token), spender, type(uint160).max, EXPIRATION);
+        permit3.approve(address(token), spender, type(uint160).max, FUTURE_EXPIRATION);
 
         // Reset recipient balance
         deal(address(token), recipient, 0);
@@ -142,7 +151,7 @@ contract PermitBaseTest is TestBase {
     function test_lockdown() public {
         // Setup approvals
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT, FUTURE_EXPIRATION);
 
         IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
         pairs[0] = IPermit.TokenSpenderPair({ token: address(token), spender: spender });
@@ -158,7 +167,7 @@ contract PermitBaseTest is TestBase {
     function test_lockdownEmitsEvent() public {
         // Setup approvals
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT, FUTURE_EXPIRATION);
 
         IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
         pairs[0] = IPermit.TokenSpenderPair({ token: address(token), spender: spender });
@@ -175,8 +184,8 @@ contract PermitBaseTest is TestBase {
 
         // Setup multiple approvals
         vm.startPrank(owner);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
-        permit3.approve(address(token), spender2, AMOUNT, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT, FUTURE_EXPIRATION);
+        permit3.approve(address(token), spender2, AMOUNT, FUTURE_EXPIRATION);
 
         IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](2);
         pairs[0] = IPermit.TokenSpenderPair({ token: address(token), spender: spender });
@@ -195,7 +204,7 @@ contract PermitBaseTest is TestBase {
     function test_transferFromLockedAllowance() public {
         // Setup approval
         vm.prank(owner);
-        permit3.approve(address(token), spender, AMOUNT, EXPIRATION);
+        permit3.approve(address(token), spender, AMOUNT, FUTURE_EXPIRATION);
 
         // Lock the allowance
         IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
@@ -213,5 +222,51 @@ contract PermitBaseTest is TestBase {
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, 0);
         assertEq(expiration, 2); // LOCKED_ALLOWANCE = 2
+    }
+
+    function test_approveRevertTokenZeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(IPermit.TokenCannotBeZeroAddress.selector);
+        permit3.approve(address(0), spender, AMOUNT, NOW + 1000);
+    }
+
+    function test_approveRevertAmountZero() public {
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, 0));
+        permit3.approve(address(token), spender, 0, FUTURE_EXPIRATION);
+    }
+
+    function test_approveRevertExpirationInPast() public {
+        uint48 pastExpiration = NOW - 100;
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidExpiration.selector, pastExpiration));
+        permit3.approve(address(token), spender, AMOUNT, pastExpiration);
+    }
+
+    function test_approveAllowsZeroExpiration() public {
+        // Zero expiration should be allowed (means no expiration)
+        vm.prank(owner);
+        permit3.approve(address(token), spender, AMOUNT, 0);
+
+        (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, AMOUNT);
+        assertEq(expiration, 0);
+    }
+
+    function test_approveAllowsFutureExpiration() public {
+        uint48 futureExpiration = NOW + 1000;
+        vm.prank(owner);
+        permit3.approve(address(token), spender, AMOUNT, futureExpiration);
+
+        (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, AMOUNT);
+        assertEq(expiration, futureExpiration);
+    }
+
+    function test_approveRevertExpirationAtCurrentTime() public {
+        // Expiration at exactly current time should fail (not greater than block.timestamp)
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidExpiration.selector, NOW));
+        permit3.approve(address(token), spender, AMOUNT, NOW);
     }
 }
