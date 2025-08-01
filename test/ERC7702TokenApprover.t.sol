@@ -38,7 +38,6 @@ contract MockERC20 {
     }
 }
 
-
 contract ERC7702TokenApproverTest is Test {
     ERC7702TokenApprover public approver;
     Permit3 public permit3;
@@ -69,7 +68,7 @@ contract ERC7702TokenApproverTest is Test {
 
         // Use proper EIP-7702 cheatcodes
         Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
-        
+
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         ERC7702TokenApprover(owner).approve(tokens);
@@ -86,7 +85,7 @@ contract ERC7702TokenApproverTest is Test {
 
         // Use proper EIP-7702 cheatcodes
         Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
-        
+
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         ERC7702TokenApprover(owner).approve(tokens);
@@ -102,7 +101,7 @@ contract ERC7702TokenApproverTest is Test {
 
         // Use proper EIP-7702 cheatcodes
         Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
-        
+
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         vm.expectRevert(abi.encodeWithSignature("NoTokensProvided()"));
@@ -118,7 +117,7 @@ contract ERC7702TokenApproverTest is Test {
 
         // Use proper EIP-7702 cheatcodes
         Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
-        
+
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         vm.expectRevert(); // SafeERC20.forceApprove will revert on failure
@@ -137,7 +136,7 @@ contract ERC7702TokenApproverTest is Test {
 
         // Use proper EIP-7702 cheatcodes
         Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
-        
+
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         vm.expectRevert(); // SafeERC20.forceApprove will revert on failure
@@ -161,7 +160,7 @@ contract ERC7702TokenApproverTest is Test {
         tokens[0] = address(token1);
 
         Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
-        
+
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         ERC7702TokenApprover(owner).approve(tokens);
@@ -208,7 +207,7 @@ contract ERC7702TokenApproverTest is Test {
 
         // Use proper EIP-7702 cheatcodes
         Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
-        
+
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         ERC7702TokenApprover(owner).approve(tokens);
