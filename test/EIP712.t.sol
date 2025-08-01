@@ -84,7 +84,7 @@ contract EIP712Test is Test {
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes("Test")), // Name
                 keccak256(bytes("1")), // Version
-                uint256(0), // CROSS_CHAIN_ID constant (0) used in EIP712.sol
+                uint256(1), // CROSS_CHAIN_ID constant (1) used in EIP712.sol
                 address(eip712)
             )
         );
@@ -117,7 +117,7 @@ contract EIP712Test is Test {
         assertEq(fields, hex"0f"); // 01111 - indicates which fields are set
         assertEq(name, "Test");
         assertEq(version, "1");
-        assertEq(chainId, 0); // CROSS_CHAIN_ID
+        assertEq(chainId, 1); // CROSS_CHAIN_ID
         assertEq(verifyingContract, address(eip712));
         assertEq(salt, bytes32(0));
         assertEq(extensions.length, 0);
@@ -175,7 +175,7 @@ contract EIP712Test is Test {
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes("Test")), // Name
                 keccak256(bytes("1")), // Version
-                uint256(0), // CROSS_CHAIN_ID constant (0) used in EIP712.sol
+                uint256(1), // CROSS_CHAIN_ID constant (1) used in EIP712.sol
                 address(differentAddress)
             )
         );
@@ -233,7 +233,7 @@ contract EIP712Test is Test {
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes("TestDomain")),
                 keccak256(bytes("1")),
-                uint256(0), // CROSS_CHAIN_ID constant (0)
+                uint256(1), // CROSS_CHAIN_ID constant (1)
                 address(impl)
             )
         );
@@ -264,12 +264,12 @@ contract EIP712Test is Test {
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes("TestDomain")),
                 keccak256(bytes("1")),
-                uint256(0), // CROSS_CHAIN_ID constant (0)
+                uint256(1), // CROSS_CHAIN_ID constant (1)
                 address(alternativeImpl)
             )
         );
 
-        assertEq(domainSep, expectedDomainSeparator, "Domain separator should match expected value");
+        assertEq(expectedDomainSeparator, domainSep, "Domain separator should match expected value");
     }
 }
 
@@ -285,7 +285,7 @@ contract AlternativeEIP712 is EIP712 {
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
                 keccak256(bytes("TestDomain")),
                 keccak256(bytes("1")),
-                uint256(0), // CROSS_CHAIN_ID
+                uint256(1), // CROSS_CHAIN_ID
                 address(this)
             )
         );

@@ -233,7 +233,7 @@ contract NonceManagerTest is TestBase {
         assertEq(fields, hex"0f"); // 01111 - indicates which fields are set
         assertEq(name, "Permit3");
         assertEq(version, "1");
-        assertEq(chainId, 0); // CROSS_CHAIN_ID
+        assertEq(chainId, 1); // CROSS_CHAIN_ID
         assertEq(verifyingContract, address(permit3));
         assertEq(salt, bytes32(0));
         assertEq(extensions.length, 0);

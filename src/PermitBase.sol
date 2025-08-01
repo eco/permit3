@@ -58,6 +58,10 @@ contract PermitBase is IPermit {
             revert AllowanceLocked();
         }
 
+        require(token != address(0), TokenCannotBeZeroAddress());
+        require(amount != 0, InvalidAmount(amount));
+        require(expiration == 0 || expiration > block.timestamp, InvalidExpiration(expiration));
+
         allowances[msg.sender][token][spender] =
             Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
 
@@ -113,11 +117,8 @@ contract PermitBase is IPermit {
             address token = approvals[i].token;
             address spender = approvals[i].spender;
 
-            allowances[msg.sender][token][spender] = Allowance({
-                amount: 0,
-                expiration: LOCKED_ALLOWANCE,
-                timestamp: uint48(block.timestamp)
-            });
+            allowances[msg.sender][token][spender] =
+                Allowance({ amount: 0, expiration: LOCKED_ALLOWANCE, timestamp: uint48(block.timestamp) });
 
             emit Lockdown(msg.sender, token, spender);
         }
