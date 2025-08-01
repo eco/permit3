@@ -34,7 +34,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @dev Includes chainId for cross-chain replay protection
      */
     bytes32 public constant NONCES_TO_INVALIDATE_TYPEHASH =
-        keccak256("NoncesToInvalidate(uint256 chainId,bytes32[] salts)");
+        keccak256("NoncesToInvalidate(uint64 chainId,bytes32[] salts)");
 
     /**
      * @notice EIP-712 typehash for invalidation signatures
