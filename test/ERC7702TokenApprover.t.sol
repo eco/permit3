@@ -5,7 +5,7 @@ import { ERC7702TokenApprover } from "../src/ERC7702TokenApprover.sol";
 import { Permit3 } from "../src/Permit3.sol";
 import { IPermit3 } from "../src/interfaces/IPermit3.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { Test } from "forge-std/Test.sol";
+import { Test, Vm } from "forge-std/Test.sol";
 
 // Mock ERC20 for testing
 contract MockERC20 {
@@ -38,46 +38,24 @@ contract MockERC20 {
     }
 }
 
-// Contract that simulates EOA behavior when delegatecalling to ERC7702TokenApprover
-contract MockEOA {
-    ERC7702TokenApprover public immutable approver;
-
-    constructor(
-        ERC7702TokenApprover _approver
-    ) {
-        approver = _approver;
-    }
-
-    // Simulates what would happen when EOA delegatecalls to ERC7702TokenApprover
-    function simulateERC7702Approval(
-        address[] calldata tokens
-    ) external {
-        // In real ERC-7702, this would be a delegatecall from the EOA
-        // For testing purposes, we directly call the approver's logic
-        bytes memory data = abi.encodeWithSelector(approver.approve.selector, tokens);
-        (bool success,) = address(approver).delegatecall(data);
-        require(success, "ERC7702 simulation failed");
-    }
-}
-
 contract ERC7702TokenApproverTest is Test {
     ERC7702TokenApprover public approver;
     Permit3 public permit3;
     MockERC20 public token1;
     MockERC20 public token2;
     MockERC20 public token3;
-    MockEOA public mockEOA;
 
-    address public user = address(0xBEEF);
-    address public spender = address(0xCAFE);
+    uint256 public ownerPrivateKey = uint256(keccak256("test-owner"));
+    address public owner;
+    address public spender = makeAddr("SPENDER");
 
     function setUp() public {
+        owner = vm.addr(ownerPrivateKey);
         permit3 = new Permit3();
         approver = new ERC7702TokenApprover(address(permit3));
         token1 = new MockERC20("Token1", "TK1");
         token2 = new MockERC20("Token2", "TK2");
         token3 = new MockERC20("Token3", "TK3");
-        mockEOA = new MockEOA(approver);
     }
 
     function test_Constructor() public view {
@@ -88,10 +66,15 @@ contract ERC7702TokenApproverTest is Test {
         address[] memory tokens = new address[](1);
         tokens[0] = address(token1);
 
-        // Skip event check due to msg.sender context in delegatecall tests
-        mockEOA.simulateERC7702Approval(tokens);
+        // Use proper EIP-7702 cheatcodes
+        Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
 
-        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation);
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
+
+        assertEq(token1.allowance(owner, address(permit3)), type(uint256).max);
     }
 
     function test_Approve_MultipleTokens() public {
@@ -100,20 +83,30 @@ contract ERC7702TokenApproverTest is Test {
         tokens[1] = address(token2);
         tokens[2] = address(token3);
 
-        // Skip event check due to msg.sender context in delegatecall tests
-        mockEOA.simulateERC7702Approval(tokens);
+        // Use proper EIP-7702 cheatcodes
+        Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
 
-        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
-        assertEq(token2.allowance(address(mockEOA), address(permit3)), type(uint256).max);
-        assertEq(token3.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation);
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
+
+        assertEq(token1.allowance(owner, address(permit3)), type(uint256).max);
+        assertEq(token2.allowance(owner, address(permit3)), type(uint256).max);
+        assertEq(token3.allowance(owner, address(permit3)), type(uint256).max);
     }
 
     function test_Approve_EmptyArray() public {
         address[] memory tokens = new address[](0);
 
-        // Need to catch the revert from inside the delegatecall
-        vm.expectRevert("ERC7702 simulation failed");
-        mockEOA.simulateERC7702Approval(tokens);
+        // Use proper EIP-7702 cheatcodes
+        Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
+
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation);
+        vm.expectRevert(abi.encodeWithSignature("NoTokensProvided()"));
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
     }
 
     function test_Approve_ApprovalFails() public {
@@ -122,8 +115,14 @@ contract ERC7702TokenApproverTest is Test {
         address[] memory tokens = new address[](1);
         tokens[0] = address(token1);
 
-        vm.expectRevert("ERC7702 simulation failed");
-        mockEOA.simulateERC7702Approval(tokens);
+        // Use proper EIP-7702 cheatcodes
+        Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
+
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation);
+        vm.expectRevert(); // SafeERC20.forceApprove will revert on failure
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
     }
 
     function test_Approve_PartialFailure() public {
@@ -135,46 +134,65 @@ contract ERC7702TokenApproverTest is Test {
         tokens[1] = address(token2);
         tokens[2] = address(token3);
 
-        vm.expectRevert("ERC7702 simulation failed");
-        mockEOA.simulateERC7702Approval(tokens);
+        // Use proper EIP-7702 cheatcodes
+        Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
 
-        // When delegatecall reverts, all state changes are reverted
-        // So no tokens should have approvals set
-        assertEq(token1.allowance(address(mockEOA), address(permit3)), 0);
-        assertEq(token2.allowance(address(mockEOA), address(permit3)), 0);
-        assertEq(token3.allowance(address(mockEOA), address(permit3)), 0);
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation);
+        vm.expectRevert(); // SafeERC20.forceApprove will revert on failure
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
+
+        // When transaction reverts, no state changes are applied
+        assertEq(token1.allowance(owner, address(permit3)), 0);
+        assertEq(token2.allowance(owner, address(permit3)), 0);
+        assertEq(token3.allowance(owner, address(permit3)), 0);
     }
 
     function test_Approve_OverwritesExistingAllowance() public {
-        // Set initial allowance through mock EOA
-        vm.prank(address(mockEOA));
+        // Set initial allowance
+        vm.prank(owner);
         token1.approve(address(permit3), 1000);
-        assertEq(token1.allowance(address(mockEOA), address(permit3)), 1000);
+        assertEq(token1.allowance(owner, address(permit3)), 1000);
 
-        // Approve should overwrite with infinite
+        // Approve should overwrite with infinite using EIP-7702
         address[] memory tokens = new address[](1);
         tokens[0] = address(token1);
 
-        mockEOA.simulateERC7702Approval(tokens);
+        Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
 
-        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation);
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
+
+        assertEq(token1.allowance(owner, address(permit3)), type(uint256).max);
     }
 
     function test_Approve_DifferentEOAs() public {
-        MockEOA mockEOA2 = new MockEOA(approver);
+        uint256 owner2PrivateKey = uint256(keccak256("test-owner-2"));
+        address owner2 = vm.addr(owner2PrivateKey);
 
         address[] memory tokens = new address[](1);
         tokens[0] = address(token1);
 
-        // First EOA approves
-        mockEOA.simulateERC7702Approval(tokens);
+        // First EOA approves using EIP-7702
+        Vm.SignedDelegation memory signedDelegation1 = vm.signDelegation(address(approver), ownerPrivateKey);
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation1);
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
 
-        // Second EOA approves
-        mockEOA2.simulateERC7702Approval(tokens);
+        // Second EOA approves using EIP-7702
+        Vm.SignedDelegation memory signedDelegation2 = vm.signDelegation(address(approver), owner2PrivateKey);
+        vm.startPrank(owner2);
+        vm.attachDelegation(signedDelegation2);
+        ERC7702TokenApprover(owner2).approve(tokens);
+        vm.stopPrank();
 
         // Both should have infinite allowance
-        assertEq(token1.allowance(address(mockEOA), address(permit3)), type(uint256).max);
-        assertEq(token1.allowance(address(mockEOA2), address(permit3)), type(uint256).max);
+        assertEq(token1.allowance(owner, address(permit3)), type(uint256).max);
+        assertEq(token1.allowance(owner2, address(permit3)), type(uint256).max);
     }
 
     function testFuzz_Approve(
@@ -187,10 +205,16 @@ contract ERC7702TokenApproverTest is Test {
             tokens[i] = address(new MockERC20("Token", "TK"));
         }
 
-        mockEOA.simulateERC7702Approval(tokens);
+        // Use proper EIP-7702 cheatcodes
+        Vm.SignedDelegation memory signedDelegation = vm.signDelegation(address(approver), ownerPrivateKey);
+
+        vm.startPrank(owner);
+        vm.attachDelegation(signedDelegation);
+        ERC7702TokenApprover(owner).approve(tokens);
+        vm.stopPrank();
 
         for (uint256 i = 0; i < tokenCount; i++) {
-            assertEq(IERC20(tokens[i]).allowance(address(mockEOA), address(permit3)), type(uint256).max);
+            assertEq(IERC20(tokens[i]).allowance(owner, address(permit3)), type(uint256).max);
         }
     }
 
