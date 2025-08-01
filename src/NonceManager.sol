@@ -69,12 +69,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function invalidateNonces(
         bytes32[] calldata salts
     ) external {
-        uint256 length = salts.length;
-
-        for (uint256 i = 0; i < length; i++) {
-            usedNonces[msg.sender][salts[i]] = 1;
-            emit NonceInvalidated(msg.sender, salts[i]);
-        }
+        _processNonceInvalidation(msg.sender, salts);
     }
 
     /**
@@ -100,7 +95,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());
 
-        _processNonceInvalidation(owner, invalidations);
+        _processNonceInvalidation(owner, invalidations.salts);
     }
 
     /**
@@ -124,7 +119,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());
 
-        _processNonceInvalidation(owner, proof.invalidations);
+        _processNonceInvalidation(owner, proof.invalidations.salts);
     }
 
     /**
@@ -142,14 +137,14 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice Process batch nonce invalidation
      * @dev Marks all nonces in the batch as used (1)
      * @param owner Token owner requesting invalidation
-     * @param invalidations Nonces to invalidate with chain ID
+     * @param salts Array of salts to invalidate
      */
-    function _processNonceInvalidation(address owner, NoncesToInvalidate memory invalidations) internal {
-        uint256 length = invalidations.salts.length;
+    function _processNonceInvalidation(address owner, bytes32[] memory salts) internal {
+        uint256 length = salts.length;
 
         for (uint256 i = 0; i < length; i++) {
-            usedNonces[owner][invalidations.salts[i]] = 1;
-            emit NonceInvalidated(owner, invalidations.salts[i]);
+            usedNonces[owner][salts[i]] = 1;
+            emit NonceInvalidated(owner, salts[i]);
         }
     }
 
