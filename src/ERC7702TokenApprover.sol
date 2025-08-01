@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IERC7702TokenApprover } from "./interfaces/IERC7702TokenApprover.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import { IERC7702TokenApprover } from "./interfaces/IERC7702TokenApprover.sol";
 
 /**
  * @title ERC7702TokenApprover
@@ -12,6 +14,8 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
  *      allowances for specified ERC20 tokens to the Permit3 contract.
  */
 contract ERC7702TokenApprover is IERC7702TokenApprover {
+    using SafeERC20 for IERC20;
+
     /// @notice The Permit3 contract address that will receive infinite approvals
     address public immutable PERMIT3;
 
@@ -41,14 +45,8 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
         uint256 length = tokens.length;
 
         for (uint256 i = 0; i < length; ++i) {
-            address token = tokens[i];
-
             // Set infinite allowance (type(uint256).max) regardless of current allowance
-            bool success = IERC20(token).approve(PERMIT3, type(uint256).max);
-
-            if (!success) {
-                revert ApprovalFailed(token);
-            }
+            IERC20(tokens[i]).forceApprove(PERMIT3, type(uint256).max);
         }
     }
 }
