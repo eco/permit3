@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../src/interfaces/INonceManager.sol";
+import "../src/interfaces/IUnhingedMerkleTree.sol";
 import "./utils/TestBase.sol";
 
 /**
@@ -90,10 +91,13 @@ contract NonceManagerTest is TestBase {
         INonceManager.NoncesToInvalidate memory invalidations =
             INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
-        INonceManager.UnhingedCancelPermitProof memory proof = INonceManager.UnhingedCancelPermitProof({
-            invalidations: invalidations,
-            unhingedRoot: keccak256("unhinged root")
-        });
+        // Create a minimal proof structure for testing
+        bytes32[] memory nodes = new bytes32[](0);
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
+            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+
+        INonceManager.UnhingedCancelPermitProof memory proof =
+            INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
@@ -145,10 +149,13 @@ contract NonceManagerTest is TestBase {
             salts: salts
         });
 
-        INonceManager.UnhingedCancelPermitProof memory proof = INonceManager.UnhingedCancelPermitProof({
-            invalidations: invalidations,
-            unhingedRoot: keccak256("unhinged root")
-        });
+        // Create a minimal proof structure for testing
+        bytes32[] memory nodes = new bytes32[](0);
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
+            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+
+        INonceManager.UnhingedCancelPermitProof memory proof =
+            INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
@@ -167,10 +174,13 @@ contract NonceManagerTest is TestBase {
         INonceManager.NoncesToInvalidate memory invalidations =
             INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
-        INonceManager.UnhingedCancelPermitProof memory proof = INonceManager.UnhingedCancelPermitProof({
-            invalidations: invalidations,
-            unhingedRoot: keccak256("unhinged root")
-        });
+        // Create a minimal proof structure for testing
+        bytes32[] memory nodes = new bytes32[](0);
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
+            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+
+        INonceManager.UnhingedCancelPermitProof memory proof =
+            INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
         uint256 deadline = block.timestamp - 1;
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
@@ -189,10 +199,13 @@ contract NonceManagerTest is TestBase {
         INonceManager.NoncesToInvalidate memory invalidations =
             INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
-        INonceManager.UnhingedCancelPermitProof memory proof = INonceManager.UnhingedCancelPermitProof({
-            invalidations: invalidations,
-            unhingedRoot: keccak256("unhinged root")
-        });
+        // Create a minimal proof structure for testing
+        bytes32[] memory nodes = new bytes32[](0);
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
+            IUnhingedMerkleTree.UnhingedProof({ counts: bytes32(0), nodes: nodes });
+
+        INonceManager.UnhingedCancelPermitProof memory proof =
+            INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
         uint256 deadline = block.timestamp + 1 hours;
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
@@ -249,21 +262,24 @@ contract NonceManagerTest is TestBase {
 
         p.invalidations = INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: p.salts });
 
-        // Set up unhinged proof
-        p.unhingedRoot = bytes32(uint256(1000));
+        // Set up unhinged proof - create a simple proof that will produce a calculable root
+        p.invalidationsHash = permit3.hashNoncesToInvalidate(p.invalidations);
+
+        // Create a simple proof structure where the leaf is the root (no proof needed)
+        bytes32[] memory proofNodes = new bytes32[](0);
+        IUnhingedMerkleTree.UnhingedProof memory unhingedProof = IUnhingedMerkleTree.UnhingedProof({
+            counts: bytes32(0), // No subtree proof, no following hashes, no preHash
+            nodes: proofNodes
+        });
 
         p.proof =
-            INonceManager.UnhingedCancelPermitProof({ invalidations: p.invalidations, unhingedRoot: p.unhingedRoot });
+            INonceManager.UnhingedCancelPermitProof({ invalidations: p.invalidations, unhingedProof: unhingedProof });
 
         // Set up deadline
         p.deadline = block.timestamp + 1 hours;
 
-        // Calculate the invalidation hash and update the proof object
-        p.invalidationsHash = permit3.hashNoncesToInvalidate(p.invalidations);
-        p.unhingedRoot = keccak256(abi.encodePacked(p.invalidationsHash));
-
-        // Update the proof with the calculated unhingedRoot
-        p.proof.unhingedRoot = p.unhingedRoot;
+        // The root will be calculated by the library from the proof and invalidations hash
+        p.unhingedRoot = p.invalidationsHash; // For simple proof, root equals leaf
 
         // Create the signature
         p.signedHash =

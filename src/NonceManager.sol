@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import { INonceManager } from "./interfaces/INonceManager.sol";
 import { EIP712 } from "./lib/EIP712.sol";
+import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /**
@@ -16,6 +17,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  */
 abstract contract NonceManager is INonceManager, EIP712 {
     using ECDSA for bytes32;
+    using UnhingedMerkleTree for UnhingedProof;
 
     /// @dev Constant representing an unused nonce
     uint256 private constant NONCE_NOT_USED = 0;
@@ -113,13 +115,22 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function invalidateNonces(
         address owner,
         uint256 deadline,
-        UnhingedCancelPermitProof memory proof,
+        UnhingedCancelPermitProof calldata proof,
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
         require(proof.invalidations.chainId == block.chainid, WrongChainId(block.chainid, proof.invalidations.chainId));
 
-        bytes32 signedHash = keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, proof.unhingedRoot));
+        // Verify the proof structure is valid
+        if (!proof.unhingedProof.verifyProofStructure()) {
+            revert InvalidUnhingedProof();
+        }
+
+        // Calculate the root from the invalidations and proof
+        bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
+        bytes32 unhingedRoot = proof.unhingedProof.calculateRoot(invalidationsHash);
+
+        bytes32 signedHash = keccak256(abi.encode(SIGNED_CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
 
         bytes32 digest = _hashTypedDataV4(signedHash);
         require(digest.recover(signature) == owner, InvalidSignature());
