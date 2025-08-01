@@ -21,6 +21,11 @@ interface INonceManager {
     /// @notice Thrown when a witness type string is invalid
     error InvalidWitnessTypeString();
 
+    /// @notice Emitted when a nonce is invalidated
+    /// @param owner The owner of the nonce
+    /// @param salt The nonce salt that was invalidated
+    event NonceInvalidated(address indexed owner, bytes32 indexed salt);
+
     /**
      * @notice Nonce invalidation parameters for a specific chain
      * @param chainId Target chain identifier
