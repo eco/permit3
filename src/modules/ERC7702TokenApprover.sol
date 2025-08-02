@@ -27,7 +27,7 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
         address permit3
     ) {
         if (permit3 == address(0)) {
-            revert ZeroAddress("permit3");
+            revert ZeroPermit3();
         }
         PERMIT3 = permit3;
     }
@@ -48,7 +48,7 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
 
         for (uint256 i = 0; i < tokensLength; ++i) {
             if (tokens[i] == address(0)) {
-                revert ZeroAddress("token");
+                revert ZeroToken();
             }
             // Set infinite allowance (type(uint256).max) regardless of current allowance
             IERC20(tokens[i]).forceApprove(PERMIT3, type(uint256).max);

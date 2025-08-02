@@ -35,10 +35,46 @@ interface IPermit {
     error EmptyArray();
 
     /**
-     * @notice Thrown when a zero address is provided where it's not allowed
-     * @param parameterName The name of the parameter that contained the zero address
+     * @notice Thrown when the owner address is zero
      */
-    error ZeroAddress(string parameterName);
+    error ZeroOwner();
+
+    /**
+     * @notice Thrown when the token address is zero
+     */
+    error ZeroToken();
+
+    /**
+     * @notice Thrown when the spender address is zero
+     */
+    error ZeroSpender();
+
+    /**
+     * @notice Thrown when the from address is zero
+     */
+    error ZeroFrom();
+
+    /**
+     * @notice Thrown when the to address is zero
+     */
+    error ZeroTo();
+
+    /**
+     * @notice Thrown when the account address is zero
+     */
+    error ZeroAccount();
+
+    /**
+     * @dev Thrown when an invalid amount is provided
+     * @param amount The invalid amount
+     */
+    error InvalidAmount(uint160 amount);
+
+    /**
+     * @dev Thrown when an invalid expiration timestamp is provided
+     * @param expiration The invalid expiration timestamp
+     */
+    error InvalidExpiration(uint48 expiration);
 
     /**
      * @dev Represents a token and spender pair for batch operations

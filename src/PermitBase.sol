@@ -55,12 +55,23 @@ contract PermitBase is IPermit {
      * @param amount Approval amount
      * @param expiration Optional expiration timestamp
      */
-    function approve(address token, address spender, uint160 amount, uint48 expiration) external {
+    function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
+        // Prevent overriding locked allowances
+        if (allowances[msg.sender][token][spender].expiration == LOCKED_ALLOWANCE) {
+            revert AllowanceLocked(msg.sender, token, spender);
+        }
+
         if (token == address(0)) {
-            revert ZeroAddress("token");
+            revert ZeroToken();
         }
         if (spender == address(0)) {
-            revert ZeroAddress("spender");
+            revert ZeroSpender();
+        }
+        if (amount == 0) {
+            revert InvalidAmount(amount);
+        }
+        if (expiration != 0 && expiration <= block.timestamp) {
+            revert InvalidExpiration(expiration);
         }
 
         allowances[msg.sender][token][spender] =
@@ -79,13 +90,13 @@ contract PermitBase is IPermit {
      */
     function transferFrom(address from, address to, uint160 amount, address token) public {
         if (from == address(0)) {
-            revert ZeroAddress("from");
+            revert ZeroFrom();
         }
         if (token == address(0)) {
-            revert ZeroAddress("token");
+            revert ZeroToken();
         }
         if (to == address(0)) {
-            revert ZeroAddress("to");
+            revert ZeroTo();
         }
 
         Allowance memory allowed = allowances[from][token][msg.sender];
@@ -156,8 +167,12 @@ contract PermitBase is IPermit {
             address token = approvals[i].token;
             address spender = approvals[i].spender;
 
-            require(token != address(0), ZeroAddress("token"));
-            require(spender != address(0), ZeroAddress("spender"));
+            if (token == address(0)) {
+                revert ZeroToken();
+            }
+            if (spender == address(0)) {
+                revert ZeroSpender();
+            }
 
             allowances[msg.sender][token][spender] =
                 Allowance({ amount: 0, expiration: LOCKED_ALLOWANCE, timestamp: uint48(block.timestamp) });
@@ -181,13 +196,13 @@ contract PermitBase is IPermit {
      */
     function _transferFrom(address from, address to, uint160 amount, address token) internal {
         if (from == address(0)) {
-            revert ZeroAddress("from");
+            revert ZeroFrom();
         }
         if (token == address(0)) {
-            revert ZeroAddress("token");
+            revert ZeroToken();
         }
         if (to == address(0)) {
-            revert ZeroAddress("to");
+            revert ZeroTo();
         }
 
         IERC20(token).safeTransferFrom(from, to, amount);
