@@ -155,12 +155,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.currentChainHash = hashChainPermits(proof.permits);
 
         // Calculate the unhinged root from the proof components
-        // First verify the proof structure is valid (boolean return value function)
-        if (!proof.unhingedProof.verifyProofStructure()) {
-            revert InvalidUnhingedProof();
-        }
-
-        // If verification succeeds, calculate the root (reverts on errors)
+        // calculateRoot performs validation internally and provides granular error messages
         params.unhingedRoot = proof.unhingedProof.calculateRoot(params.currentChainHash);
 
         // Verify signature with unhinged root
@@ -270,12 +265,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.currentChainHash = hashChainPermits(proof.permits);
 
         // Calculate the unhinged root
-        // First verify the proof structure is valid (boolean return value function)
-        if (!proof.unhingedProof.verifyProofStructure()) {
-            revert InvalidUnhingedProof();
-        }
-
-        // If verification succeeds, calculate the root (reverts on errors)
+        // calculateRoot performs validation internally and provides granular error messages
         params.unhingedRoot = proof.unhingedProof.calculateRoot(params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash

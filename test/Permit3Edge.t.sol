@@ -275,8 +275,8 @@ contract Permit3EdgeTest is Test {
         // Create a simple signature (won't reach validation)
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
 
-        // Should revert with InvalidUnhingedProof since _verifyUnhingedProof will return false
-        vm.expectRevert(abi.encodeWithSelector(IUnhingedMerkleTree.InvalidUnhingedProof.selector));
+        // Should revert with InvalidNodeArrayLength since calculateRoot provides granular errors
+        vm.expectRevert(abi.encodeWithSelector(IUnhingedMerkleTree.InvalidNodeArrayLength.selector, 2, 1));
         permit3.permit(owner, params.salt, params.deadline, params.timestamp, unhingedProof, params.signature);
     }
 
