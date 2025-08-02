@@ -35,17 +35,17 @@ contract MockERC20 is IERC20 {
 contract MockSmartAccount is IERC7579Execution {
     mapping(address => bool) public installedModules;
 
-    function installModule(uint256 moduleType, address module, bytes calldata data) external {
+    function installModule(uint256, address module, bytes calldata data) external {
         installedModules[module] = true;
         IERC7579Module(module).onInstall(data);
     }
 
-    function uninstallModule(uint256 moduleType, address module, bytes calldata data) external {
+    function uninstallModule(uint256, address module, bytes calldata data) external {
         installedModules[module] = false;
         IERC7579Module(module).onUninstall(data);
     }
 
-    function execute(bytes32 mode, bytes calldata executionCalldata) external payable {
+    function execute(bytes32, bytes calldata) external payable {
         revert("Not implemented - use executeFromExecutor");
     }
 
@@ -92,21 +92,21 @@ contract Permit3ApproverModuleTest is Test {
         token2 = new MockERC20();
     }
 
-    function testModuleConstants() public {
+    function testModuleConstants() public view {
         assertEq(module.MODULE_TYPE(), 2);
         assertEq(module.name(), "Permit3ApproverModule");
         assertEq(module.version(), "1.0.0");
         assertEq(module.PERMIT3(), PERMIT3);
     }
 
-    function testModuleType() public {
+    function testModuleType() public view {
         assertTrue(module.isModuleType(2)); // Executor type
         assertFalse(module.isModuleType(1)); // Not validator
         assertFalse(module.isModuleType(3)); // Not hook
         assertFalse(module.isModuleType(4)); // Not fallback
     }
 
-    function testSupportsInterface() public {
+    function testSupportsInterface() public view {
         assertTrue(module.supportsInterface(type(IERC7579Module).interfaceId));
     }
 
@@ -186,7 +186,7 @@ contract Permit3ApproverModuleTest is Test {
         new Permit3ApproverModule(address(0));
     }
 
-    function testGetExecutionData() public {
+    function testGetExecutionData() public view {
         address[] memory tokens = new address[](3);
         tokens[0] = address(0x1);
         tokens[1] = address(0x2);

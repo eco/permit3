@@ -18,7 +18,7 @@ import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
  * - EIP-712 compliant signatures
  */
 abstract contract NonceManager is INonceManager, EIP712 {
-    using SignatureChecker for address;
+    using ECDSA for bytes32;
     using SignatureChecker for address;
     using UnhingedMerkleTree for UnhingedProof;
 
