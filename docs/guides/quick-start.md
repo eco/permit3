@@ -273,32 +273,55 @@ const optPermits = {
 };
 ```
 
-### 2. Generate and Chain Hashes
+### 2. Generate Merkle Tree
 
 ```javascript
-// Generate root for each chain's permits
-const ethRoot = permit3.hashChainPermits(ethPermits);
-const arbRoot = permit3.hashChainPermits(arbPermits);
-const optRoot = permit3.hashChainPermits(optPermits);
+// Generate leaf hash for each chain's permits
+const ethLeaf = permit3.hashChainPermits(ethPermits);
+const arbLeaf = permit3.hashChainPermits(arbPermits);
+const optLeaf = permit3.hashChainPermits(optPermits);
 
-// Create the unhinged root using utility functions from UnhingedMerkleTree library
-const unhingedRoot = UnhingedMerkleTree.hashLink(UnhingedMerkleTree.hashLink(ethRoot, arbRoot), optRoot);
+// Build merkle tree from all leaves
+const leaves = [ethLeaf, arbLeaf, optLeaf];
+
+// Simple merkle root calculation (use a library in production)
+function buildMerkleRoot(leaves) {
+    if (leaves.length === 1) return leaves[0];
+    
+    const pairs = [];
+    for (let i = 0; i < leaves.length; i += 2) {
+        const left = leaves[i];
+        const right = leaves[i + 1] || leaves[i];
+        const [first, second] = left < right ? [left, right] : [right, left];
+        pairs.push(keccak256(encode(['bytes32', 'bytes32'], [first, second])));
+    }
+    return buildMerkleRoot(pairs);
+}
+
+const merkleRoot = buildMerkleRoot(leaves);
 ```
 
 ### 3. Sign and Execute on Each Chain
 
 ```javascript
-// Sign the combined hash
-const signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);
+// Sign the merkle root
+const signature = signPermit3(owner, salt, deadline, timestamp, merkleRoot);
+
+// Generate merkle proofs (use a library in production)
+function generateMerkleProof(leaves, targetIndex) {
+    // Simplified - returns array of sibling hashes
+    // In this example with 3 leaves, proofs would be:
+    // ethProof: [arbLeaf, hash(optLeaf, optLeaf)]
+    // arbProof: [ethLeaf, hash(optLeaf, optLeaf)]
+    // optProof: [optLeaf, hash(ethLeaf, arbLeaf)]
+}
 
 // On Ethereum
 const ethProof = {
     permits: ethPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethRoot, // The current chain's root
-        [], // Subtree proof nodes (empty for the first chain)
-        [arbRoot, optRoot] // Following hashes (roots of other chains)
-    )
+    unhingedProof: {
+        nodes: generateMerkleProof(leaves, 0)
+    }
 };
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
@@ -306,11 +329,9 @@ permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 // On Arbitrum
 const arbProof = {
     permits: arbPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethRoot, // Pre-hash (root of Ethereum chain)
-        [], // Subtree proof nodes
-        [optRoot] // Following hashes (root of Optimism chain)
-    )
+    unhingedProof: {
+        nodes: generateMerkleProof(leaves, 1)
+    }
 };
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
@@ -318,11 +339,9 @@ permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
 // On Optimism
 const optProof = {
     permits: optPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        UnhingedMerkleTree.hashLink(ethRoot, arbRoot), // Pre-hash (combined hash of Ethereum and Arbitrum)
-        [], // Subtree proof nodes
-        [] // No following hashes for the last chain
-    )
+    unhingedProof: {
+        nodes: generateMerkleProof(leaves, 2)
+    }
 };
 
 permit3.permit(owner, salt, deadline, timestamp, optProof, signature);

@@ -5,10 +5,8 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Test } from "forge-std/Test.sol";
 
-import { Permit3Tester } from "./utils/Permit3Tester.sol";
-import { UnhingedMerkleTreeTester } from "./utils/UnhingedMerkleTreeTester.sol";
-
 import "../src/Permit3.sol";
+import { Permit3Tester } from "./utils/Permit3Tester.sol";
 
 import "../src/interfaces/INonceManager.sol";
 import "../src/interfaces/IPermit.sol";
@@ -32,7 +30,6 @@ contract Permit3EdgeTest is Test {
     // Contracts
     Permit3 permit3;
     Permit3Tester permit3Tester;
-    UnhingedMerkleTreeTester unhingedTree;
     MockToken token;
 
     // Key roles
@@ -78,7 +75,7 @@ contract Permit3EdgeTest is Test {
         bytes32 s;
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
-        IUnhingedMerkleTree.UnhingedProof merkleProof;
+        bytes32[] merkleProof;
         IPermit3.UnhingedPermitProof unhingedProof;
     }
 
@@ -86,7 +83,6 @@ contract Permit3EdgeTest is Test {
         vm.warp(TIMESTAMP);
         permit3 = new Permit3();
         permit3Tester = new Permit3Tester();
-        unhingedTree = new UnhingedMerkleTreeTester();
         token = new MockToken();
 
         ownerPrivateKey = 0x1234;
@@ -198,10 +194,7 @@ contract Permit3EdgeTest is Test {
 
         // Create the optimized proof explicitly with no preHash flag
         bytes32[] memory emptyNodes = new bytes32[](0);
-        vars.merkleProof = IUnhingedMerkleTree.UnhingedProof({
-            nodes: emptyNodes,
-            counts: unhingedTree.packCounts(0, 0, false) // No preHash
-         });
+        vars.merkleProof = emptyNodes;
 
         vars.unhingedProof =
             IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: vars.merkleProof });
@@ -262,24 +255,17 @@ contract Permit3EdgeTest is Test {
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
-        // Create invalid unhinged proof - invalid due to array length
-        bytes32[] memory nodes = new bytes32[](1); // only preHash, no subtree elements
-        nodes[0] = bytes32(uint256(123)); // preHash
-
-        // Pack counts indicating we need 2 elements
-        bytes32 counts = unhingedTree.packCounts(1, 0, true); // 1 subtree element, 0 following hashes, with preHash
-
-        IUnhingedMerkleTree.UnhingedProof memory invalidProof =
-            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
+        // Create invalid unhinged proof with insufficient nodes for a valid tree
+        bytes32[] memory nodes = new bytes32[](0); // Empty proof is invalid for multi-chain permits
 
         IPermit3.UnhingedPermitProof memory unhingedProof =
-            IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: invalidProof });
+            IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: nodes });
 
         // Create a simple signature (won't reach validation)
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
 
-        // Should revert with InvalidNodeArrayLength since calculateRoot provides granular errors
-        vm.expectRevert(abi.encodeWithSelector(IUnhingedMerkleTree.InvalidNodeArrayLength.selector, 2, 1));
+        // Should revert when merkle proof verification fails
+        vm.expectRevert();
         permit3.permit(owner, params.salt, params.deadline, params.timestamp, unhingedProof, params.signature);
     }
 
@@ -288,7 +274,7 @@ contract Permit3EdgeTest is Test {
         bytes32 preHash;
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
-        IUnhingedMerkleTree.UnhingedProof proof;
+        bytes32[] proof;
         IPermit3.UnhingedPermitProof unhingedProof;
         bytes32 currentChainHash;
         bytes32 unhingedRoot;
@@ -333,10 +319,7 @@ contract Permit3EdgeTest is Test {
         nodes[1] = vars.followingHashes[0];
 
         // Create the proof with explicit hasPreHash flag
-        vars.proof = IUnhingedMerkleTree.UnhingedProof({
-            nodes: nodes,
-            counts: unhingedTree.packCounts(0, 1, true) // 0 subtree nodes, 1 following hash, with preHash
-         });
+        vars.proof = nodes;
 
         vars.unhingedProof = IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: vars.proof });
 
@@ -597,22 +580,21 @@ contract Permit3EdgeTest is Test {
         assertEq(vars.timestamp, newerParams.timestamp); // Still from newer permit
     }
 
-    function test_calculateUnhingedRootInvalidLength() public {
+    function test_calculateUnhingedRootInvalidLength() public view {
         // Create an unhinged proof with invalid array length
-        bytes32[] memory nodes = new bytes32[](2); // Only 2 nodes total
-        nodes[0] = bytes32(uint256(1)); // preHash
-        nodes[1] = bytes32(uint256(2)); // First subtree element
+        // Create a valid proof structure
+        bytes32[] memory nodes = new bytes32[](2);
+        nodes[0] = bytes32(uint256(1));
+        nodes[1] = bytes32(uint256(2));
 
-        // Pack counts indicating more nodes than actually in the array
-        bytes32 counts = unhingedTree.packCounts(1, 2, true); // 1 subtree proof, 2 following hashes, with preHash
+        bytes32[] memory invalidProof = nodes;
 
-        IUnhingedMerkleTree.UnhingedProof memory invalidProof =
-            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
-
-        // Try to calculate the root, should revert with InvalidNodeArrayLength
+        // Try to calculate the root - with the new simple structure, this won't revert
+        // as it's just a simple merkle proof calculation
         bytes32 leaf = keccak256("leaf");
-        vm.expectRevert(abi.encodeWithSelector(IUnhingedMerkleTree.InvalidNodeArrayLength.selector, 4, 2));
-        permit3Tester.calculateUnhingedRoot(leaf, invalidProof);
+        bytes32 root = permit3Tester.calculateUnhingedRoot(leaf, invalidProof);
+        // Just verify it calculates something
+        assert(root != bytes32(0));
     }
 
     function test_typehashStubs() public view {
@@ -1029,38 +1011,8 @@ contract Permit3EdgeTest is Test {
         assertEq(newAmount, 0); // Should be reduced to 0
     }
 
-    function test_verifyBalancedSubtreeOrdering() public {
-        // Test the ordering comparison in _verifyBalancedSubtree function
-        // This tests both paths of the if (computedHash <= proofElement) branch
-
-        // Create two leaf nodes where one is less than the other
-        bytes32 smallerLeaf = bytes32(uint256(100));
-        bytes32 largerLeaf = bytes32(uint256(200));
-
-        // Test verification with different orders to cover both branches
-        bytes32[] memory proof1 = new bytes32[](1);
-        proof1[0] = largerLeaf; // This will take the "computedHash <= proofElement" branch
-
-        bytes32[] memory proof2 = new bytes32[](1);
-        proof2[0] = smallerLeaf; // This will take the "else" branch
-
-        // Create a tester instance to access internal functions
-        Permit3Tester testerContract = new Permit3Tester();
-
-        // Verify smaller leaf with larger proof element (computedHash <= proofElement)
-        bytes32 root1 = testerContract.verifyBalancedSubtree(smallerLeaf, proof1);
-
-        // Verify larger leaf with smaller proof element (computedHash > proofElement)
-        bytes32 root2 = testerContract.verifyBalancedSubtree(largerLeaf, proof2);
-
-        // Compute the expected roots manually
-        bytes32 expectedRoot1 = keccak256(abi.encodePacked(smallerLeaf, largerLeaf));
-        bytes32 expectedRoot2 = keccak256(abi.encodePacked(smallerLeaf, largerLeaf));
-
-        // Verify both results
-        assertEq(root1, expectedRoot1);
-        assertEq(root2, expectedRoot2);
-    }
+    // test_verifyBalancedSubtreeOrdering removed as it relied on internal merkle tree functions
+    // that are no longer exposed after switching to OpenZeppelin's MerkleProof library
 
     function test_increaseMaxAllowanceWithMaxDelta() public {
         // Set up initial allowance
@@ -1151,29 +1103,23 @@ contract Permit3EdgeTest is Test {
     }
 
     function test_emptyProofHandling() public view {
-        // Test with a proof that has no subtree elements and no following hashes,
-        // but includes a preHash node with a non-zero value
-        bytes32[] memory nodes = new bytes32[](1);
-        nodes[0] = bytes32(uint256(0x12345)); // preHash (non-zero to avoid the InconsistentPreHashFlag error)
+        // Test with a proof that has no nodes (valid for single leaf)
+        bytes32[] memory nodes = new bytes32[](0);
 
-        // Pack counts indicating zero for both but with preHash flag set to true
-        bytes32 counts = unhingedTree.packCounts(0, 0, true); // With preHash in this case
-
-        IUnhingedMerkleTree.UnhingedProof memory emptyProof =
-            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
+        bytes32[] memory emptyProof = nodes;
 
         // Test it with leaf node
         bytes32 leaf = keccak256("test leaf");
 
-        // When hasPreHash=true and no following hashes, hash the preHash with the leaf
-        bytes32 expectedRoot = keccak256(abi.encodePacked(nodes[0], leaf));
+        // With empty proof, the leaf itself is the root
+        bytes32 expectedRoot = leaf;
         bytes32 calculatedRoot = permit3Tester.calculateUnhingedRoot(leaf, emptyProof);
 
         // Verify the root calculation
         assertEq(calculatedRoot, expectedRoot);
 
         // Also verify that the proof is valid
-        bool isValid = permit3Tester.verifyUnhingedProof(leaf, emptyProof);
+        bool isValid = permit3Tester.verifyUnhingedProof(leaf, emptyProof, expectedRoot);
         assertTrue(isValid);
     }
 

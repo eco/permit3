@@ -48,11 +48,11 @@ interface INonceManager is IPermit, IUnhingedMerkleTree {
     /**
      * @notice Struct for unhinged nonce invalidation proof
      * @param invalidations Current chain invalidation data
-     * @param unhingedProof UnhingedProof structure for verification
+     * @param unhingedProof Array of sibling hashes forming the merkle proof path
      */
     struct UnhingedCancelPermitProof {
         NoncesToInvalidate invalidations;
-        UnhingedProof unhingedProof;
+        bytes32[] unhingedProof;
     }
 
     /**

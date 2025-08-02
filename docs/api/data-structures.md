@@ -67,15 +67,15 @@ Combines a chain's permits with a proof of inclusion in the cross-chain permit r
 
 ```solidity
 struct UnhingedPermitProof {
-    ChainPermits permits;                       // Chain-specific permit data
-    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Proof of inclusion 
+    ChainPermits permits;           // Chain-specific permit data
+    bytes32[] unhingedProof;        // Proof of inclusion (merkle proof nodes)
 }
 ```
 
 #### Fields
 
 - **permits**: The permits to execute on the current chain
-- **unhingedProof**: Proof that these permits are part of the signed unhinged root
+- **unhingedProof**: Array of merkle proof nodes that prove these permits are part of the signed unhinged root
 
 ### Allowance
 
@@ -112,40 +112,17 @@ struct NoncesToInvalidate {
 <a id="unhingedmerkletree-structures"></a>
 ## UnhingedMerkleTree Structures
 
-### UnhingedProof
-
-Optimized structure for cross-chain proof verification.
-
-```solidity
-struct UnhingedProof {
-    bytes32[] nodes;       // All proof nodes: [preHash (optional), subtreeProof nodes, followingHashes]
-    bytes32 counts;        // Packed metadata
-}
-```
-
-#### Fields
-
-- **nodes**: Combined array containing all proof components in order
-  - preHash (if present): The hash of all preceding chains
-  - subtreeProof nodes: For balanced merkle tree verification (mutually exclusive with preHash)
-  - followingHashes: Hashes of subsequent chains
-  
-- **counts**: Packed bytes32 value containing:
-  - First 120 bits: subtreeProofCount (number of nodes in subtree proof)
-  - Next 120 bits: followingHashesCount (number of nodes in following hashes)
-  - Next 15 bits: Reserved for future use
-  - Last bit: hasPreHash flag (1 if preHash is present, 0 if not)
+The UnhingedMerkleTree uses standard `bytes32[]` arrays for merkle proofs. Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
 
 <a id="relations-between-structures"></a>
 ## Relations Between Structures
 
 ```
 ┌─────────────────┐     ┌───────────────────┐     ┌───────────────────┐
-│ UnhingedProof   │     │ UnhingedPermitProof│     │ ChainPermits      │
-├─────────────────┤     ├───────────────────┤     ├───────────────────┤
-│ nodes           │◄────┤ unhingedProof     │     │ chainId           │
-│ counts          │     ├───────────────────┤     ├───────────────────┤
-└─────────────────┘     │ permits           │◄────┤ permits[]         │◄─┐
+│ bytes32[]       │     │ UnhingedPermitProof│     │ ChainPermits      │
+│ (merkle proof)  │◄────┤ unhingedProof     │     │ chainId           │
+└─────────────────┘     ├───────────────────┤     ├───────────────────┤
+                        │ permits           │◄────┤ permits[]         │◄─┐
                         └───────────────────┘     └───────────────────┘  │
                                                                         │
                         ┌───────────────────┐                          │
@@ -163,10 +140,10 @@ This diagram shows how the different data structures relate to each other in the
 <a id="gas-optimization-note"></a>
 ## Gas Optimization Note
 
-Many of these structures are specifically designed for gas optimization:
+These structures are designed for gas optimization:
 
-- **UnhingedProof.counts**: Packs multiple values into a single bytes32 to reduce storage costs
-- **hasPreHash flag**: Allows omitting preHash entirely when not needed, saving ~20,000 gas for common cases
+- **UnhingedProof**: Simplified to contain only essential merkle proof data
 - **AllowanceOrTransfer**: Unified structure for multiple operation types to reduce contract size and complexity
+- **Merkle Proofs**: Logarithmic proof size ensures efficient verification even for large operation sets
 
 These optimizations are crucial for cost-effective cross-chain operations.

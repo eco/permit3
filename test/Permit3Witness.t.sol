@@ -332,20 +332,7 @@ contract Permit3WitnessTest is Test {
         nodes[0] = bytes32(uint256(0x1234)); // preHash
         nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
-        // Create packed counts with hasPreHash flag set to true (no subtreeProof)
-        bytes32 counts;
-        {
-            // Pack with updated format: 0 subtree proof nodes, 1 following hash, with preHash flag
-            uint256 packedValue = uint256(0) << 136; // 0 subtree proof nodes (shifted 136 bits)
-            packedValue |= uint256(1) << 16; // 1 following hash (shifted 16 bits)
-            packedValue |= 1; // hasPreHash flag (last bit set to 1)
-            counts = bytes32(packedValue);
-        }
-
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
-            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
-
-        return IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: unhingedProof });
+        return IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: nodes });
     }
 
     // Helper struct for signing witness permits
@@ -390,11 +377,6 @@ contract Permit3WitnessTest is Test {
     // Helper struct to avoid stack too deep errors
     struct UnhingedWitnessVars {
         bytes32 currentChainHash;
-        uint120 subtreeProofCount;
-        uint120 followingHashesCount;
-        bool hasPreHash;
-        bytes32 preHash;
-        bytes32 subtreeRoot;
         bytes32 unhingedRoot;
         bytes32 typeHash;
         bytes32 structHash;
@@ -402,7 +384,6 @@ contract Permit3WitnessTest is Test {
         uint8 v;
         bytes32 r;
         bytes32 s;
-        uint256 nodeIndex;
     }
 
     function _signWitnessUnhingedPermit(
@@ -418,61 +399,9 @@ contract Permit3WitnessTest is Test {
         // Calculate the unhinged root the same way the contract would
         vars.currentChainHash = _hashChainPermits(proof.permits);
 
-        // Extract counts from packed data using the new format
-        uint256 value = uint256(proof.unhingedProof.counts);
-        vars.subtreeProofCount = uint120(value >> 136); // First 120 bits
-        vars.followingHashesCount = uint120((value >> 16) & ((1 << 120) - 1)); // Next 120 bits
-        vars.hasPreHash = (value & 1) == 1; // Last bit
-
-        vars.nodeIndex = 0; // Track current node index
-
-        // Extract preHash if present
-        if (vars.hasPreHash) {
-            vars.preHash = proof.unhingedProof.nodes[vars.nodeIndex++];
-        } else {
-            vars.preHash = bytes32(0); // Default value when no preHash
-        }
-
-        // Calculate subtree root using the proper method that matches the contract
-        if (vars.subtreeProofCount > 0) {
-            // Create subtree proof array
-            bytes32[] memory subtreeProof = new bytes32[](vars.subtreeProofCount);
-            for (uint256 i = 0; i < vars.subtreeProofCount; i++) {
-                subtreeProof[i] = proof.unhingedProof.nodes[vars.nodeIndex + i];
-            }
-
-            // Use the balanced subtree verification logic
-            vars.subtreeRoot = vars.currentChainHash;
-
-            for (uint256 i = 0; i < vars.subtreeProofCount; i++) {
-                bytes32 proofElement = subtreeProof[i];
-
-                if (vars.subtreeRoot <= proofElement) {
-                    // Hash(current computed hash + current element of the proof)
-                    vars.subtreeRoot = keccak256(abi.encodePacked(vars.subtreeRoot, proofElement));
-                } else {
-                    // Hash(current element of the proof + current computed hash)
-                    vars.subtreeRoot = keccak256(abi.encodePacked(proofElement, vars.subtreeRoot));
-                }
-            }
-            vars.nodeIndex += vars.subtreeProofCount;
-        } else {
-            // If no subtree proof, the leaf is the subtree root
-            vars.subtreeRoot = vars.currentChainHash;
-        }
-
-        // Calculate the unhinged root exactly as the contract does
-        if (vars.hasPreHash) {
-            vars.unhingedRoot = keccak256(abi.encodePacked(vars.preHash, vars.currentChainHash));
-        } else {
-            vars.unhingedRoot = vars.subtreeRoot;
-        }
-
-        // Add all following chain hashes
-        for (uint256 i = 0; i < vars.followingHashesCount; i++) {
-            vars.unhingedRoot =
-                keccak256(abi.encodePacked(vars.unhingedRoot, proof.unhingedProof.nodes[vars.nodeIndex + i]));
-        }
+        // In the new simple structure, calculate merkle root using the proof
+        // The UnhingedMerkleTree library now uses OpenZeppelin's MerkleProof
+        vars.unhingedRoot = UnhingedMerkleTree.calculateRoot(vars.currentChainHash, proof.unhingedProof);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));

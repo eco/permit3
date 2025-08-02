@@ -104,13 +104,16 @@ struct ChainPermits {
 }
 ```
 
-### Permit3Proof Structure
+### UnhingedPermitProof Structure
 
 ```solidity
-struct Permit3Proof {
-    bytes32 preHash;          // Hash of previous chain operations
-    ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] followingHashes; // Hashes of subsequent chain operations
+struct UnhingedPermitProof {
+    ChainPermits permits;                              // Permit operations for the current chain
+    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Merkle proof structure
+}
+
+struct UnhingedProof {
+    bytes32[] nodes;    // Array of sibling hashes forming the merkle proof path
 }
 ```
 
@@ -216,31 +219,35 @@ Witness functionality extends the standard permit flow:
 <a id="cross-chain-mechanism"></a>
 ## Cross-Chain Mechanism
 
-Permit3 enables cross-chain operations through hash chaining:
+Permit3 enables cross-chain operations through merkle trees:
 
 1. Hash permits for each chain individually
-2. Chain these hashes together in a specific order
-3. Sign the combined hash
-4. Process the portion relevant to the current chain
+2. Build a merkle tree from all chain hashes
+3. Sign the merkle root
+4. Generate merkle proofs for each chain
+5. Process the portion relevant to the current chain
 
 This approach:
 - Requires only one signature for multiple chains
 - Ensures operations on each chain are consistent
 - Validates chain ID to prevent cross-chain replay attacks
 - Supports witness data across chains
+- Uses standard merkle tree verification
 
 ### UnhingedMerkleTree Example
 
 ```solidity
-// Build unhinged root from permit hashes
-bytes32 unhingedRoot = proof.preHash;
-unhingedRoot = UnhingedMerkleTree.hashLink(unhingedRoot, permit3.hashChainPermits(proof.permits));
+// Calculate the leaf hash for this chain's permits
+bytes32 leaf = permit3.hashChainPermits(proof.permits);
 
-for (uint256 i = 0; i < proof.followingHashes.length; i++) {
-    unhingedRoot = UnhingedMerkleTree.hashLink(unhingedRoot, proof.followingHashes[i]);
-}
+// Verify the merkle proof
+bool valid = UnhingedMerkleTree.verify(
+    proof.unhingedProof,
+    unhingedRoot,
+    leaf
+);
 
-// Verify signature against combined hash
+// Verify signature against merkle root
 bytes32 signedHash = keccak256(abi.encode(
     SIGNED_PERMIT3_TYPEHASH, 
     owner, 

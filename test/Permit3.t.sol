@@ -200,21 +200,8 @@ contract Permit3Test is TestBase {
         nodes[0] = bytes32(uint256(0x1234)); // preHash
         nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
-        // Create packed counts with hasPreHash flag set to true (no subtreeProof)
-        bytes32 counts = keccak256(""); // Just to create a variable
-        {
-            // Pack with updated format: 0 subtree proof nodes, 1 following hash, with preHash flag
-            uint256 packedValue = uint256(0) << 136; // 0 subtree proof nodes (shifted 136 bits)
-            packedValue |= uint256(1) << 16; // 1 following hash (shifted 16 bits)
-            packedValue |= 1; // hasPreHash flag (last bit set to 1)
-            counts = bytes32(packedValue);
-        }
-
-        IUnhingedMerkleTree.UnhingedProof memory unhingedProof =
-            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
-
         IPermit3.UnhingedPermitProof memory permitProof =
-            IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: unhingedProof });
+            IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: nodes });
 
         // Reset recipient balance
         deal(address(token), recipient, 0);
@@ -248,15 +235,9 @@ contract Permit3Test is TestBase {
         bytes32[] memory nodes = new bytes32[](1); // Just 1 node, invalid
         nodes[0] = bytes32(uint256(0x1)); // preHash only
 
-        // This is invalid - subtree proof count should be at least 1
-        bytes32 counts = bytes32(uint256(0) << 128 | uint256(0));
-
-        // Create invalid proof
-        IUnhingedMerkleTree.UnhingedProof memory invalidProof =
-            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: counts });
-
+        // Create invalid proof with insufficient nodes
         IPermit3.UnhingedPermitProof memory permitProof =
-            IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: invalidProof });
+            IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
@@ -283,11 +264,8 @@ contract Permit3Test is TestBase {
         bytes32[] memory nodes = new bytes32[](1);
         nodes[0] = bytes32(uint256(0x1));
 
-        IUnhingedMerkleTree.UnhingedProof memory proof =
-            IUnhingedMerkleTree.UnhingedProof({ nodes: nodes, counts: bytes32(0) });
-
         IPermit3.UnhingedPermitProof memory permitProof =
-            IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: proof });
+            IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);

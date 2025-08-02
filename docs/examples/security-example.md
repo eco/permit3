@@ -10,6 +10,8 @@ One of Permit3's most powerful security features is the ability to quickly lock 
 
 ```javascript
 const { ethers } = require("ethers");
+const { MerkleTree } = require('merkletreejs');
+const keccak256 = require('keccak256');
 
 // Configure providers for multiple chains
 const providers = {
@@ -49,117 +51,81 @@ const TOKENS = {
     ]
 };
 
-/**
- * Execute an emergency lockdown across multiple chains
- */
-async function emergencyLockdown() {
+// Spenders you've given permissions to
+const SPENDERS = [
+    "0x1111111111111111111111111111111111111111", // DEX A
+    "0x2222222222222222222222222222222222222222", // Lending Protocol B
+    "0x3333333333333333333333333333333333333333"  // Yield Aggregator C
+];
+
+async function emergencyLockdownAllChains() {
     console.log("🚨 INITIATING EMERGENCY LOCKDOWN 🚨");
     
-    // Generate common salt and timestamp for cross-chain correlation
-    const salt = ethers.utils.randomBytes(32);
-    const timestamp = Math.floor(Date.now() / 1000);
-    const deadline = timestamp + 3600; // 1 hour deadline
-    
-    // Create permits for each chain
-    const chainPermits = {};
-    const chainIds = {
-        ethereum: 1,
-        arbitrum: 42161,
-        optimism: 10
-    };
-    
-    // Create lock permits for each chain
-    Object.keys(TOKENS).forEach(chain => {
-        chainPermits[chain] = {
-            chainId: chainIds[chain],
-            permits: TOKENS[chain].map(token => ({
-                modeOrExpiration: 2, // Lock mode
-                token,
-                account: ethers.constants.AddressZero, // Not used for locking
-                amountDelta: 0 // Not used for locking
-            }))
-        };
-    });
-    
-    // Set up EIP-712 domain for signing
-    const domain = {
-        name: "Permit3",
-        version: "1",
-        chainId: 1, // Using Ethereum for signing
-        verifyingContract: PERMIT3_ADDRESSES.ethereum
-    };
-    
-    const types = {
-        SignedPermit3: [
-            { name: 'owner', type: 'address' },
-            { name: 'salt', type: 'bytes32' },
-            { name: 'deadline', type: 'uint256' },
-            { name: 'timestamp', type: 'uint48' },
-            { name: 'unhingedRoot', type: 'bytes32' }
-        ]
-    };
-    
-    // For multi-chain lockdown
-    if (Object.keys(chainPermits).length > 1) {
-        // Get permit3 contracts
-        const permit3Contracts = {};
-        Object.keys(PERMIT3_ADDRESSES).forEach(chain => {
-            permit3Contracts[chain] = new ethers.Contract(
-                PERMIT3_ADDRESSES[chain],
-                ["function permit(address,bytes32,uint256,uint48,tuple(uint256,tuple(uint48,address,address,uint160)[]),bytes) external", 
-                 "function hashChainPermits(tuple(uint256,tuple(uint48,address,address,uint160)[]) permits) external pure returns (bytes32)"],
-                wallets[chain]
-            );
-        });
-        
-        // 1. Calculate hashes for each chain
+    try {
+        // 1. Create lockdown permits for each chain
+        const chainPermits = {};
         const hashes = {};
-        await Promise.all(Object.keys(chainPermits).map(async chain => {
-            hashes[chain] = await permit3Contracts[chain].hashChainPermits(chainPermits[chain]);
-        }));
         
-        // 2. Calculate unhinged root (order chains by chainId)
-        const orderedChains = Object.keys(chainPermits).sort(
-            (a, b) => chainIds[a] - chainIds[b]
-        );
-        
-        // Create UnhingedMerkleTree for cross-chain operations
-        const UnhingedMerkleTree = {
-            hashLink: (a, b) => ethers.utils.keccak256(
-                ethers.utils.defaultAbiCoder.encode(
-                    ["bytes32", "bytes32"],
-                    [a, b]
-                )
-            ),
-            createOptimizedProof: (preHash, subtreeProof, followingHashes) => {
-                // Pack counts into a single bytes32
-                const subtreeProofCount = subtreeProof.length;
-                const followingHashesCount = followingHashes.length;
-                const hasPreHash = preHash !== ethers.constants.HashZero;
-                
-                let countValue = ethers.BigNumber.from(0);
-                countValue = countValue.or(ethers.BigNumber.from(subtreeProofCount).shl(136));
-                countValue = countValue.or(ethers.BigNumber.from(followingHashesCount).shl(16));
-                if (hasPreHash) countValue = countValue.or(1);
-                
-                // Combine nodes
-                const nodes = [];
-                if (hasPreHash) nodes.push(preHash);
-                nodes.push(...subtreeProof, ...followingHashes);
-                
-                return {
-                    nodes,
-                    counts: ethers.utils.hexZeroPad(countValue.toHexString(), 32)
-                };
+        for (const [chain, tokens] of Object.entries(TOKENS)) {
+            const permits = [];
+            
+            // Create a lockdown permit for each token/spender combination
+            for (const token of tokens) {
+                for (const spender of SPENDERS) {
+                    permits.push({
+                        modeOrExpiration: 0x1, // Mode 1 = lockdown (set allowance to 0)
+                        token: token,
+                        account: spender
+                    });
+                }
             }
-        };
-        
-        let unhingedRoot = hashes[orderedChains[0]];
-        for (let i = 1; i < orderedChains.length; i++) {
-            unhingedRoot = UnhingedMerkleTree.hashLink(unhingedRoot, hashes[orderedChains[i]]);
+            
+            // Create chain permit structure
+            chainPermits[chain] = {
+                chainId: await providers[chain].getNetwork().then(n => n.chainId),
+                permits: permits
+            };
+            
+            // Calculate hash for this chain
+            const permit3 = new ethers.Contract(
+                PERMIT3_ADDRESSES[chain],
+                PERMIT3_ABI,
+                providers[chain]
+            );
+            
+            hashes[chain] = await permit3.hashChainPermits(chainPermits[chain]);
         }
         
+        // 2. Build merkle tree for all chains
+        const orderedChains = Object.keys(chainPermits).sort();
+        const leaves = orderedChains.map(chain => hashes[chain]);
+        
+        // Create merkle tree with ordered hashing
+        const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+        const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
+        
         // 3. Sign the unhinged root
+        const salt = ethers.utils.randomBytes(32);
+        const timestamp = Math.floor(Date.now() / 1000);
+        const deadline = timestamp + 300; // 5 minutes - quick action needed!
+        
+        const domain = {
+            name: "Permit3",
+            version: "1",
+            chainId: 1, // Always use mainnet for signing
+            verifyingContract: PERMIT3_ADDRESSES.ethereum
+        };
+        
+        const types = {
+            SignedPermit3: [
+                { name: "owner", type: "address" },
+                { name: "salt", type: "bytes32" },
+                { name: "deadline", type: "uint48" },
+                { name: "timestamp", type: "uint48" },
+                { name: "unhingedRoot", type: "bytes32" }
+            ]
+        };
+        
         const value = {
             owner: wallets.ethereum.address,
             salt,
@@ -170,458 +136,809 @@ async function emergencyLockdown() {
         
         const signature = await wallets.ethereum._signTypedData(domain, types, value);
         
-        // 4. Create proofs for each chain
+        // 4. Create merkle proofs for each chain
         const proofs = {};
         
         orderedChains.forEach((chain, index) => {
-            // For first chain
-            if (index === 0) {
-                const followingHashes = orderedChains.slice(1).map(c => hashes[c]);
-                proofs[chain] = {
-                    permits: chainPermits[chain],
-                    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-                        ethers.constants.HashZero, // No preHash for first chain
-                        [], // No subtree proof for the root itself
-                        followingHashes
-                    )
-                };
-            } 
-            // For middle chains
-            else if (index < orderedChains.length - 1) {
-                // Calculate preHash from previous chains
-                let preHash = hashes[orderedChains[0]];
-                for (let i = 1; i < index; i++) {
-                    preHash = UnhingedMerkleTree.hashLink(preHash, hashes[orderedChains[i]]);
-                }
-                
-                // Following hashes are the remaining chains
-                const followingHashes = orderedChains.slice(index + 1).map(c => hashes[c]);
-                
-                proofs[chain] = {
-                    permits: chainPermits[chain],
-                    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-                        preHash,
-                        [], // No subtree proof for the root itself
-                        followingHashes
-                    )
-                };
-            }
-            // For last chain
-            else {
-                // Calculate preHash from all previous chains
-                let preHash = hashes[orderedChains[0]];
-                for (let i = 1; i < index; i++) {
-                    preHash = UnhingedMerkleTree.hashLink(preHash, hashes[orderedChains[i]]);
-                }
-                
-                proofs[chain] = {
-                    permits: chainPermits[chain],
-                    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-                        preHash,
-                        [], // No subtree proof for the root itself
-                        [] // No following hashes for last chain
-                    )
-                };
-            }
+            const leaf = hashes[chain];
+            const proof = merkleTree.getProof(leaf);
+            
+            proofs[chain] = {
+                permits: chainPermits[chain],
+                unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+            };
         });
         
-        // 5. Execute lockdown on each chain in parallel with high gas price
-        const lockPromises = orderedChains.map(async chain => {
-            try {
-                // Use higher gas price for emergency lockdown
-                const gasPrice = await providers[chain].getGasPrice();
-                const urgentGasPrice = gasPrice.mul(150).div(100); // 1.5x current gas price
-                
-                const tx = await permit3Contracts[chain].permit(
-                    wallets[chain].address,
-                    salt,
-                    deadline,
-                    timestamp,
-                    proofs[chain],
-                    signature,
-                    { gasPrice: urgentGasPrice }
-                );
-                
-                console.log(`🔒 Lockdown transaction submitted on ${chain}: ${tx.hash}`);
-                await tx.wait();
-                console.log(`✅ Lockdown confirmed on ${chain}: ${tx.hash}`);
-                return { chain, success: true, tx: tx.hash };
-            } catch (error) {
-                console.error(`❌ Lockdown failed on ${chain}:`, error.message);
-                return { chain, success: false, error: error.message };
-            }
-        });
-        
-        const results = await Promise.allSettled(lockPromises);
-        
-        // Log summary
-        console.log("\n🔒 LOCKDOWN SUMMARY 🔒");
-        results.forEach(result => {
-            if (result.status === "fulfilled") {
-                const { chain, success, tx, error } = result.value;
-                if (success) {
-                    console.log(`✅ ${chain.toUpperCase()}: Locked successfully (tx: ${tx})`); 
-                } else {
-                    console.log(`❌ ${chain.toUpperCase()}: Failed - ${error}`);
-                }
-            } else {
-                console.log(`❌ Chain execution failed: ${result.reason}`);
-            }
-        });
-        
-        return results;
-    } 
-    // For single-chain lockdown
-    else {
-        const chain = Object.keys(chainPermits)[0];
-        const permit3 = new ethers.Contract(
-            PERMIT3_ADDRESSES[chain],
-            ["function permit(address,bytes32,uint256,uint48,tuple(uint256,tuple(uint48,address,address,uint160)[]),bytes) external",
-             "function hashChainPermits(tuple(uint256,tuple(uint48,address,address,uint160)[]) permits) external pure returns (bytes32)"],
-            wallets[chain]
-        );
-        
-        // Calculate hash and sign
-        const permitsHash = await permit3.hashChainPermits(chainPermits[chain]);
-        
-        const value = {
-            owner: wallets[chain].address,
-            salt,
-            deadline,
-            timestamp,
-            unhingedRoot: permitsHash
-        };
-        
-        const signature = await wallets[chain]._signTypedData(domain, types, value);
-        
-        // Get current gas price and increase for urgency
-        const gasPrice = await providers[chain].getGasPrice();
-        const urgentGasPrice = gasPrice.mul(150).div(100); // 1.5x current gas price
-        
-        try {
-            const tx = await permit3.permit(
+        // 5. Execute lockdown on all chains in parallel
+        const lockdownPromises = orderedChains.map(async (chain) => {
+            const permit3 = new ethers.Contract(
+                PERMIT3_ADDRESSES[chain],
+                PERMIT3_ABI,
+                wallets[chain]
+            );
+            
+            console.log(`🔒 Locking down ${chain}...`);
+            
+            const tx = await permit3.permitUnhinged(
                 wallets[chain].address,
                 salt,
                 deadline,
                 timestamp,
-                chainPermits[chain],
-                signature,
-                { gasPrice: urgentGasPrice }
+                proofs[chain],
+                signature
             );
             
-            console.log(`🔒 Lockdown transaction submitted on ${chain}: ${tx.hash}`);
             await tx.wait();
-            console.log(`✅ Lockdown confirmed on ${chain}: ${tx.hash}`);
-            return { chain, success: true, tx: tx.hash };
-        } catch (error) {
-            console.error(`❌ Lockdown failed on ${chain}:`, error.message);
-            return { chain, success: false, error: error.message };
-        }
+            console.log(`✅ ${chain} locked down - tx: ${tx.hash}`);
+            
+            return { chain, tx: tx.hash };
+        });
+        
+        const results = await Promise.all(lockdownPromises);
+        
+        console.log("🛡️ EMERGENCY LOCKDOWN COMPLETE 🛡️");
+        console.log("All permissions have been revoked across all chains");
+        console.log("Results:", results);
+        
+        return results;
+        
+    } catch (error) {
+        console.error("❌ LOCKDOWN FAILED:", error);
+        throw error;
     }
 }
 
-// Usage
-emergencyLockdown().catch(console.error);
+// Execute emergency lockdown when needed
+// emergencyLockdownAllChains();
 ```
 
-## Nonce Security
+## Time-Based Security Controls
 
-Secure nonce management is crucial for preventing replay attacks.
-
-### Invalidating Multiple Nonces
+Implement automatic expiration for high-risk operations:
 
 ```javascript
-async function invalidateNonces(nonceArray) {
-    const permit3 = new ethers.Contract(
-        PERMIT3_ADDRESS,
-        ["function invalidateNonces(bytes32[] calldata salts) external",
-         "function isNonceUsed(address owner, bytes32 salt) external view returns (bool)"],
-        wallet
-    );
-    
-    // Filter out already used nonces
-    const unusedNonces = [];
-    for (const nonce of nonceArray) {
-        const isUsed = await permit3.isNonceUsed(wallet.address, nonce);
-        if (!isUsed) {
-            unusedNonces.push(nonce);
-        }
+class SecurePermitManager {
+    constructor(permit3Address, provider) {
+        this.permit3 = new ethers.Contract(permit3Address, PERMIT3_ABI, provider);
+        this.provider = provider;
     }
     
-    if (unusedNonces.length === 0) {
-        console.log("No unused nonces to invalidate");
-        return;
-    }
-    
-    // Invalidate all unused nonces in a single transaction
-    const tx = await permit3.invalidateNonces(unusedNonces);
-    console.log(`Invalidating ${unusedNonces.length} nonces, tx hash: ${tx.hash}`);
-    await tx.wait();
-    console.log(`Successfully invalidated ${unusedNonces.length} nonces`);
-}
-```
-
-## Time-Bound Allowances
-
-Time-bound allowances are a key security feature of Permit3, limiting the window of vulnerability.
-
-```javascript
-// Set up an allowance with a short expiration
-async function setShortLivedAllowance(token, spender, amount, hours) {
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const expiration = nowSeconds + (hours * 60 * 60); // Convert hours to seconds
-    
-    const chainPermits = {
-        chainId: await getChainId(),
-        permits: [{
-            modeOrExpiration: expiration,
+    // Create a permit with strict time controls
+    async createTimeBoundPermit(params) {
+        const {
             token,
-            account: spender,
-            amountDelta: amount
-        }]
-    };
-    
-    // Generate salt, deadline, sign, and send
-    // ... standard permit signing code ...
-    
-    console.log(`Set allowance of ${ethers.utils.formatUnits(amount, decimals)} tokens`);
-    console.log(`Expires in ${hours} hours at ${new Date(expiration * 1000).toLocaleString()}`);
-}
-```
-
-## Securing Witness Data
-
-When using witness functionality, it's crucial to validate the witness data thoroughly.
-
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@permit3/interfaces/IPermit3.sol";
-
-contract SecureTradeExecutor {
-    IPermit3 public immutable permit3;
-    
-    // Security settings
-    uint256 public maxPriceImpact;      // Maximum price impact in basis points (100 = 1%)
-    uint256 public maxTradeSize;        // Maximum trade size
-    uint256 public maxWitnessAge;       // Maximum age of witness data
-    
-    constructor(
-        address _permit3,
-        uint256 _maxPriceImpact,
-        uint256 _maxTradeSize,
-        uint256 _maxWitnessAge
-    ) {
-        permit3 = IPermit3(_permit3);
-        maxPriceImpact = _maxPriceImpact;
-        maxTradeSize = _maxTradeSize;
-        maxWitnessAge = _maxWitnessAge;
-    }
-    
-    struct TradeData {
-        uint256 orderId;
-        uint256 price;
-        uint256 timestamp;
-        address tokenIn;
-        address tokenOut;
-        uint256 amountIn;
-        uint256 minAmountOut;
-        address recipient;
-    }
-    
-    function executeSecureTrade(
-        address owner,
-        bytes32 salt,
-        uint256 deadline,
-        uint48 timestamp,
-        IPermit3.ChainPermits calldata chainPermits,
-        bytes32 witness,
-        string calldata witnessTypeString,
-        bytes calldata signature,
-        TradeData calldata tradeData
-    ) external {
-        // 1. Verify witness is correctly constructed
-        bytes32 expectedWitness = keccak256(abi.encode(
-            tradeData.orderId,
-            tradeData.price,
-            tradeData.timestamp,
-            tradeData.tokenIn,
-            tradeData.tokenOut,
-            tradeData.amountIn,
-            tradeData.minAmountOut,
-            tradeData.recipient
-        ));
+            spender,
+            amount,
+            maxDurationHours = 24, // Default 24 hour max
+            requireRecentTimestamp = true,
+            signer
+        } = params;
         
-        require(witness == expectedWitness, "Invalid witness");
+        const now = Math.floor(Date.now() / 1000);
         
-        // 2. Security checks
+        // Security check: ensure timestamp is recent
+        if (requireRecentTimestamp) {
+            const blockTimestamp = await this.provider.getBlock('latest')
+                .then(b => b.timestamp);
+            
+            if (Math.abs(now - blockTimestamp) > 300) { // 5 minute tolerance
+                throw new Error("Clock skew detected - potential security risk");
+            }
+        }
         
-        // Check witness age
-        require(
-            block.timestamp - tradeData.timestamp <= maxWitnessAge,
-            "Witness data too old"
+        // Calculate secure expiration
+        const expiration = now + (maxDurationHours * 3600);
+        
+        // Create permit data
+        const permitData = {
+            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
+            token: token,
+            account: spender
+        };
+        
+        const chainPermits = {
+            chainId: await this.provider.getNetwork().then(n => n.chainId),
+            permits: [permitData]
+        };
+        
+        // Generate secure salt
+        const salt = ethers.utils.keccak256(
+            ethers.utils.defaultAbiCoder.encode(
+                ["address", "address", "uint256", "uint256"],
+                [token, spender, amount, now]
+            )
         );
         
-        // Check trade size
-        require(tradeData.amountIn <= maxTradeSize, "Trade size exceeds maximum");
+        // Sign with short deadline
+        const deadline = now + 600; // 10 minute signing window
+        const timestamp = now;
         
-        // Check recipient
-        require(
-            tradeData.recipient == owner || tradeData.recipient == address(this),
-            "Unauthorized recipient"
-        );
+        const domain = {
+            name: "Permit3",
+            version: "1",
+            chainId: chainPermits.chainId,
+            verifyingContract: this.permit3.address
+        };
         
-        // 3. Execute permit with witness
-        permit3.permitWitness(
-            owner,
+        const types = {
+            SignedPermit3: [
+                { name: "owner", type: "address" },
+                { name: "salt", type: "bytes32" },
+                { name: "deadline", type: "uint48" },
+                { name: "timestamp", type: "uint48" },
+                { name: "permitDataHash", type: "bytes32" }
+            ]
+        };
+        
+        const permitDataHash = await this.permit3.hashChainPermits(chainPermits);
+        
+        const value = {
+            owner: await signer.getAddress(),
             salt,
             deadline,
             timestamp,
+            permitDataHash
+        };
+        
+        const signature = await signer._signTypedData(domain, types, value);
+        
+        return {
             chainPermits,
-            witness,
-            witnessTypeString,
-            signature
-        );
-        
-        // 4. Execute the actual trade logic
-        // ...
-        
-        // 5. Verify minimum output
-        uint256 actualOutput = /* actual output amount */;
-        require(actualOutput >= tradeData.minAmountOut, "Insufficient output amount");
-        
-        // 6. Calculate price impact
-        uint256 expectedOutput = (tradeData.amountIn * tradeData.price) / 1e18;
-        uint256 priceImpact = ((expectedOutput - actualOutput) * 10000) / expectedOutput;
-        
-        require(priceImpact <= maxPriceImpact, "Price impact too high");
-        
-        // 7. Transfer output tokens to recipient
-        // ...
-        
-        emit TradeExecuted(
-            owner,
-            tradeData.orderId,
-            tradeData.tokenIn,
-            tradeData.tokenOut,
-            tradeData.amountIn,
-            actualOutput,
-            priceImpact
-        );
+            salt,
+            deadline,
+            timestamp,
+            signature,
+            metadata: {
+                expiresAt: new Date(expiration * 1000),
+                createdAt: new Date(now * 1000),
+                maxDuration: maxDurationHours
+            }
+        };
     }
     
-    event TradeExecuted(
-        address indexed owner,
-        uint256 orderId,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOut,
-        uint256 priceImpact
-    );
+    // Monitor and alert on suspicious activity
+    async monitorPermitUsage(owner, options = {}) {
+        const {
+            checkInterval = 60000, // Check every minute
+            maxPermitsPerHour = 10,
+            maxAmountPerDay = ethers.utils.parseEther("10000"),
+            alertCallback
+        } = options;
+        
+        const permitHistory = [];
+        
+        const checkSuspiciousActivity = async () => {
+            // Get recent events
+            const filter = this.permit3.filters.Permit(owner);
+            const events = await this.permit3.queryFilter(filter, -1000); // Last 1000 blocks
+            
+            const now = Date.now();
+            const oneHourAgo = now - 3600000;
+            const oneDayAgo = now - 86400000;
+            
+            // Count permits in last hour
+            const recentPermits = events.filter(e => {
+                const timestamp = e.args.timestamp * 1000;
+                return timestamp > oneHourAgo;
+            });
+            
+            // Calculate total amount in last day
+            let dailyAmount = ethers.BigNumber.from(0);
+            events.forEach(event => {
+                const timestamp = event.args.timestamp * 1000;
+                if (timestamp > oneDayAgo) {
+                    // Extract amount from modeOrExpiration
+                    const amount = event.args.modeOrExpiration.shr(48);
+                    dailyAmount = dailyAmount.add(amount);
+                }
+            });
+            
+            // Check for suspicious patterns
+            const alerts = [];
+            
+            if (recentPermits.length > maxPermitsPerHour) {
+                alerts.push({
+                    type: "RATE_LIMIT_EXCEEDED",
+                    message: `${recentPermits.length} permits created in last hour`,
+                    severity: "HIGH"
+                });
+            }
+            
+            if (dailyAmount.gt(maxAmountPerDay)) {
+                alerts.push({
+                    type: "AMOUNT_LIMIT_EXCEEDED",
+                    message: `Daily amount ${ethers.utils.formatEther(dailyAmount)} exceeds limit`,
+                    severity: "CRITICAL"
+                });
+            }
+            
+            // Check for rapid sequential permits
+            const rapidPermits = [];
+            for (let i = 1; i < recentPermits.length; i++) {
+                const timeDiff = recentPermits[i].args.timestamp - recentPermits[i-1].args.timestamp;
+                if (timeDiff < 60) { // Less than 1 minute apart
+                    rapidPermits.push(recentPermits[i]);
+                }
+            }
+            
+            if (rapidPermits.length > 2) {
+                alerts.push({
+                    type: "RAPID_PERMIT_CREATION",
+                    message: `${rapidPermits.length} permits created rapidly`,
+                    severity: "MEDIUM"
+                });
+            }
+            
+            // Trigger alerts
+            if (alerts.length > 0 && alertCallback) {
+                await alertCallback(alerts);
+            }
+            
+            return alerts;
+        };
+        
+        // Start monitoring
+        const intervalId = setInterval(checkSuspiciousActivity, checkInterval);
+        
+        // Return monitor control object
+        return {
+            stop: () => clearInterval(intervalId),
+            checkNow: checkSuspiciousActivity,
+            getHistory: () => permitHistory
+        };
+    }
+}
+
+// Usage example
+async function setupSecurePermits() {
+    const manager = new SecurePermitManager(PERMIT3_ADDRESS, provider);
+    
+    // Create a time-bound permit
+    const permit = await manager.createTimeBoundPermit({
+        token: USDC_ADDRESS,
+        spender: DEX_ADDRESS,
+        amount: ethers.utils.parseUnits("1000", 6),
+        maxDurationHours: 2, // Only valid for 2 hours
+        signer: wallet
+    });
+    
+    console.log("Permit created:", permit.metadata);
+    
+    // Set up monitoring
+    const monitor = await manager.monitorPermitUsage(wallet.address, {
+        maxPermitsPerHour: 5,
+        maxAmountPerDay: ethers.utils.parseUnits("5000", 6),
+        alertCallback: async (alerts) => {
+            console.error("🚨 SECURITY ALERTS:", alerts);
+            
+            // Take action based on severity
+            const criticalAlert = alerts.find(a => a.severity === "CRITICAL");
+            if (criticalAlert) {
+                console.log("Initiating emergency lockdown...");
+                await emergencyLockdownAllChains();
+            }
+        }
+    });
+    
+    return { permit, monitor };
 }
 ```
 
-## Monitoring Tools
+## Secure Multi-Signature Patterns
 
-Implementing monitoring tools can help detect and respond to security issues quickly.
+For high-value operations, implement multi-signature requirements:
 
 ```javascript
-// Monitor for suspicious permit activity
-async function monitorPermits() {
-    // Set up ethers provider
-    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+class MultiSigPermitManager {
+    constructor(permit3Address, provider) {
+        this.permit3 = new ethers.Contract(permit3Address, PERMIT3_ABI, provider);
+        this.provider = provider;
+        this.pendingOperations = new Map();
+    }
     
-    // Create interface for Permit3 events
-    const permit3Interface = new ethers.utils.Interface([
-        "event Permit(address indexed owner, address indexed token, address indexed spender, uint160 amount, uint48 expiration, uint48 timestamp)",
-        "event NonceInvalidation(address indexed owner, bytes32 indexed salt)",
-        "event NonceUsed(address indexed owner, bytes32 indexed salt)"
-    ]);
-    
-    // Addresses to monitor
-    const MONITORED_ADDRESSES = [
-        "0x...1", "0x...2", "0x...3"
-    ];
-    
-    // Create a filter for Permit events
-    const permitFilter = {
-        address: PERMIT3_ADDRESS,
-        topics: [
-            permit3Interface.getEventTopic("Permit"),
-            MONITORED_ADDRESSES.map(addr => ethers.utils.hexZeroPad(addr, 32))
-        ]
-    };
-    
-    // Create a filter for NonceInvalidation events
-    const invalidationFilter = {
-        address: PERMIT3_ADDRESS,
-        topics: [
-            permit3Interface.getEventTopic("NonceInvalidation"),
-            MONITORED_ADDRESSES.map(addr => ethers.utils.hexZeroPad(addr, 32))
-        ]
-    };
-    
-    console.log("Starting permit monitoring...");
-    
-    // Listen for Permit events
-    provider.on(permitFilter, (log) => {
-        const parsedLog = permit3Interface.parseLog(log);
-        const { owner, token, spender, amount, expiration, timestamp } = parsedLog.args;
+    // Create a multi-sig permit operation
+    async proposeMultiSigPermit(params) {
+        const {
+            token,
+            spender,
+            amount,
+            requiredSignatures = 2,
+            signers = [],
+            expirationHours = 24
+        } = params;
         
-        console.log(`🔔 New Permit detected:`);
-        console.log(`  Owner: ${owner}`);
-        console.log(`  Token: ${token}`);
-        console.log(`  Spender: ${spender}`);
-        console.log(`  Amount: ${ethers.utils.formatUnits(amount, 18)}`);
-        console.log(`  Expiration: ${new Date(expiration * 1000).toLocaleString()}`);
-        
-        // Check for suspicious activity
-        const isUnlimitedApproval = amount.eq(ethers.constants.MaxUint256);
-        const isSuspiciousSpender = !KNOWN_SPENDERS.includes(spender.toLowerCase());
-        const longExpiration = expiration > Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // > 30 days
-        
-        if (isUnlimitedApproval && isSuspiciousSpender) {
-            console.log(`⚠️ ALERT: Unlimited approval to unknown spender!`);
-            sendAlert(`Owner ${owner} granted unlimited approval to unknown spender ${spender}`);
+        if (signers.length < requiredSignatures) {
+            throw new Error("Not enough signers for required signatures");
         }
         
-        if (longExpiration && isSuspiciousSpender) {
-            console.log(`⚠️ ALERT: Long expiration approval to unknown spender!`);
-            sendAlert(`Owner ${owner} granted approval with long expiration to unknown spender ${spender}`);
-        }
-    });
+        const operationId = ethers.utils.id(
+            `${token}-${spender}-${amount}-${Date.now()}`
+        );
+        
+        const now = Math.floor(Date.now() / 1000);
+        const expiration = now + (expirationHours * 3600);
+        
+        // Create the permit data
+        const permitData = {
+            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
+            token: token,
+            account: spender
+        };
+        
+        const chainPermits = {
+            chainId: await this.provider.getNetwork().then(n => n.chainId),
+            permits: [permitData]
+        };
+        
+        // Create operation record
+        const operation = {
+            id: operationId,
+            chainPermits,
+            requiredSignatures,
+            signers,
+            signatures: new Map(),
+            status: "pending",
+            createdAt: now,
+            expiresAt: now + 86400 // 24 hour window to collect signatures
+        };
+        
+        this.pendingOperations.set(operationId, operation);
+        
+        return {
+            operationId,
+            operation,
+            signatureRequest: await this.createSignatureRequest(operation)
+        };
+    }
     
-    // Listen for NonceInvalidation events
-    provider.on(invalidationFilter, (log) => {
-        const parsedLog = permit3Interface.parseLog(log);
-        const { owner, salt } = parsedLog.args;
+    // Create signature request for a signer
+    async createSignatureRequest(operation) {
+        const salt = ethers.utils.id(operation.id);
+        const timestamp = Math.floor(Date.now() / 1000);
+        const deadline = operation.expiresAt;
         
-        console.log(`🔔 Nonce Invalidation detected:`);
-        console.log(`  Owner: ${owner}`);
-        console.log(`  Salt: ${salt}`);
+        const permitDataHash = await this.permit3.hashChainPermits(operation.chainPermits);
         
-        // Multiple invalidations in short time could indicate security issue
-        // Track and alert if needed
-    });
+        const domain = {
+            name: "Permit3",
+            version: "1",
+            chainId: operation.chainPermits.chainId,
+            verifyingContract: this.permit3.address
+        };
+        
+        const types = {
+            SignedPermit3: [
+                { name: "owner", type: "address" },
+                { name: "salt", type: "bytes32" },
+                { name: "deadline", type: "uint48" },
+                { name: "timestamp", type: "uint48" },
+                { name: "permitDataHash", type: "bytes32" }
+            ]
+        };
+        
+        return {
+            domain,
+            types,
+            value: {
+                owner: operation.signers[0], // Primary owner
+                salt,
+                deadline,
+                timestamp,
+                permitDataHash
+            }
+        };
+    }
+    
+    // Collect signature from a signer
+    async addSignature(operationId, signer, signature) {
+        const operation = this.pendingOperations.get(operationId);
+        if (!operation) {
+            throw new Error("Operation not found");
+        }
+        
+        if (!operation.signers.includes(signer)) {
+            throw new Error("Signer not authorized for this operation");
+        }
+        
+        if (operation.signatures.has(signer)) {
+            throw new Error("Signature already provided");
+        }
+        
+        // Verify signature is valid
+        const signatureRequest = await this.createSignatureRequest(operation);
+        const recoveredAddress = ethers.utils.verifyTypedData(
+            signatureRequest.domain,
+            signatureRequest.types,
+            signatureRequest.value,
+            signature
+        );
+        
+        if (recoveredAddress.toLowerCase() !== signer.toLowerCase()) {
+            throw new Error("Invalid signature");
+        }
+        
+        operation.signatures.set(signer, signature);
+        
+        // Check if we have enough signatures
+        if (operation.signatures.size >= operation.requiredSignatures) {
+            operation.status = "ready";
+            return { ready: true, operation };
+        }
+        
+        return { 
+            ready: false, 
+            collected: operation.signatures.size,
+            required: operation.requiredSignatures
+        };
+    }
+    
+    // Execute the multi-sig permit
+    async executeMultiSigPermit(operationId) {
+        const operation = this.pendingOperations.get(operationId);
+        if (!operation) {
+            throw new Error("Operation not found");
+        }
+        
+        if (operation.status !== "ready") {
+            throw new Error("Operation not ready - insufficient signatures");
+        }
+        
+        if (Math.floor(Date.now() / 1000) > operation.expiresAt) {
+            throw new Error("Operation expired");
+        }
+        
+        // Use the first signature (primary owner)
+        const primaryOwner = operation.signers[0];
+        const signature = operation.signatures.get(primaryOwner);
+        
+        const signatureRequest = await this.createSignatureRequest(operation);
+        
+        // Execute the permit
+        const tx = await this.permit3.permit(
+            primaryOwner,
+            operation.chainPermits,
+            signatureRequest.value.salt,
+            signatureRequest.value.deadline,
+            signatureRequest.value.timestamp,
+            signature
+        );
+        
+        await tx.wait();
+        
+        operation.status = "executed";
+        operation.txHash = tx.hash;
+        
+        return {
+            success: true,
+            txHash: tx.hash,
+            operation
+        };
+    }
 }
 
-function sendAlert(message) {
-    // Send email, Slack notification, or other alert mechanism
-    console.log(`🚨 SECURITY ALERT: ${message}`);
-    // Your alert implementation here
+// Usage example
+async function setupMultiSigPermit() {
+    const manager = new MultiSigPermitManager(PERMIT3_ADDRESS, provider);
+    
+    // Propose a high-value operation requiring multiple signatures
+    const proposal = await manager.proposeMultiSigPermit({
+        token: WETH_ADDRESS,
+        spender: VAULT_ADDRESS,
+        amount: ethers.utils.parseEther("100"), // 100 ETH - high value!
+        requiredSignatures: 3,
+        signers: [wallet1.address, wallet2.address, wallet3.address],
+        expirationHours: 48
+    });
+    
+    console.log("Multi-sig operation proposed:", proposal.operationId);
+    
+    // Each signer signs the operation
+    for (const wallet of [wallet1, wallet2, wallet3]) {
+        const signature = await wallet._signTypedData(
+            proposal.signatureRequest.domain,
+            proposal.signatureRequest.types,
+            proposal.signatureRequest.value
+        );
+        
+        const result = await manager.addSignature(
+            proposal.operationId,
+            wallet.address,
+            signature
+        );
+        
+        console.log(`Signature ${result.collected}/${result.required} collected`);
+        
+        if (result.ready) {
+            console.log("Ready to execute!");
+            break;
+        }
+    }
+    
+    // Execute the multi-sig permit
+    const execution = await manager.executeMultiSigPermit(proposal.operationId);
+    console.log("Multi-sig permit executed:", execution.txHash);
 }
+```
+
+## Best Security Practices
+
+### 1. Regular Security Audits
+
+```javascript
+async function auditPermissions(owner, permit3) {
+    const audit = {
+        timestamp: new Date(),
+        owner,
+        activePermissions: [],
+        risks: [],
+        recommendations: []
+    };
+    
+    // Get all permit events for this owner
+    const filter = permit3.filters.Permit(owner);
+    const events = await permit3.queryFilter(filter);
+    
+    // Analyze each permission
+    for (const event of events) {
+        const { token, account, modeOrExpiration } = event.args;
+        const mode = modeOrExpiration & 1n;
+        
+        if (mode === 0n) { // Transfer mode
+            const amount = modeOrExpiration >> 48n;
+            const expiration = Number(modeOrExpiration >> 208n);
+            const now = Math.floor(Date.now() / 1000);
+            
+            if (expiration > now) {
+                audit.activePermissions.push({
+                    token,
+                    spender: account,
+                    amount: amount.toString(),
+                    expiresAt: new Date(expiration * 1000),
+                    remainingTime: expiration - now
+                });
+                
+                // Check for risks
+                if (amount > ethers.utils.parseEther("1000")) {
+                    audit.risks.push({
+                        type: "HIGH_VALUE_PERMISSION",
+                        token,
+                        spender: account,
+                        amount: ethers.utils.formatEther(amount)
+                    });
+                }
+                
+                if (expiration - now > 86400 * 30) { // More than 30 days
+                    audit.risks.push({
+                        type: "LONG_DURATION_PERMISSION",
+                        token,
+                        spender: account,
+                        expiresIn: `${Math.floor((expiration - now) / 86400)} days`
+                    });
+                }
+            }
+        }
+    }
+    
+    // Generate recommendations
+    if (audit.activePermissions.length > 10) {
+        audit.recommendations.push(
+            "Consider revoking unused permissions to reduce attack surface"
+        );
+    }
+    
+    if (audit.risks.filter(r => r.type === "HIGH_VALUE_PERMISSION").length > 0) {
+        audit.recommendations.push(
+            "High-value permissions detected - consider using time-limited permits"
+        );
+    }
+    
+    return audit;
+}
+```
+
+### 2. Secure Key Management
+
+```javascript
+// Never expose private keys directly
+// Use environment variables and secure key management services
+
+class SecureWalletManager {
+    constructor() {
+        this.wallets = new Map();
+    }
+    
+    // Load wallet from encrypted keystore
+    async loadFromKeystore(keystorePath, password) {
+        const keystore = await fs.readFile(keystorePath, 'utf8');
+        const wallet = await ethers.Wallet.fromEncryptedJson(keystore, password);
+        
+        this.wallets.set(wallet.address, wallet);
+        return wallet.address;
+    }
+    
+    // Use hardware wallet for high-value operations
+    async connectHardwareWallet(type = 'ledger') {
+        // Implementation depends on hardware wallet SDK
+        // Example with Ledger:
+        const { LedgerSigner } = require("@ethersproject/hardware-wallets");
+        
+        const signer = new LedgerSigner(provider, "m/44'/60'/0'/0/0");
+        const address = await signer.getAddress();
+        
+        this.wallets.set(address, signer);
+        return address;
+    }
+    
+    // Get signer with security checks
+    async getSigner(address, requireHardware = false) {
+        const signer = this.wallets.get(address);
+        
+        if (!signer) {
+            throw new Error("Signer not found");
+        }
+        
+        if (requireHardware && !(signer instanceof LedgerSigner)) {
+            throw new Error("Hardware wallet required for this operation");
+        }
+        
+        return signer;
+    }
+}
+```
+
+## Security Monitoring Dashboard
+
+```javascript
+// Real-time security monitoring
+class SecurityMonitor {
+    constructor(permit3Addresses) {
+        this.permit3Addresses = permit3Addresses;
+        this.alerts = [];
+        this.metrics = {
+            totalPermits: 0,
+            activePermits: 0,
+            revokedPermits: 0,
+            suspiciousActivity: 0
+        };
+    }
+    
+    async startMonitoring(options = {}) {
+        const { 
+            checkInterval = 60000,
+            webhookUrl,
+            emailAlert
+        } = options;
+        
+        const monitor = async () => {
+            for (const [chain, address] of Object.entries(this.permit3Addresses)) {
+                try {
+                    await this.checkChain(chain, address);
+                } catch (error) {
+                    console.error(`Error monitoring ${chain}:`, error);
+                }
+            }
+            
+            // Send alerts if needed
+            if (this.alerts.length > 0) {
+                await this.sendAlerts(webhookUrl, emailAlert);
+            }
+        };
+        
+        // Initial check
+        await monitor();
+        
+        // Set up interval
+        this.monitorInterval = setInterval(monitor, checkInterval);
+        
+        return {
+            stop: () => clearInterval(this.monitorInterval),
+            getMetrics: () => this.metrics,
+            getAlerts: () => this.alerts
+        };
+    }
+    
+    async checkChain(chain, permit3Address) {
+        const provider = new ethers.providers.JsonRpcProvider(RPC_URLS[chain]);
+        const permit3 = new ethers.Contract(permit3Address, PERMIT3_ABI, provider);
+        
+        // Get recent blocks
+        const currentBlock = await provider.getBlockNumber();
+        const fromBlock = currentBlock - 1000; // Last ~4 hours on Ethereum
+        
+        // Check for unusual patterns
+        const permitFilter = permit3.filters.Permit();
+        const permits = await permit3.queryFilter(permitFilter, fromBlock, currentBlock);
+        
+        // Analyze patterns
+        const addressCounts = {};
+        const largeAmounts = [];
+        
+        for (const event of permits) {
+            const { owner, modeOrExpiration } = event.args;
+            
+            // Count permits per address
+            addressCounts[owner] = (addressCounts[owner] || 0) + 1;
+            
+            // Check for large amounts
+            const mode = modeOrExpiration & 1n;
+            if (mode === 0n) {
+                const amount = modeOrExpiration >> 48n;
+                if (amount > ethers.utils.parseEther("10000")) {
+                    largeAmounts.push({
+                        owner,
+                        amount: ethers.utils.formatEther(amount),
+                        tx: event.transactionHash
+                    });
+                }
+            }
+        }
+        
+        // Generate alerts
+        for (const [address, count] of Object.entries(addressCounts)) {
+            if (count > 10) {
+                this.alerts.push({
+                    type: "HIGH_FREQUENCY",
+                    chain,
+                    address,
+                    count,
+                    severity: "MEDIUM"
+                });
+            }
+        }
+        
+        if (largeAmounts.length > 0) {
+            this.alerts.push({
+                type: "LARGE_AMOUNTS",
+                chain,
+                transactions: largeAmounts,
+                severity: "HIGH"
+            });
+        }
+        
+        // Update metrics
+        this.metrics.totalPermits += permits.length;
+    }
+    
+    async sendAlerts(webhookUrl, emailAlert) {
+        // Send to webhook
+        if (webhookUrl) {
+            await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    alerts: this.alerts,
+                    timestamp: new Date().toISOString()
+                })
+            });
+        }
+        
+        // Send email (implementation depends on email service)
+        if (emailAlert) {
+            // await sendEmail(emailAlert, "Permit3 Security Alert", this.alerts);
+        }
+        
+        // Clear processed alerts
+        this.alerts = [];
+    }
+}
+
+// Start monitoring
+const monitor = new SecurityMonitor(PERMIT3_ADDRESSES);
+const monitoring = await monitor.startMonitoring({
+    checkInterval: 300000, // 5 minutes
+    webhookUrl: "https://your-webhook.com/alerts",
+    emailAlert: "security@yourcompany.com"
+});
 ```
 
 ## Conclusion
 
-This example demonstrates several security best practices for Permit3:
+These security examples demonstrate:
 
-1. **Emergency Lockdown** - Quick response to security incidents across chains
-2. **Nonce Management** - Preventing replay attacks by invalidating nonces
-3. **Time-Bound Allowances** - Limiting the window of vulnerability
-4. **Secure Witness Validation** - Thorough validation of witness data
-5. **Monitoring** - Proactive detection of suspicious activity
+1. **Emergency Response**: Quick multi-chain lockdown capabilities
+2. **Time Controls**: Automatic expiration and time-based limits
+3. **Multi-Signature**: High-value operation protection
+4. **Monitoring**: Real-time security monitoring and alerting
+5. **Best Practices**: Secure key management and regular audits
 
-By implementing these security patterns, you can significantly reduce the risk associated with token approvals and protect user assets during security incidents.
+Remember: Security is not a feature, it's a continuous process. Always stay vigilant and keep your security measures up to date.

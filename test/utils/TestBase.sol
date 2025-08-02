@@ -88,23 +88,6 @@ contract TestBase is Test {
         return abi.encodePacked(r, s, v);
     }
 
-    // Helper struct to avoid stack too deep errors in _signUnhingedPermit
-    struct UnhingedSignParams {
-        bytes32 currentChainHash;
-        uint120 subtreeProofCount;
-        uint120 followingHashesCount;
-        bool hasPreHash;
-        bytes32 preHash;
-        bytes32 subtreeRoot;
-        bytes32 unhingedRoot;
-        bytes32 signedHash;
-        bytes32 digest;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-        uint256 nodeIndex;
-    }
-
     // Sign an unhinged permit
     function _signUnhingedPermit(
         IPermit3.UnhingedPermitProof memory proof,
@@ -112,73 +95,30 @@ contract TestBase is Test {
         uint48 timestamp,
         bytes32 salt
     ) internal view returns (bytes memory) {
-        UnhingedSignParams memory params;
+        // Calculate the current chain hash (leaf)
+        bytes32 currentChainHash = IPermit3(address(permit3)).hashChainPermits(proof.permits);
 
-        // Calculate the unhinged root the same way the contract would
-        params.currentChainHash = IPermit3(address(permit3)).hashChainPermits(proof.permits);
+        // Calculate the merkle root using standard merkle tree logic
+        bytes32 unhingedRoot = currentChainHash;
 
-        // Extract counts from packed data using the new format
-        uint256 value = uint256(proof.unhingedProof.counts);
-        params.subtreeProofCount = uint120(value >> 136); // First 120 bits
-        params.followingHashesCount = uint120((value >> 16) & ((1 << 120) - 1)); // Next 120 bits
-        params.hasPreHash = (value & 1) == 1; // Last bit
+        for (uint256 i = 0; i < proof.unhingedProof.length; i++) {
+            bytes32 proofElement = proof.unhingedProof[i];
 
-        params.nodeIndex = 0; // Track the current node index
-
-        // Extract preHash if present
-        if (params.hasPreHash) {
-            params.preHash = proof.unhingedProof.nodes[params.nodeIndex++];
-        } else {
-            params.preHash = bytes32(0); // Use default value if no preHash
-        }
-
-        // Calculate subtree root using the proper method that matches the contract
-        if (params.subtreeProofCount > 0) {
-            // Create subtree proof array
-            bytes32[] memory subtreeProof = new bytes32[](params.subtreeProofCount);
-            for (uint256 i = 0; i < params.subtreeProofCount; i++) {
-                subtreeProof[i] = proof.unhingedProof.nodes[params.nodeIndex + i];
+            // Standard merkle ordering: smaller value first
+            if (unhingedRoot <= proofElement) {
+                unhingedRoot = keccak256(abi.encodePacked(unhingedRoot, proofElement));
+            } else {
+                unhingedRoot = keccak256(abi.encodePacked(proofElement, unhingedRoot));
             }
-
-            // Use the balanced subtree verification logic
-            params.subtreeRoot = params.currentChainHash;
-
-            for (uint256 i = 0; i < params.subtreeProofCount; i++) {
-                bytes32 proofElement = subtreeProof[i];
-
-                if (params.subtreeRoot <= proofElement) {
-                    params.subtreeRoot = keccak256(abi.encodePacked(params.subtreeRoot, proofElement));
-                } else {
-                    params.subtreeRoot = keccak256(abi.encodePacked(proofElement, params.subtreeRoot));
-                }
-            }
-            params.nodeIndex += params.subtreeProofCount;
-        } else {
-            // If no subtree proof, the leaf is the subtree root
-            params.subtreeRoot = params.currentChainHash;
-        }
-
-        // Calculate the unhinged root exactly as the contract does
-        if (params.hasPreHash) {
-            params.unhingedRoot = keccak256(abi.encodePacked(params.preHash, params.currentChainHash));
-        } else {
-            params.unhingedRoot = params.subtreeRoot;
-        }
-
-        // Add all following chain hashes
-        for (uint256 i = 0; i < params.followingHashesCount; i++) {
-            params.unhingedRoot =
-                keccak256(abi.encodePacked(params.unhingedRoot, proof.unhingedProof.nodes[params.nodeIndex + i]));
         }
 
         // Create the signature
-        params.signedHash = keccak256(
-            abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, params.unhingedRoot)
-        );
+        bytes32 signedHash =
+            keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, unhingedRoot));
 
-        params.digest = _getDigest(params.signedHash);
-        (params.v, params.r, params.s) = vm.sign(ownerPrivateKey, params.digest);
-        return abi.encodePacked(params.r, params.s, params.v);
+        bytes32 digest = _getDigest(signedHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        return abi.encodePacked(r, s, v);
     }
 
     // Mock nonce manager for internal testing

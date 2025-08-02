@@ -29,7 +29,7 @@ interface IPermit3 is IPermit, INonceManager {
     
     struct UnhingedPermitProof {
         ChainPermits permits;
-        IUnhingedMerkleTree.UnhingedProof unhingedProof;
+        bytes32[] unhingedProof;
     }
     
     enum PermitType {
@@ -176,37 +176,33 @@ interface INonceManager {
 <a id="iunhingedmerkletree"></a>
 ## 🌲 IUnhingedMerkleTree
 
-Interface for the UnhingedMerkleTree library providing cross-chain proof functionality.
+Interface for the UnhingedMerkleTree library providing merkle proof functionality.
 
 ```solidity
+interface IUnhingedMerkleTree {
+    // Error definitions
+    error InvalidMerkleProof();
+    error InvalidParameters();
+}
+
+// Library functions (not part of interface, but available)
 library UnhingedMerkleTree {
-    // Core structs
-    struct UnhingedProof {
-        bytes32[] nodes;
-        bytes32 counts;
-    }
-    
-    // Key functions
     function verify(
+        bytes32[] calldata unhingedProof,
+        bytes32 unhingedRoot,
+        bytes32 leaf
+    ) internal pure returns (bool);
+    
+    function calculateRoot(
+        bytes32[] calldata unhingedProof,
+        bytes32 leaf
+    ) internal pure returns (bytes32);
+    
+    function verifyProof(
+        bytes32 root,
         bytes32 leaf,
-        UnhingedProof calldata proof,
-        bytes32 unhingedRoot
-    ) external pure returns (bool);
-    
-    function hashLink(
-        bytes32 current,
-        bytes32 next
-    ) external pure returns (bytes32);
-    
-    function createOptimizedProof(
-        bytes32 preHash,
-        bytes32[] calldata subtreeProof,
-        bytes32[] calldata followingHashes
-    ) external pure returns (UnhingedProof memory);
-    
-    function extractCounts(
-        bytes32 counts
-    ) external pure returns (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash);
+        bytes32[] memory proof
+    ) internal pure returns (bool);
 }
 ```
 
