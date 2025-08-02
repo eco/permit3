@@ -73,7 +73,7 @@ Reduces an existing allowance.
 **Behavior:**
 - Reduces allowance for `account` by `amountDelta`
 - If `amountDelta` is `type(uint160).max`, resets allowance to 0
-- Updates timestamp to the operation timestamp
+- No change to timestamp (preserves existing timestamp)
 - No change to expiration
 
 ### 3. Lock Mode (2)
@@ -162,8 +162,8 @@ Even though the confirmations happen at different times, both operations use the
 
 ### Rules
 
-- Allowance updates are only applied if the operation timestamp is >= the stored timestamp
-- This is true even for decreases and locks
+- Allowance updates that change timestamps are only applied if the operation timestamp is > the stored timestamp
+- This applies to increases, locks, and unlocks, but NOT to decreases (which preserve existing timestamps)
 - For allowance increases, the highest expiration time is kept when the timestamps are equal
 
 ## Account Locking
