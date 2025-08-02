@@ -269,7 +269,7 @@ contract EIP712Test is Test {
             )
         );
 
-        assertEq(domainSep, expectedDomainSeparator, "Domain separator should match expected value");
+        assertEq(expectedDomainSeparator, domainSep, "Domain separator should match expected value");
     }
 }
 
