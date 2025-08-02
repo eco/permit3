@@ -73,18 +73,6 @@ interface IPermit3 is IPermit, INonceManager {
     function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
 
     /**
-     * @notice Returns the batch witness typehash stub for EIP-712 signature verification
-     * @return The stub string for batch witness permit typehash
-     */
-    function PERMIT_BATCH_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
-
-    /**
-     * @notice Returns the unhinged witness typehash stub for EIP-712 signature verification
-     * @return The stub string for unhinged witness permit typehash
-     */
-    function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
-
-    /**
      * @notice Hashes chain permits data for cross-chain operations
      * @param permits Chain-specific permit data
      * @return bytes32 Combined hash of all permit parameters
@@ -114,7 +102,7 @@ interface IPermit3 is IPermit, INonceManager {
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         ChainPermits memory chain,
         bytes calldata signature
@@ -132,7 +120,7 @@ interface IPermit3 is IPermit, INonceManager {
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         UnhingedPermitProof calldata proof,
         bytes calldata signature
@@ -152,7 +140,7 @@ interface IPermit3 is IPermit, INonceManager {
     function permitWitnessTransferFrom(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         ChainPermits memory chain,
         bytes32 witness,
@@ -174,7 +162,7 @@ interface IPermit3 is IPermit, INonceManager {
     function permitWitnessTransferFrom(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         UnhingedPermitProof calldata proof,
         bytes32 witness,

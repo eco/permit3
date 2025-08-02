@@ -79,7 +79,7 @@ interface INonceManager is IUnhingedMerkleTree {
      */
     function invalidateNonces(
         address owner,
-        uint256 deadline,
+        uint48 deadline,
         NoncesToInvalidate memory invalidations,
         bytes calldata signature
     ) external;
@@ -93,7 +93,7 @@ interface INonceManager is IUnhingedMerkleTree {
      */
     function invalidateNonces(
         address owner,
-        uint256 deadline,
+        uint48 deadline,
         UnhingedCancelPermitProof memory proof,
         bytes calldata signature
     ) external;

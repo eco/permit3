@@ -34,7 +34,7 @@ contract NonceManagerTest is TestBase {
         INonceManager.NoncesToInvalidate memory invalidations =
             INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -53,7 +53,7 @@ contract NonceManagerTest is TestBase {
         INonceManager.NoncesToInvalidate memory invalidations =
             INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
-        uint256 deadline = block.timestamp - 1;
+        uint48 deadline = uint48(block.timestamp - 1);
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -70,7 +70,7 @@ contract NonceManagerTest is TestBase {
         INonceManager.NoncesToInvalidate memory invalidations =
             INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x5678, digest); // Different private key
@@ -99,7 +99,7 @@ contract NonceManagerTest is TestBase {
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -125,7 +125,7 @@ contract NonceManagerTest is TestBase {
             salts: salts
         });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getInvalidationStructHash(owner, deadline, invalidations);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -157,7 +157,7 @@ contract NonceManagerTest is TestBase {
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -182,7 +182,7 @@ contract NonceManagerTest is TestBase {
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
-        uint256 deadline = block.timestamp - 1;
+        uint48 deadline = uint48(block.timestamp - 1);
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -207,7 +207,7 @@ contract NonceManagerTest is TestBase {
         INonceManager.UnhingedCancelPermitProof memory proof =
             INonceManager.UnhingedCancelPermitProof({ invalidations: invalidations, unhingedProof: unhingedProof });
 
-        uint256 deadline = block.timestamp + 1 hours;
+        uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getUnhingedInvalidationStructHash(owner, deadline, proof);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x5678, digest); // Different private key
@@ -276,14 +276,13 @@ contract NonceManagerTest is TestBase {
             INonceManager.UnhingedCancelPermitProof({ invalidations: p.invalidations, unhingedProof: unhingedProof });
 
         // Set up deadline
-        p.deadline = block.timestamp + 1 hours;
+        p.deadline = uint48(block.timestamp + 1 hours);
 
         // The root will be calculated by the library from the proof and invalidations hash
         p.unhingedRoot = p.invalidationsHash; // For simple proof, root equals leaf
 
         // Create the signature
-        p.signedHash =
-            keccak256(abi.encode(permit3.SIGNED_CANCEL_PERMIT3_TYPEHASH(), owner, p.deadline, p.unhingedRoot));
+        p.signedHash = keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), owner, p.deadline, p.unhingedRoot));
         p.digest = _getDigest(p.signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, p.digest);
         p.signature = abi.encodePacked(r, s, v);
