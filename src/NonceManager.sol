@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+
 import { INonceManager } from "./interfaces/INonceManager.sol";
 import { EIP712 } from "./lib/EIP712.sol";
 import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
-import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /**
  * @title NonceManager
@@ -16,6 +18,7 @@ import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/Sig
  * - EIP-712 compliant signatures
  */
 abstract contract NonceManager is INonceManager, EIP712 {
+    using ECDSA for bytes32;
     using SignatureChecker for address;
     using UnhingedMerkleTree for UnhingedProof;
 
@@ -107,10 +110,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32 signedHash =
             keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations)));
 
-        bytes32 digest = _hashTypedDataV4(signedHash);
-        if (!owner.isValidSignatureNow(digest, signature)) {
-            revert InvalidSignature(owner);
-        }
+        _verifySignature(owner, signedHash, signature);
 
         _processNonceInvalidation(owner, invalidations.salts);
     }
@@ -145,10 +145,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
         bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
 
-        bytes32 digest = _hashTypedDataV4(signedHash);
-        if (!owner.isValidSignatureNow(digest, signature)) {
-            revert InvalidSignature(owner);
-        }
+        _verifySignature(owner, signedHash, signature);
 
         _processNonceInvalidation(owner, proof.invalidations.salts);
     }
@@ -201,5 +198,37 @@ abstract contract NonceManager is INonceManager, EIP712 {
             revert NonceAlreadyUsed(owner, salt);
         }
         usedNonces[owner][salt] = NONCE_USED;
+    }
+
+    /**
+     * @dev Validate EIP-712 signature against expected signer using ECDSA recovery
+     * @param owner Expected message signer to validate against
+     * @param structHash Hash of the signed data structure (pre-hashed message)
+     * @param signature Raw signature bytes in (v, r, s) format for ECDSA recovery
+     * @notice This function:
+     *         1. Computes the EIP-712 compliant digest using _hashTypedDataV4
+     *         2. For short signatures (<=65 bytes), tries ECDSA recovery first
+     *         3. Falls back to ERC-1271 validation for contract wallets or if ECDSA fails
+     *         4. Handles EIP-7702 delegated EOAs correctly
+     * @notice Reverts with InvalidSignature() if the signature is invalid or
+     *         the recovered signer doesn't match the expected owner
+     */
+    function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
+        bytes32 digest = _hashTypedDataV4(structHash);
+
+        // For signatures <= 65 bytes (supporting ERC-2098 compact signatures),
+        // try ECDSA recovery first before falling back to ERC-1271
+        uint256 signatureLength = signature.length;
+        if (signatureLength == 64 || signatureLength == 65) {
+            if (digest.recover(signature) == owner) {
+                return;
+            }
+        }
+
+        // For longer signatures or when ECDSA failed with a contract/EIP-7702 EOA,
+        // use ERC-1271 validation
+        if (owner.code.length == 0 || !owner.isValidERC1271SignatureNow(digest, signature)) {
+            revert InvalidSignature(owner);
+        }
     }
 }

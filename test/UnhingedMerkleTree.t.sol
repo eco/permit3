@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "forge-std/Test.sol";
+
 import "../src/interfaces/IUnhingedMerkleTree.sol";
 import "../src/lib/UnhingedMerkleTree.sol";
 import "./utils/UnhingedMerkleTreeTester.sol";
-import "forge-std/Test.sol";
 
 /**
  * @title UnhingedMerkleTreeTest

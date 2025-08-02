@@ -1,17 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { IERC7579Module } from "./interfaces/IERC7579Module.sol";
-import { IExecutorModule } from "./interfaces/IExecutorModule.sol";
+import {
+    CallType,
+    ERC7579Utils,
+    ExecType,
+    Mode,
+    ModePayload,
+    ModeSelector
+} from "@openzeppelin/contracts/account/utils/draft-ERC7579Utils.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { Execution, IERC7579Execution, IERC7579Module } from "@openzeppelin/contracts/interfaces/draft-IERC7579.sol";
 
 /**
  * @title Permit3ApproverModule
  * @notice ERC-7579 executor module that allows anyone to approve tokens to Permit3 on behalf of the account
- * @dev This module integrates with smart accounts instead of replacing them
+ * @dev This module integrates with smart accounts using executeFromExecutor
  *      It allows permissionless approval of tokens to the Permit3 contract
+ *
+ * @dev Implementation details:
+ *      - Uses ERC7579Utils for proper mode encoding (CALLTYPE_BATCH with EXECTYPE_DEFAULT)
+ *      - Encodes executions using ERC7579Utils.encodeBatch()
+ *      - Fully compliant with EIP-7579 executor module specification
  */
-contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
+contract Permit3ApproverModule is IERC7579Module {
     /// @notice The Permit3 contract address that will receive approvals
     address public immutable PERMIT3;
 
@@ -19,23 +31,15 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
     uint256 public constant MODULE_TYPE = 2; // Executor module
 
     /// @notice Name of the module
-    string public constant NAME = "Permit3ApproverModule";
+    string private constant NAME = "Permit3ApproverModule";
 
     /// @notice Version of the module
-    string public constant VERSION = "1.0.0";
+    string private constant VERSION = "1.0.0";
 
     /// @notice Thrown when no tokens are provided for approval
     error NoTokensProvided();
 
-    /// @notice Thrown when the permit3 address is zero
-    error ZeroPermit3();
-
-    /// @notice Thrown when a token address is zero
-    error ZeroToken();
-
-    /// @notice Thrown when a zero address is provided where it's not allowed (deprecated)
-    /// @param parameterName The name of the parameter that contained the zero address
-    /// @dev This error is deprecated in favor of specific error types above
+    /// @notice Thrown when a zero address is provided where it's not allowed
     error ZeroAddress(string parameterName);
 
     /**
@@ -46,7 +50,7 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
         address permit3
     ) {
         if (permit3 == address(0)) {
-            revert ZeroPermit3();
+            revert ZeroAddress("permit3");
         }
         PERMIT3 = permit3;
     }
@@ -74,17 +78,6 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
     }
 
     /**
-     * @notice Check if the module is initialized for an account
-     * @param smartAccount The smart account to check
-     * @return True if initialized (always true for this module)
-     */
-    function isInitialized(
-        address smartAccount
-    ) external pure override returns (bool) {
-        return true;
-    }
-
-    /**
      * @notice Get the type of the module
      * @return moduleTypeId The module type identifier
      */
@@ -96,15 +89,11 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
 
     /**
      * @notice Execute approval of tokens to Permit3
-     * @dev Returns the execution array for the smart account to execute
+     * @dev Implements ERC-7579 Executor behavior by calling executeFromExecutor
      * @param account The smart account executing the approval
      * @param data Encoded array of token addresses to approve
-     * @return executions Array of executions for the smart account
      */
-    function execute(
-        address account,
-        bytes calldata data
-    ) external view override returns (Execution[] memory executions) {
+    function execute(address account, bytes calldata data) external {
         // Decode the token addresses from the data
         address[] memory tokens = abi.decode(data, (address[]));
 
@@ -114,20 +103,34 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
         }
 
         // Create execution array for approvals
-        executions = new Execution[](tokensLength);
+        Execution[] memory executions = new Execution[](tokensLength);
 
         for (uint256 i = 0; i < tokensLength; ++i) {
             if (tokens[i] == address(0)) {
-                revert ZeroToken();
+                revert ZeroAddress("token");
             }
 
             // Create execution for each token approval
             executions[i] = Execution({
                 target: tokens[i],
                 value: 0,
-                data: abi.encodeCall(IERC20.approve, (PERMIT3, type(uint256).max))
+                callData: abi.encodeCall(IERC20.approve, (PERMIT3, type(uint256).max))
             });
         }
+
+        // Encode executions for batch mode using ERC7579Utils
+        bytes memory executionCalldata = ERC7579Utils.encodeBatch(executions);
+
+        // Create proper mode encoding for batch execution that reverts on failure
+        Mode mode = ERC7579Utils.encodeMode(
+            ERC7579Utils.CALLTYPE_BATCH,
+            ERC7579Utils.EXECTYPE_DEFAULT,
+            ModeSelector.wrap(bytes4(0)),
+            ModePayload.wrap(bytes22(0))
+        );
+
+        // Call executeFromExecutor on the smart account
+        IERC7579Execution(account).executeFromExecutor(Mode.unwrap(mode), executionCalldata);
     }
 
     /**
@@ -143,6 +146,22 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
     }
 
     /**
+     * @notice Get the name of the module
+     * @return The module name
+     */
+    function name() external pure returns (string memory) {
+        return NAME;
+    }
+
+    /**
+     * @notice Get the version of the module
+     * @return The module version
+     */
+    function version() external pure returns (string memory) {
+        return VERSION;
+    }
+
+    /**
      * @notice Check if a specific module type is supported
      * @param interfaceId The interface identifier to check
      * @return True if the interface is supported
@@ -150,6 +169,6 @@ contract Permit3ApproverModule is IERC7579Module, IExecutorModule {
     function supportsInterface(
         bytes4 interfaceId
     ) external pure returns (bool) {
-        return interfaceId == type(IERC7579Module).interfaceId || interfaceId == type(IExecutorModule).interfaceId;
+        return interfaceId == type(IERC7579Module).interfaceId;
     }
 }
