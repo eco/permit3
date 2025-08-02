@@ -101,20 +101,19 @@ Locks all allowances for a token, providing emergency security control.
 Removes the locked state from a token.
 
 ```solidity
-// Example: Unlock USDC and set allowance to 1000
+// Example: Unlock USDC (requires subsequent increase operation to set allowance)
 {
     modeOrExpiration: 3,             // Unlock mode
     token: USDC_ADDRESS,              // Token to unlock
-    account: DEX_ADDRESS,             // Spender to restore allowance for
-    amountDelta: 1000000000           // New allowance of 1000 USDC
+    account: address(0),              // Not used for unlocking
+    amountDelta: 0                    // Not used for unlocking
 }
 ```
 
 **Behavior:**
-- Removes the locked state
-- Sets allowance to `amountDelta`
-- Updates timestamp to current operation time
-- Sets expiration to max (no expiration)
+- Removes the locked state by setting expiration to 0
+- Does not modify allowance amount or timestamp
+- Subsequent increase operation required to set allowance and expiration
 
 ### 5. Increase Mode (>3)
 

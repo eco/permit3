@@ -194,14 +194,14 @@ const lockPermit = {
 ### 4. Unlock Allowances
 
 ```javascript
-// Unlock USDC and set allowance to 100 USDC
+// Unlock USDC (requires subsequent increase operation to set allowance)
 const unlockPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: 3, // Unlock mode
         token: USDC_ADDRESS,
-        account: DEX_ADDRESS,
-        amountDelta: ethers.utils.parseUnits("100", 6)
+        account: ethers.constants.AddressZero, // Not used for unlocking
+        amountDelta: 0 // Not used for unlocking
     }]
 };
 ```

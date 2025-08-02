@@ -371,7 +371,7 @@ const permitData = {
     modeOrExpiration: 3, // Unlock mode
     token: tokenAddress,
     account: address(0), // Not used for unlocking
-    amountDelta: 0 // New allowance after unlock
+    amountDelta: 0 // Not used for unlocking
 };
 ```
 
