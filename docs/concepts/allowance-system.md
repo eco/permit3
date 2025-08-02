@@ -163,7 +163,7 @@ Even though the confirmations happen at different times, both operations use the
 ### Rules
 
 - Allowance updates that change timestamps are only applied if the operation timestamp is > the stored timestamp
-- This applies to increases, locks, and unlocks, but NOT to decreases (which preserve existing timestamps)
+- This applies to increases only. Lock operations always execute regardless of timestamp, while unlock operations require a newer timestamp only when unlocking a locked state. Decreases preserve existing timestamps without checking them
 - For allowance increases, the highest expiration time is kept when the timestamps are equal
 
 ## Account Locking
