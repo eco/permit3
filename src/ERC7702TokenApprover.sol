@@ -26,6 +26,9 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
     constructor(
         address permit3
     ) {
+        if (permit3 == address(0)) {
+            revert ZeroPermit3();
+        }
         PERMIT3 = permit3;
     }
 
@@ -38,13 +41,15 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
     function approve(
         address[] calldata tokens
     ) external {
-        if (tokens.length == 0) {
+        uint256 tokensLength = tokens.length;
+        if (tokensLength == 0) {
             revert NoTokensProvided();
         }
 
-        uint256 length = tokens.length;
-
-        for (uint256 i = 0; i < length; ++i) {
+        for (uint256 i = 0; i < tokensLength; ++i) {
+            if (tokens[i] == address(0)) {
+                revert ZeroToken();
+            }
             // Set infinite allowance (type(uint256).max) regardless of current allowance
             IERC20(tokens[i]).forceApprove(PERMIT3, type(uint256).max);
         }

@@ -9,6 +9,27 @@ import { IUnhingedMerkleTree } from "../interfaces/IUnhingedMerkleTree.sol";
  * @dev Optimized data structure for efficient and secure cross-chain verification
  */
 library UnhingedMerkleTree {
+    /// @dev Bit shift amount for extracting subtreeProofCount from packed counts
+    /// @dev First 120 bits store the subtree proof count
+    uint256 private constant SUBTREE_PROOF_COUNT_SHIFT = 136;
+
+    /// @dev Bit shift amount for extracting followingHashesCount from packed counts
+    /// @dev Next 120 bits (after subtreeProofCount) store the following hashes count
+    uint256 private constant FOLLOWING_HASHES_COUNT_SHIFT = 16;
+
+    /// @dev Bitmask for extracting 120-bit values
+    /// @dev (1 << 120) - 1 creates a mask with 120 ones
+    uint256 private constant UINT120_MASK = (1 << 120) - 1;
+
+    /// @dev Bitmask for extracting the hasPreHash flag from the last bit
+    uint256 private constant HAS_PRE_HASH_MASK = 1;
+
+    /// @dev Starting index for subtree proof nodes when preHash is not present
+    uint256 private constant SUBTREE_PROOF_START_INDEX = 0;
+
+    /// @dev Starting index for following hashes when preHash is present
+    uint256 private constant FOLLOWING_HASHES_START_WITH_PREHASH = 1;
+
     /**
      * @dev Verifies an Unhinged Merkle proof
      * @param leaf The leaf node being proven
@@ -41,10 +62,10 @@ library UnhingedMerkleTree {
         uint256 value = uint256(counts);
 
         // Extract the different parts from the packed value
-        subtreeProofCount = uint120(value >> 136); // First 120 bits
-        followingHashesCount = uint120((value >> 16) & ((1 << 120) - 1)); // Next 120 bits
+        subtreeProofCount = uint120(value >> SUBTREE_PROOF_COUNT_SHIFT); // First 120 bits
+        followingHashesCount = uint120((value >> FOLLOWING_HASHES_COUNT_SHIFT) & UINT120_MASK); // Next 120 bits
         // Skip 15 bits reserved for future use
-        hasPreHash = (value & 1) == 1; // Last bit
+        hasPreHash = (value & HAS_PRE_HASH_MASK) == HAS_PRE_HASH_MASK; // Last bit
     }
 
     /**
@@ -61,11 +82,11 @@ library UnhingedMerkleTree {
     ) internal pure returns (bytes32 counts) {
         // Pack the values
         uint256 packedValue = 0;
-        packedValue |= uint256(subtreeProofCount) << 136; // First 120 bits
-        packedValue |= uint256(followingHashesCount) << 16; // Next 120 bits
+        packedValue |= uint256(subtreeProofCount) << SUBTREE_PROOF_COUNT_SHIFT; // First 120 bits
+        packedValue |= uint256(followingHashesCount) << FOLLOWING_HASHES_COUNT_SHIFT; // Next 120 bits
         // Bits 1-15 are reserved for future use (zeros)
         if (hasPreHash) {
-            packedValue |= 1; // Set the last bit if preHash is present
+            packedValue |= HAS_PRE_HASH_MASK; // Set the last bit if preHash is present
         }
 
         counts = bytes32(packedValue);
@@ -108,13 +129,14 @@ library UnhingedMerkleTree {
     function createUnhingedRoot(
         bytes32[] memory subtreeRoots
     ) internal pure returns (bytes32) {
-        if (subtreeRoots.length == 0) {
+        uint256 subtreeRootsLength = subtreeRoots.length;
+        if (subtreeRootsLength == 0) {
             return bytes32(0);
         }
 
         bytes32 unhingedRoot = subtreeRoots[0];
 
-        for (uint256 i = 1; i < subtreeRoots.length; i++) {
+        for (uint256 i = 1; i < subtreeRootsLength; i++) {
             unhingedRoot = hashLink(unhingedRoot, subtreeRoots[i]);
         }
 
@@ -132,13 +154,19 @@ library UnhingedMerkleTree {
     }
 
     /**
-     * @dev Validates a proof structure and returns validation components
+     * @dev Validates a proof structure and returns validation components for internal use
      * @param proof The unhinged proof structure to validate
-     * @return isValid True if the proof structure is valid
-     * @return subtreeProofCount Number of nodes in the subtree proof
-     * @return followingHashesCount Number of nodes in the following hashes
-     * @return hasPreHash Flag indicating if preHash is present
-     * @return expectedNodeCount Expected exact number of nodes based on the counts
+     * @return isValid True if the proof structure is valid, false otherwise
+     * @return subtreeProofCount Number of nodes in the subtree proof portion
+     * @return followingHashesCount Number of nodes in the following hashes portion
+     * @return hasPreHash Flag indicating if preHash optimization is used
+     * @return expectedNodeCount Expected exact number of nodes based on the packed counts
+     * @notice This function performs comprehensive validation:
+     *         1. Extracts counts from the packed proof.counts field
+     *         2. Calculates expected node count: subtreeProof + followingHashes + (preHash ? 1 : 0)
+     *         3. Validates that proof.nodes.length matches expectedNodeCount exactly
+     *         4. Checks for inconsistent hasPreHash flag (true but first node is zero)
+     * @notice Returns validation results without reverting to enable custom error handling
      */
     function _validateProofStructure(
         IUnhingedMerkleTree.UnhingedProof calldata proof
@@ -230,13 +258,20 @@ library UnhingedMerkleTree {
     }
 
     /**
-     * @dev Computes the unhinged root from validated components
-     * @param proof The unhinged proof structure (pre-validated)
-     * @param leaf The leaf node to verify
-     * @param subtreeProofCount Number of nodes in the subtree proof
-     * @param followingHashesCount Number of nodes in the following hashes
-     * @param hasPreHash Flag indicating if preHash is present
-     * @return The calculated unhinged root
+     * @dev Computes the unhinged root from pre-validated proof components
+     * @param proof The unhinged proof structure (must be pre-validated)
+     * @param leaf The leaf node being proven in the merkle tree
+     * @param subtreeProofCount Number of nodes in the subtree proof portion
+     * @param followingHashesCount Number of nodes in the following hashes chain
+     * @param hasPreHash Flag indicating if preHash optimization is used
+     * @return The calculated unhinged root hash
+     * @notice This function assumes the proof structure has been validated and computes:
+     *         1. If hasPreHash: starts with hashLink(preHash, leaf) then adds following hashes
+     *         2. If !hasPreHash: computes balanced subtree root, then adds following hashes
+     * @notice The unhinged structure allows efficient cross-chain proofs by:
+     *         - Using preHash to represent all previous chain computations
+     *         - Or using subtreeProof for the current chain's balanced tree
+     *         - Then chaining followingHashes for subsequent chains
      */
     function _computeRoot(
         IUnhingedMerkleTree.UnhingedProof calldata proof,
@@ -258,7 +293,7 @@ library UnhingedMerkleTree {
         }
 
         // Add all following chain hashes
-        uint256 start = hasPreHash ? 1 : subtreeProofCount;
+        uint256 start = hasPreHash ? FOLLOWING_HASHES_START_WITH_PREHASH : subtreeProofCount;
         uint256 end = start + followingHashesCount;
         for (uint256 i = start; i < end; i++) {
             calculatedRoot = hashLink(calculatedRoot, proof.nodes[i]);
@@ -300,13 +335,15 @@ library UnhingedMerkleTree {
             nodes[currentIndex++] = preHash;
         } else {
             // Structure: [subtreeProof..., followingHashes...]
-            for (uint256 i = 0; i < subtreeProof.length; i++) {
+            uint256 subtreeProofLength = subtreeProof.length;
+            for (uint256 i = 0; i < subtreeProofLength; i++) {
                 nodes[currentIndex++] = subtreeProof[i];
             }
         }
 
         // Add following hash nodes
-        for (uint256 i = 0; i < followingHashes.length; i++) {
+        uint256 followingHashesLength = followingHashes.length;
+        for (uint256 i = 0; i < followingHashesLength; i++) {
             nodes[currentIndex++] = followingHashes[i];
         }
 

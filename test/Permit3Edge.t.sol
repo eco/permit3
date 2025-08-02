@@ -152,7 +152,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
 
         // Should revert with InvalidWitnessTypeString
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidWitnessTypeString.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(INonceManager.InvalidWitnessTypeString.selector, params.witnessTypeString)
+        );
         permit3.permitWitness(
             owner,
             params.salt,
@@ -713,7 +715,7 @@ contract Permit3EdgeTest is Test {
         decreaseParams.signature = abi.encodePacked(r, s, v);
 
         // Should revert due to locked allowance
-        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, address(token), spender));
         permit3.permit(
             owner,
             decreaseParams.salt,
@@ -917,7 +919,7 @@ contract Permit3EdgeTest is Test {
         unlockParams.signature = abi.encodePacked(r, s, v);
 
         // Should revert due to older timestamp
-        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, address(token), spender));
         permit3.permit(
             owner,
             unlockParams.salt,
@@ -1274,7 +1276,9 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         // Should revert with SignatureExpired
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.SignatureExpired.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(INonceManager.SignatureExpired.selector, params.deadline, uint48(block.timestamp))
+        );
         permit3.permit(
             owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
         );

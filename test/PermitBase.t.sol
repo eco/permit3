@@ -82,10 +82,10 @@ contract PermitBaseTest is TestBase {
         IPermit.AllowanceTransferDetails[] memory transfers = new IPermit.AllowanceTransferDetails[](2);
 
         transfers[0] =
-            IPermit.AllowanceTransferDetails({ from: owner, to: recipient, amount: AMOUNT, token: address(token) });
+            IPermit.AllowanceTransferDetails({ from: owner, token: address(token), to: recipient, amount: AMOUNT });
 
         transfers[1] =
-            IPermit.AllowanceTransferDetails({ from: owner, to: recipient2, amount: AMOUNT, token: address(token) });
+            IPermit.AllowanceTransferDetails({ from: owner, token: address(token), to: recipient2, amount: AMOUNT });
 
         // Perform batch transfer
         vm.prank(spender);
@@ -107,7 +107,7 @@ contract PermitBaseTest is TestBase {
 
         // Attempt transfer should fail
         vm.prank(spender);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, AMOUNT - 1));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, AMOUNT, AMOUNT - 1));
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
     }
 
@@ -215,7 +215,7 @@ contract PermitBaseTest is TestBase {
 
         // Attempt transfer should fail due to locked allowance
         vm.prank(spender);
-        vm.expectRevert(IPermit.AllowanceLocked.selector);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, address(token), spender));
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
 
         // Verify allowance is still locked
@@ -226,7 +226,7 @@ contract PermitBaseTest is TestBase {
 
     function test_approveRevertTokenZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(IPermit.TokenCannotBeZeroAddress.selector);
+        vm.expectRevert(IPermit.ZeroToken.selector);
         permit3.approve(address(0), spender, AMOUNT, NOW + 1000);
     }
 
