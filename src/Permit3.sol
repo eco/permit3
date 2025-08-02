@@ -354,6 +354,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                     if (timestamp > allowed.timestamp) {
                         allowed.expiration = p.modeOrExpiration;
                         allowed.timestamp = timestamp;
+                    } else if (timestamp == allowed.timestamp && p.modeOrExpiration > allowed.expiration) {
+                        allowed.expiration = p.modeOrExpiration;
                     }
                 }
 
