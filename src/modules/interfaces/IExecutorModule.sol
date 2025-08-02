@@ -19,8 +19,5 @@ interface IExecutorModule {
      * @param data Module-specific data
      * @return executions Array of executions for the smart account to perform
      */
-    function execute(
-        address account,
-        bytes calldata data
-    ) external view returns (Execution[] memory executions);
+    function execute(address account, bytes calldata data) external view returns (Execution[] memory executions);
 }

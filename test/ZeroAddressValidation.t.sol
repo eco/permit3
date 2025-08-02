@@ -37,7 +37,7 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "owner"));
+        vm.expectRevert(IPermit.ZeroOwner.selector);
         permit3.permit(address(0), bytes32(0), uint48(block.timestamp + 1), uint48(block.timestamp), permits, "");
     }
 
@@ -50,7 +50,7 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "owner"));
+        vm.expectRevert(IPermit.ZeroOwner.selector);
         permit3.permitWitness(
             address(0),
             bytes32(0),
@@ -65,35 +65,35 @@ contract ZeroAddressValidationTest is Test {
 
     function test_approve_RejectsZeroToken() public {
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "token"));
+        vm.expectRevert(IPermit.ZeroToken.selector);
         permit3.approve(address(0), bob, 100, uint48(block.timestamp + 100));
         vm.stopPrank();
     }
 
     function test_approve_RejectsZeroSpender() public {
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "spender"));
+        vm.expectRevert(IPermit.ZeroSpender.selector);
         permit3.approve(address(token), address(0), 100, uint48(block.timestamp + 100));
         vm.stopPrank();
     }
 
     function test_transferFrom_RejectsZeroFrom() public {
         vm.startPrank(bob);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "from"));
+        vm.expectRevert(IPermit.ZeroFrom.selector);
         permit3.transferFrom(address(0), alice, 100, address(token));
         vm.stopPrank();
     }
 
     function test_transferFrom_RejectsZeroToken() public {
         vm.startPrank(bob);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "token"));
+        vm.expectRevert(IPermit.ZeroToken.selector);
         permit3.transferFrom(alice, bob, 100, address(0));
         vm.stopPrank();
     }
 
     function test_transferFrom_RejectsZeroTo() public {
         vm.startPrank(bob);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "to"));
+        vm.expectRevert(IPermit.ZeroTo.selector);
         permit3.transferFrom(alice, address(0), 100, address(token));
         vm.stopPrank();
     }
@@ -103,7 +103,7 @@ contract ZeroAddressValidationTest is Test {
         approvals[0] = IPermit.TokenSpenderPair({ token: address(0), spender: bob });
 
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "token"));
+        vm.expectRevert(IPermit.ZeroToken.selector);
         permit3.lockdown(approvals);
         vm.stopPrank();
     }
@@ -113,7 +113,7 @@ contract ZeroAddressValidationTest is Test {
         approvals[0] = IPermit.TokenSpenderPair({ token: address(token), spender: address(0) });
 
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "spender"));
+        vm.expectRevert(IPermit.ZeroSpender.selector);
         permit3.lockdown(approvals);
         vm.stopPrank();
     }
@@ -128,7 +128,7 @@ contract ZeroAddressValidationTest is Test {
         });
 
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "token"));
+        vm.expectRevert(IPermit.ZeroToken.selector);
         permit3.permit(permits);
         vm.stopPrank();
     }
@@ -143,13 +143,13 @@ contract ZeroAddressValidationTest is Test {
         });
 
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "account"));
+        vm.expectRevert(IPermit.ZeroAccount.selector);
         permit3.permit(permits);
         vm.stopPrank();
     }
 
     function test_ERC7702TokenApprover_RejectsZeroPermit3() public {
-        vm.expectRevert(abi.encodeWithSelector(IERC7702TokenApprover.ZeroAddress.selector, "permit3"));
+        vm.expectRevert(IERC7702TokenApprover.ZeroPermit3.selector);
         new ERC7702TokenApprover(address(0));
     }
 
@@ -157,7 +157,7 @@ contract ZeroAddressValidationTest is Test {
         address[] memory tokens = new address[](1);
         tokens[0] = address(0);
 
-        vm.expectRevert(abi.encodeWithSelector(IERC7702TokenApprover.ZeroAddress.selector, "token"));
+        vm.expectRevert(IERC7702TokenApprover.ZeroToken.selector);
         approver.approve(tokens);
     }
 
@@ -165,7 +165,7 @@ contract ZeroAddressValidationTest is Test {
         bytes32[] memory salts = new bytes32[](1);
         salts[0] = bytes32(uint256(1));
 
-        vm.expectRevert(abi.encodeWithSelector(IPermit.ZeroAddress.selector, "owner"));
+        vm.expectRevert(IPermit.ZeroOwner.selector);
         permit3.invalidateNonces(address(0), uint48(block.timestamp + 100), salts, "");
     }
 }

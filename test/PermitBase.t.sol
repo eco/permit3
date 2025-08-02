@@ -226,7 +226,7 @@ contract PermitBaseTest is TestBase {
 
     function test_approveRevertTokenZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(IPermit.TokenCannotBeZeroAddress.selector);
+        vm.expectRevert(IPermit.ZeroToken.selector);
         permit3.approve(address(0), spender, AMOUNT, NOW + 1000);
     }
 

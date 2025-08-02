@@ -93,7 +93,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
-            revert ZeroAddress("owner");
+            revert ZeroOwner();
         }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
@@ -129,7 +129,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
-            revert ZeroAddress("owner");
+            revert ZeroOwner();
         }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
@@ -177,7 +177,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function _processNonceInvalidation(address owner, bytes32[] memory salts) internal {
         uint256 saltsLength = salts.length;
 
-        require(length != 0, EmptyArray());
+        require(saltsLength != 0, EmptyArray());
 
         for (uint256 i = 0; i < saltsLength; i++) {
             usedNonces[owner][salts[i]] = NONCE_USED;

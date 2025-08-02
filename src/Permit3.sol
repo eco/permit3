@@ -112,7 +112,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
-            revert ZeroAddress("owner");
+            revert ZeroOwner();
         }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
@@ -161,7 +161,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
-            revert ZeroAddress("owner");
+            revert ZeroOwner();
         }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
@@ -224,7 +224,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
-            revert ZeroAddress("owner");
+            revert ZeroOwner();
         }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
@@ -284,7 +284,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
-            revert ZeroAddress("owner");
+            revert ZeroOwner();
         }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
@@ -365,10 +365,10 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      */
     function _processAllowanceOperation(address owner, uint48 timestamp, AllowanceOrTransfer memory p) private {
         if (p.token == address(0)) {
-            revert ZeroAddress("token");
+            revert ZeroToken();
         }
         if (p.account == address(0)) {
-            revert ZeroAddress("account");
+            revert ZeroAccount();
         }
 
         Allowance memory allowed = allowances[owner][p.token][p.account];
