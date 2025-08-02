@@ -329,7 +329,7 @@ contract Permit3Integration {
         require(witness == expectedWitness, "Invalid witness data");
         
         // Process the permit with witness
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             permitOwner,
             salt,
             deadline,

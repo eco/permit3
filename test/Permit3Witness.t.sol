@@ -65,19 +65,19 @@ contract Permit3WitnessTest is Test {
     function test_validateWitnessTypeString() public {
         // This should revert with InvalidWitnessTypeString
         vm.expectRevert(INonceManager.InvalidWitnessTypeString.selector);
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             SALT,
             uint48(block.timestamp + 1 hours),
             uint48(block.timestamp),
-            _createBasicTransferPermit(),
+            _createBasicTransferPermit().permits,
             WITNESS,
             INVALID_WITNESS_TYPE_STRING,
             new bytes(65)
         );
     }
 
-    function test_permitWitnessTransferFrom() public {
+    function test_permitWitness() public {
         // Create the permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
@@ -90,8 +90,8 @@ contract Permit3WitnessTest is Test {
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
         // Execute permit
-        permit3.permitWitnessTransferFrom(
-            owner, SALT, deadline, timestamp, chainPermits, WITNESS, WITNESS_TYPE_STRING, signature
+        permit3.permitWitness(
+            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
         );
 
         // Verify transfer happened
@@ -101,7 +101,7 @@ contract Permit3WitnessTest is Test {
         assertTrue(permit3.isNonceUsed(owner, SALT));
     }
 
-    function test_permitWitnessTransferFromExpired() public {
+    function test_permitWitnessExpired() public {
         // Create the permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
@@ -112,12 +112,12 @@ contract Permit3WitnessTest is Test {
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
         vm.expectRevert(INonceManager.SignatureExpired.selector);
-        permit3.permitWitnessTransferFrom(
-            owner, SALT, deadline, timestamp, chainPermits, WITNESS, WITNESS_TYPE_STRING, signature
+        permit3.permitWitness(
+            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
         );
     }
 
-    function test_permitWitnessTransferFromWrongChain() public {
+    function test_permitWitnessWrongChain() public {
         // Create the permit with wrong chain ID
         IPermit3.ChainPermits memory chainPermits = _createWrongChainTransferPermit();
 
@@ -126,9 +126,10 @@ contract Permit3WitnessTest is Test {
         bytes memory signature =
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, block.chainid, 1));
-        permit3.permitWitnessTransferFrom(
-            owner, SALT, deadline, timestamp, chainPermits, WITNESS, WITNESS_TYPE_STRING, signature
+        // Should revert with InvalidSignature (signature was created for wrong chain ID)
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector));
+        permit3.permitWitness(
+            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
         );
     }
 
@@ -147,7 +148,7 @@ contract Permit3WitnessTest is Test {
         bytes signature;
     }
 
-    function test_permitWitnessTransferFromInvalidSignature() public {
+    function test_permitWitnessInvalidSignature() public {
         InvalidSignatureVars memory vars;
 
         // Create the permit
@@ -176,12 +177,19 @@ contract Permit3WitnessTest is Test {
         vars.signature = abi.encodePacked(vars.r, vars.s, vars.v);
 
         vm.expectRevert(INonceManager.InvalidSignature.selector);
-        permit3.permitWitnessTransferFrom(
-            owner, SALT, vars.deadline, vars.timestamp, vars.chainPermits, WITNESS, WITNESS_TYPE_STRING, vars.signature
+        permit3.permitWitness(
+            owner,
+            SALT,
+            vars.deadline,
+            vars.timestamp,
+            vars.chainPermits.permits,
+            WITNESS,
+            WITNESS_TYPE_STRING,
+            vars.signature
         );
     }
 
-    function test_permitWitnessTransferFromAllowance() public {
+    function test_permitWitnessAllowance() public {
         // Create allowance permit
         IPermit3.ChainPermits memory chainPermits = _createAllowancePermit();
 
@@ -190,8 +198,8 @@ contract Permit3WitnessTest is Test {
         bytes memory signature =
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
-        permit3.permitWitnessTransferFrom(
-            owner, SALT, deadline, timestamp, chainPermits, WITNESS, WITNESS_TYPE_STRING, signature
+        permit3.permitWitness(
+            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
         );
 
         // Verify allowance was set
@@ -208,7 +216,7 @@ contract Permit3WitnessTest is Test {
         assertEq(allowance, AMOUNT / 2);
     }
 
-    function test_permitWitnessTransferFromDifferentWitnesses() public {
+    function test_permitWitnessDifferentWitnesses() public {
         // First transfer with witness1
         {
             IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
@@ -220,8 +228,8 @@ contract Permit3WitnessTest is Test {
             bytes memory signature =
                 _signWitnessPermit(chainPermits, deadline, timestamp, salt, witness, WITNESS_TYPE_STRING);
 
-            permit3.permitWitnessTransferFrom(
-                owner, salt, deadline, timestamp, chainPermits, witness, WITNESS_TYPE_STRING, signature
+            permit3.permitWitness(
+                owner, salt, deadline, timestamp, chainPermits.permits, witness, WITNESS_TYPE_STRING, signature
             );
         }
 
@@ -236,8 +244,8 @@ contract Permit3WitnessTest is Test {
             bytes memory signature =
                 _signWitnessPermit(chainPermits, deadline, timestamp, salt, witness, WITNESS_TYPE_STRING);
 
-            permit3.permitWitnessTransferFrom(
-                owner, salt, deadline, timestamp, chainPermits, witness, WITNESS_TYPE_STRING, signature
+            permit3.permitWitness(
+                owner, salt, deadline, timestamp, chainPermits.permits, witness, WITNESS_TYPE_STRING, signature
             );
         }
 
@@ -246,7 +254,7 @@ contract Permit3WitnessTest is Test {
     }
 
     // Test cross-chain witness functionality with UnhingedProofs
-    function test_permitWitnessTransferFromCrossChain() public {
+    function test_permitWitnessCrossChain() public {
         // Set specific values to ensure consistent calculation
         vm.warp(1000); // Set specific timestamp for reproducible results
 
@@ -260,9 +268,7 @@ contract Permit3WitnessTest is Test {
             _signWitnessUnhingedPermit(proof, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
         // Execute cross-chain permit
-        permit3.permitWitnessTransferFrom(
-            owner, SALT, deadline, timestamp, proof, WITNESS, WITNESS_TYPE_STRING, signature
-        );
+        permit3.permitWitness(owner, SALT, deadline, timestamp, proof, WITNESS, WITNESS_TYPE_STRING, signature);
 
         // Verify transfer happened
         assertEq(token.balanceOf(recipient), AMOUNT);
@@ -282,7 +288,7 @@ contract Permit3WitnessTest is Test {
             amountDelta: AMOUNT
         });
 
-        return IPermit3.ChainPermits({ chainId: block.chainid, permits: permits });
+        return IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
     }
 
     function _createWrongChainTransferPermit() internal pure returns (IPermit3.ChainPermits memory) {
@@ -309,7 +315,7 @@ contract Permit3WitnessTest is Test {
             amountDelta: AMOUNT
         });
 
-        return IPermit3.ChainPermits({ chainId: block.chainid, permits: permits });
+        return IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
     }
 
     function _createUnhingedProof() internal view returns (IPermit3.UnhingedPermitProof memory) {
@@ -479,17 +485,17 @@ contract Permit3WitnessTest is Test {
     }
 
     function _hashChainPermits(
-        IPermit3.ChainPermits memory permits
+        IPermit3.ChainPermits memory chainPermits
     ) internal pure returns (bytes32) {
-        bytes32[] memory permitHashes = new bytes32[](permits.permits.length);
+        bytes32[] memory permitHashes = new bytes32[](chainPermits.permits.length);
 
-        for (uint256 i = 0; i < permits.permits.length; i++) {
+        for (uint256 i = 0; i < chainPermits.permits.length; i++) {
             permitHashes[i] = keccak256(
                 abi.encode(
-                    permits.permits[i].modeOrExpiration,
-                    permits.permits[i].token,
-                    permits.permits[i].account,
-                    permits.permits[i].amountDelta
+                    chainPermits.permits[i].modeOrExpiration,
+                    chainPermits.permits[i].token,
+                    chainPermits.permits[i].account,
+                    chainPermits.permits[i].amountDelta
                 )
             );
         }
@@ -497,9 +503,9 @@ contract Permit3WitnessTest is Test {
         return keccak256(
             abi.encode(
                 keccak256(
-                    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 transferOrExpiration,address token,address spender,uint160 amountDelta)"
+                    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
                 ),
-                permits.chainId,
+                chainPermits.chainId,
                 keccak256(abi.encodePacked(permitHashes))
             )
         );

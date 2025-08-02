@@ -26,6 +26,11 @@ interface IPermit {
     error AllowanceLocked();
 
     /**
+     * @notice Thrown when an empty array is provided where it's not allowed
+     */
+    error EmptyArray();
+
+    /**
      * @dev Thrown when an invalid token address is provided
      */
     error TokenCannotBeZeroAddress();

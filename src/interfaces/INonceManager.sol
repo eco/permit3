@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { IPermit } from "./IPermit.sol";
 import { IUnhingedMerkleTree } from "./IUnhingedMerkleTree.sol";
 
 /**
  * @title INonceManager
  * @notice Interface for managing non-sequential nonces used in permit operations
  */
-interface INonceManager is IUnhingedMerkleTree {
+interface INonceManager is IPermit, IUnhingedMerkleTree {
     /// @notice Thrown when a signature has expired
     error SignatureExpired();
 
@@ -74,13 +75,13 @@ interface INonceManager is IUnhingedMerkleTree {
      * @notice Mark nonces as used with signature authorization
      * @param owner Token owner address
      * @param deadline Signature expiration timestamp
-     * @param invalidations Chain-specific nonce invalidation data
+     * @param salts Array of nonce salts to invalidate
      * @param signature EIP-712 signature authorizing the invalidation
      */
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        NoncesToInvalidate memory invalidations,
+        bytes32[] calldata salts,
         bytes calldata signature
     ) external;
 

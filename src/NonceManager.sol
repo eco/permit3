@@ -83,17 +83,22 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice Invalidate nonces using a signed message
      * @param owner Address that signed the invalidation
      * @param deadline Timestamp after which signature is invalid
-     * @param invalidations Struct containing chain ID and nonces to invalidate
+     * @param salts Array of nonce salts to invalidate
      * @param signature EIP-712 signature authorizing invalidation
      */
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        NoncesToInvalidate memory invalidations,
+        bytes32[] calldata salts,
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
-        require(invalidations.chainId == block.chainid, WrongChainId(block.chainid, invalidations.chainId));
+
+        if (salts.length == 0) {
+            revert EmptyArray();
+        }
+
+        NoncesToInvalidate memory invalidations = NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
         bytes32 signedHash =
             keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations)));
@@ -118,7 +123,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes calldata signature
     ) external {
         require(block.timestamp <= deadline, SignatureExpired());
-        require(proof.invalidations.chainId == block.chainid, WrongChainId(block.chainid, proof.invalidations.chainId));
+        require(
+            proof.invalidations.chainId == uint64(block.chainid),
+            WrongChainId(uint64(block.chainid), proof.invalidations.chainId)
+        );
 
         // Calculate the root from the invalidations and proof
         // calculateRoot performs validation internally and provides granular error messages
@@ -152,6 +160,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
      */
     function _processNonceInvalidation(address owner, bytes32[] memory salts) internal {
         uint256 length = salts.length;
+
+        require(length != 0, EmptyArray());
 
         for (uint256 i = 0; i < length; i++) {
             usedNonces[owner][salts[i]] = NONCE_USED;

@@ -415,7 +415,7 @@ const witness = ethers.utils.keccak256(
 const witnessTypeString = "Order order)Order(uint256 orderId)";
 
 // Use witnessPermitTransferFrom instead of permit
-await permit3.permitWitnessTransferFrom(
+await permit3.permitWitness(
     permitData.owner,
     permitData.salt,
     permitData.deadline,

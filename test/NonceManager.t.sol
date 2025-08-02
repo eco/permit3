@@ -40,7 +40,7 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        permit3.invalidateNonces(owner, deadline, invalidations, signature);
+        permit3.invalidateNonces(owner, deadline, salts, signature);
 
         assertTrue(permit3.isNonceUsed(owner, bytes32(uint256(1))));
         assertTrue(permit3.isNonceUsed(owner, bytes32(uint256(2))));
@@ -60,7 +60,7 @@ contract NonceManagerTest is TestBase {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         vm.expectRevert(INonceManager.SignatureExpired.selector);
-        permit3.invalidateNonces(owner, deadline, invalidations, signature);
+        permit3.invalidateNonces(owner, deadline, salts, signature);
     }
 
     function test_signedNonceInvalidationWrongSigner() public {
@@ -77,7 +77,7 @@ contract NonceManagerTest is TestBase {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         vm.expectRevert(INonceManager.InvalidSignature.selector);
-        permit3.invalidateNonces(owner, deadline, invalidations, signature);
+        permit3.invalidateNonces(owner, deadline, salts, signature);
     }
 
     function test_crossChainNonceInvalidation() public {
@@ -131,8 +131,9 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, block.chainid, 1));
-        permit3.invalidateNonces(owner, deadline, invalidations, signature);
+        // Should revert with InvalidSignature (signature was created for wrong chain ID)
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector));
+        permit3.invalidateNonces(owner, deadline, salts, signature);
     }
 
     function test_wrongChainIdCrossChainInvalidation() public {
@@ -163,7 +164,7 @@ contract NonceManagerTest is TestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, block.chainid, 1));
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(block.chainid), 1));
         permit3.invalidateNonces(owner, deadline, proof, signature);
     }
 
