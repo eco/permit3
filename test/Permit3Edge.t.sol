@@ -580,7 +580,7 @@ contract Permit3EdgeTest is Test {
         assertEq(vars.timestamp, newerParams.timestamp); // Still from newer permit
     }
 
-    function test_calculateUnhingedRootInvalidLength() public {
+    function test_calculateUnhingedRootInvalidLength() public view {
         // Create an unhinged proof with invalid array length
         // Create a valid proof structure
         bytes32[] memory nodes = new bytes32[](2);
