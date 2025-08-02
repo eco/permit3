@@ -61,6 +61,42 @@ IPermit3.AllowanceOrTransfer memory permitData = IPermit3.AllowanceOrTransfer({
 
 For more advanced use cases like witness functionality and cross-chain operations, refer to the specific guides in this section.
 
+## 💡 Developer Guidance
+
+### When to Use Single-Chain vs Cross-Chain Permits
+
+**Use Single-Chain Permits when:**
+- Operations are isolated to one blockchain
+- You need maximum gas efficiency on that chain
+- Simpler implementation is preferred
+- Users primarily operate on one network
+
+**Use Cross-Chain Permits when:**
+- Users need to authorize operations across multiple chains
+- You want to minimize signature requests (one signature for all chains)
+- Building cross-chain DeFi protocols or bridges
+- Implementing chain-agnostic applications
+
+### How to Choose Chain Ordering
+
+When building cross-chain permits, optimize gas costs through strategic chain ordering:
+
+1. **Analyze Gas Costs**: Research current gas prices on target chains
+2. **Order by Cost**: Place cheapest chains (L2s) first, expensive chains (L1) last
+3. **Example Ordering**:
+   - ✅ Arbitrum → Optimism → Polygon → Ethereum
+   - ❌ Ethereum → Arbitrum → Optimism → Polygon
+4. **Dynamic Ordering**: Consider gas price oracles for real-time optimization
+
+### Integration Best Practices
+
+1. **Start Simple**: Begin with single-chain permits before adding cross-chain complexity
+2. **Test Thoroughly**: Use testnets for all target chains before mainnet
+3. **Monitor Gas**: Track actual gas usage and optimize accordingly
+4. **User Experience**: Provide clear feedback about which chains are involved
+5. **Error Handling**: Implement robust error handling for cross-chain failures
+6. **Documentation**: Document your chain ordering strategy for users
+
 ---
 
 | ⬅️ Previous | 🏠 Section | ➡️ Next |

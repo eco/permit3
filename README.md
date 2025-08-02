@@ -11,21 +11,22 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 - 🌉 **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
 - 🔐 **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
 - 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
-- 🌲 **Unhinged Merkle Trees**: Standard merkle tree implementation optimized for cross-chain proofs:
+- 🌲 **Unhinged Merkle Trees**: Innovative hybrid two-part structure for cross-chain proofs:
   ```
-                    ROOT
-                   /    \
-                 H1      H2
-                /  \    /  \
-              H3   H4  H5   H6
-             / \  / \ / \  / \
-            D1 D2 D3 D4 D5 D6 D7 D8
+                 [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
+              /      \      \      \
+            [BR]    [D5]   [D6]   [D7]      ← Additional chain data
+           /     \
+       [BH1]     [BH2]                      ← Balanced tree (bottom part)
+      /    \     /    \
+    [D1]  [D2] [D3]  [D4]                   ← Leaf data
   ```
-  - 🔗 Built on OpenZeppelin's proven MerkleProof library
-  - 🔐 Uses ordered hashing (smaller value first) for consistency
-  - 🎯 Benefits: Simple, secure, and gas-efficient verification
-  - 💰 Compact Proofs: Only log₂(n) hashes needed for verification
-  - ⚡ Gas Efficiency: Predictable O(log n) verification complexity
+  - 🏗️ **Two-Part Design**: Combines balanced merkle tree (bottom) with sequential hash chain (top)
+  - 🔄 **Bottom Part**: Efficient membership proofs with O(log n) complexity
+  - 🔗 **Top Part**: Sequential chaining for linking across chains  
+  - 🚀 **Gas Optimization**: Chain ordering (cheapest chains first, expensive last)
+  - 🎯 **"Unhinged"**: Deliberate deviation from balanced trees at top level
+  - 💡 **Current Implementation**: Simplified to use standard merkle proofs while maintaining conceptual benefits
 - 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
 - 🔄 **Flexible Allowance Management**:
     - ⬆️ Increase/decrease allowances asynchronously

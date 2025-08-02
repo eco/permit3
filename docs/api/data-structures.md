@@ -68,14 +68,14 @@ Combines a chain's permits with a proof of inclusion in the cross-chain permit r
 ```solidity
 struct UnhingedPermitProof {
     ChainPermits permits;           // Chain-specific permit data
-    bytes32[] unhingedProof;        // Proof of inclusion (merkle proof nodes)
+    bytes32[] unhingedProof;        // Proof of inclusion (Unhinged Merkle Tree proof nodes)
 }
 ```
 
 #### Fields
 
 - **permits**: The permits to execute on the current chain
-- **unhingedProof**: Array of merkle proof nodes that prove these permits are part of the signed unhinged root
+- **unhingedProof**: Array of Unhinged Merkle Tree proof nodes that prove these permits are part of the signed root. Based on the innovative two-part hybrid structure, but implemented using standard merkle proof format for security and compatibility.
 
 ### Allowance
 
@@ -112,7 +112,7 @@ struct NoncesToInvalidate {
 <a id="unhingedmerkletree-structures"></a>
 ## UnhingedMerkleTree Structures
 
-The UnhingedMerkleTree uses standard `bytes32[]` arrays for merkle proofs. Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
+The UnhingedMerkleTree represents an innovative two-part hybrid structure (balanced merkle tree + sequential hash chain) but uses standard `bytes32[]` arrays for proof implementation. Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root, efficiently traversing both the balanced and sequential parts of the conceptual structure.
 
 <a id="relations-between-structures"></a>
 ## Relations Between Structures
@@ -140,10 +140,11 @@ This diagram shows how the different data structures relate to each other in the
 <a id="gas-optimization-note"></a>
 ## Gas Optimization Note
 
-These structures are designed for gas optimization:
+These structures are designed for gas optimization guided by the Unhinged Merkle Tree concept:
 
-- **UnhingedProof**: Simplified to contain only essential merkle proof data
+- **UnhingedProof**: Simplified to contain only essential proof data while maintaining the benefits of the two-part conceptual structure
 - **AllowanceOrTransfer**: Unified structure for multiple operation types to reduce contract size and complexity
-- **Merkle Proofs**: Logarithmic proof size ensures efficient verification even for large operation sets
+- **Two-Part Benefits**: Chain ordering strategies enabled by the conceptual hybrid structure can minimize costs on expensive chains
+- **Logarithmic Scaling**: Proof size ensures efficient verification even for large cross-chain operation sets
 
-These optimizations are crucial for cost-effective cross-chain operations.
+These optimizations, guided by the innovative two-part design philosophy, are crucial for cost-effective cross-chain operations.

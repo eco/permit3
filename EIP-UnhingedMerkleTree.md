@@ -13,7 +13,7 @@ requires: 712
 
 ## Abstract
 
-This EIP proposes a standardized method for creating and verifying proofs across multiple blockchain networks using a hybrid tree structure with a clear two-part design: a balanced Merkle tree for efficient membership proofs combined with sequential hash chaining for linking across chains. This structure, named "Unhinged Merkle Tree," enables efficient and compact proofs for cross-chain operations while maintaining security guarantees.
+This EIP proposes a standardized method for creating and verifying proofs across multiple blockchain networks using an innovative hybrid tree structure with a clear two-part design: a balanced Merkle tree for efficient membership proofs combined with sequential hash chaining for linking across chains. This structure, named "Unhinged Merkle Tree," enables efficient and compact proofs for cross-chain operations while maintaining security guarantees. The name "Unhinged" reflects the deliberate deviation from traditional balanced tree structures at the top level, creating a more efficient structure for cross-chain applications.
 
 ## Motivation
 
@@ -43,33 +43,38 @@ The Unhinged Merkle Tree structure addresses these challenges by:
 
 ### Two-Part Structure
 
-The key insight of the Unhinged Merkle Tree is its distinct two-part structure:
+The key insight of the Unhinged Merkle Tree is its distinct two-part hybrid structure that deliberately combines different organizational principles:
 
 ```
-               [H1] → [H2] → [H3] → ROOT
+               [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
             /      \      \      \
-          [BR]    [D5]   [D6]   [D7]  
+          [BR]    [D5]   [D6]   [D7]      ← Additional chain data
          /     \
-     [BH1]     [BH2]
+     [BH1]     [BH2]                      ← Balanced tree (bottom part)
     /    \     /    \
-[D1]    [D2] [D3]  [D4]
+  [D1]  [D2] [D3]  [D4]                   ← Leaf data
 ```
 
 Where:
 - **Bottom Part**: A standard balanced Merkle tree for efficient membership proofs
-  - [BR] is the balanced root
+  - [BR] is the balanced root providing O(log n) verification
   - [BH1], [BH2] are balanced hash nodes
-  - [D1]-[D4] are the leaf data points
+  - [D1]-[D4] are the leaf data points within individual chains
   
-- **Top Part**: A sequential hash chain for efficiently linking across chains
-  - Starts with the balanced root [BR]
-  - Incorporates additional data points [D5], [D6], [D7]
-  - Creates the hash chain [H1] → [H2] → [H3] → ROOT
+- **Top Part**: A sequential hash chain for linking across chains with minimal overhead
+  - Starts with the balanced root [BR] as the foundation
+  - Incorporates additional data points [D5], [D6], [D7] representing other chains
+  - Creates the sequential hash chain [H1] → [H2] → [H3] → ROOT
+  - Each step: `H(n+1) = hash(H(n), D(n+5))` for efficient chaining
+
+**Why "Unhinged"?**
+The name reflects the deliberate deviation from traditional balanced Merkle trees at the top level. While the bottom maintains the "hinged" balanced structure for efficiency, the top becomes "unhinged" from this constraint to optimize for cross-chain operations.
 
 This hybrid approach combines the benefits of both structures:
-- Efficient membership proofs from the balanced part (O(log n) complexity) 
-- Minimal gas usage from the sequential chain part
-- Flexibility to include both tree-structured data and sequential data in a single signed root
+- **Efficient membership proofs** from the balanced part (O(log n) complexity) 
+- **Minimal gas usage** from the sequential chain part for cross-chain linking
+- **Gas optimization** through strategic chain ordering (cheapest chains first)
+- **Flexibility** to include both tree-structured data and sequential data in a single signed root
 
 The Unhinged Merkle Tree consists of:
 
@@ -88,7 +93,7 @@ The final `result` is the Unhinged Root that can be signed using EIP-712 or othe
 
 ### Proof Format
 
-The proof format for an Unhinged Merkle Tree uses standard merkle proofs:
+The current implementation uses a simplified proof format that leverages standard merkle proofs while maintaining the conceptual benefits of the two-part structure:
 
 ```solidity
 bytes32[] unhingedProof;  // Array of sibling hashes forming the merkle proof
@@ -96,8 +101,9 @@ bytes32[] unhingedProof;  // Array of sibling hashes forming the merkle proof
 
 Where:
 - `unhingedProof`: A standard merkle proof containing sibling hashes needed to reconstruct the path from a leaf to the root
-- Uses ordered hashing (smaller value first) for consistency
+- Uses ordered hashing (smaller value first) for consistency  
 - Compatible with OpenZeppelin's MerkleProof library
+- **Implementation Note**: While the conceptual two-part structure provides the theoretical foundation, the current implementation uses simplified standard merkle tree verification for maximum compatibility and security
 
 #### Verification Process
 
@@ -110,10 +116,12 @@ The Unhinged Merkle Tree uses standard merkle tree verification:
 3. The final result should match the signed root
 
 This approach provides several advantages:
-1. Simple and well-understood verification algorithm
-2. Compatible with existing merkle proof libraries
-3. Efficient gas usage with minimal overhead
-4. No complex proof structure parsing required
+1. **Conceptual Foundation**: The two-part hybrid structure guides the design philosophy
+2. **Simple Implementation**: Well-understood standard merkle tree verification
+3. **Library Compatibility**: Works with existing merkle proof libraries like OpenZeppelin's
+4. **Efficient Gas Usage**: Minimal overhead with predictable O(log n) complexity
+5. **Security**: Leverages battle-tested merkle tree verification patterns
+6. **Future Extensibility**: The conceptual framework allows for future optimizations
 
 ### Verification Algorithm
 

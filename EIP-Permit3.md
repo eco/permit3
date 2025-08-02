@@ -45,7 +45,7 @@ The limitations of existing token approval systems across multiple blockchains c
 
 ## Specification
 
-> **Note:** UnhingedMerkleTree is a standard merkle tree implementation based on OpenZeppelin's MerkleProof library, optimized for cross-chain proof verification.
+> **Note:** UnhingedMerkleTree represents an innovative two-part hybrid structure combining balanced merkle trees with sequential hash chaining. While the current implementation uses standard merkle tree verification for simplicity and security, the conceptual foundation enables efficient cross-chain proof verification with gas optimization through strategic chain ordering.
 
 ### Core Data Structures
 
