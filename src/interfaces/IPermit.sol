@@ -41,6 +41,23 @@ interface IPermit {
     error ZeroAddress(string parameterName);
 
     /**
+     * @dev Thrown when an invalid token address is provided
+     */
+    error TokenCannotBeZeroAddress();
+
+    /**
+     * @dev Thrown when an invalid amount is provided
+     * @param amount The invalid amount
+     */
+    error InvalidAmount(uint160 amount);
+
+    /**
+     * @dev Thrown when an invalid expiration timestamp is provided
+     * @param expiration The invalid expiration timestamp
+     */
+    error InvalidExpiration(uint48 expiration);
+
+    /**
      * @dev Represents a token and spender pair for batch operations
      * @param token The address of the token contract
      * @param spender The address approved to spend the token
