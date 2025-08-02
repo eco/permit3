@@ -127,7 +127,7 @@ struct UnhingedProof {
 
 - **nodes**: Combined array containing all proof components in order
   - preHash (if present): The hash of all preceding chains
-  - subtreeProof nodes: For balanced merkle tree verification
+  - subtreeProof nodes: For balanced merkle tree verification (mutually exclusive with preHash)
   - followingHashes: Hashes of subsequent chains
   
 - **counts**: Packed bytes32 value containing:

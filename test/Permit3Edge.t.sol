@@ -1145,7 +1145,7 @@ contract Permit3EdgeTest is Test {
         // Test it with leaf node
         bytes32 leaf = keccak256("test leaf");
 
-        // Calculate the unhinged root directly - should hash preHash with leaf
+        // When hasPreHash=true and no following hashes, hash the preHash with the leaf
         bytes32 expectedRoot = keccak256(abi.encodePacked(nodes[0], leaf));
         bytes32 calculatedRoot = permit3Tester.calculateUnhingedRoot(leaf, emptyProof);
 

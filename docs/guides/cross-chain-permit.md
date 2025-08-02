@@ -141,7 +141,7 @@ For each chain, create a specialized proof that connects it to the unhinged root
 ```javascript
 // Create optimized proof utility
 function createOptimizedProof(preHash, subtreeProof, followingHashes) {
-    // Pack counts into a single bytes32
+    // Note: preHash and subtreeProof are mutually exclusive
     const subtreeProofCount = subtreeProof.length;
     const followingHashesCount = followingHashes.length;
     const hasPreHash = preHash !== ethers.constants.HashZero;

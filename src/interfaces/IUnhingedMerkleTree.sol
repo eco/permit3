@@ -27,11 +27,6 @@ interface IUnhingedMerkleTree {
     }
 
     /**
-     * @notice Error when the subtree proof verification fails
-     */
-    error InvalidSubtreeProof();
-
-    /**
      * @notice Error when the unhinged chain verification fails
      */
     error InvalidUnhingedProof();

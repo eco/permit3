@@ -316,17 +316,16 @@ contract Permit3WitnessTest is Test {
         // Create the base permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
-        // Create a proper unhinged proof
-        bytes32[] memory nodes = new bytes32[](3);
+        // Create a proper unhinged proof (using preHash only, no subtreeProof - mutually exclusive)
+        bytes32[] memory nodes = new bytes32[](2);
         nodes[0] = bytes32(uint256(0x1234)); // preHash
-        nodes[1] = bytes32(uint256(0x5678)); // subtree proof
-        nodes[2] = bytes32(uint256(0x9abc)); // following hash
+        nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
-        // Create packed counts with hasPreHash flag set to true
+        // Create packed counts with hasPreHash flag set to true (no subtreeProof)
         bytes32 counts;
         {
-            // Pack with updated format: 1 subtree proof node, 1 following hash, with preHash flag
-            uint256 packedValue = uint256(1) << 136; // 1 subtree proof node (shifted 136 bits)
+            // Pack with updated format: 0 subtree proof nodes, 1 following hash, with preHash flag
+            uint256 packedValue = uint256(0) << 136; // 0 subtree proof nodes (shifted 136 bits)
             packedValue |= uint256(1) << 16; // 1 following hash (shifted 16 bits)
             packedValue |= 1; // hasPreHash flag (last bit set to 1)
             counts = bytes32(packedValue);
@@ -453,8 +452,7 @@ contract Permit3WitnessTest is Test {
 
         // Calculate the unhinged root exactly as the contract does
         if (vars.hasPreHash) {
-            vars.unhingedRoot = vars.preHash;
-            vars.unhingedRoot = keccak256(abi.encodePacked(vars.unhingedRoot, vars.subtreeRoot));
+            vars.unhingedRoot = keccak256(abi.encodePacked(vars.preHash, vars.currentChainHash));
         } else {
             vars.unhingedRoot = vars.subtreeRoot;
         }
