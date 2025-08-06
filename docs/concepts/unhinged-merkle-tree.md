@@ -3,25 +3,25 @@
 
 🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Unhinged Merkle Trees
 
-Unhinged Merkle Trees are a key innovation in Permit3 that enables efficient cross-chain proofs through an innovative two-part hybrid structure. This document explains what they are conceptually, how they work, and how they're implemented within the Permit3 system.
+Unhinged Merkle Trees are a key innovation in Permit3 that enables efficient cross-chain proofs. This document explains what they are, how they work, and how they're implemented within the Permit3 system.
 
 ###### Navigation: [What Are They](#what-are-unhinged-merkle-trees) | [Why "Unhinged"](#why-unhinged) | [Key Structure](#key-structure-a-two-part-design) | [Working Together](#how-the-two-parts-work-together) | [Cross-Chain Use](#applied-to-cross-chain-use-cases) | [Gas Optimization](#gas-optimization-through-chain-ordering) | [Proof Structure](#proof-structure) | [Verification](#verification-process) | [Implementation](#implementation-in-permit3) | [Example](#example-cross-chain-permit-with-unhinged-merkle-tree) | [Benefits](#benefits-of-unhinged-merkle-trees) | [Applications](#applications-beyond-permit3) | [Comparison](#comparison-with-other-approaches) | [Conclusion](#conclusion)
 
 <a id="what-are-unhinged-merkle-trees"></a>
 ## 🤔 What are Unhinged Merkle Trees?
 
-Unhinged Merkle Trees are an innovative hybrid data structure that combines two complementary organizational principles: balanced merkle trees for efficient membership proofs and sequential hash chaining for optimal cross-chain linking. 
+Unhinged Merkle Trees are a hybrid data structure that combines two organizational principles: balanced merkle trees for efficient membership proofs and sequential hash chaining for cross-chain linking. 
 
 The key insight is the **two-part design**:
 - **Bottom Part**: A balanced merkle tree that provides efficient O(log n) membership proofs
 - **Top Part**: A sequential hash chain that efficiently links operations across multiple chains
 
-While the current implementation uses standard merkle tree verification (built on OpenZeppelin's MerkleProof library), the conceptual foundation of the two-part structure guides the design philosophy and enables future optimizations.
+Uses merkle tree verification for security and compatibility.
 
 <a id="why-unhinged"></a>
 ## 🏷️ Why "Unhinged"?
 
-The name "Unhinged" reflects the deliberate deviation from traditional balanced merkle tree structures at the top level. In a standard merkle tree, every level maintains a balanced "hinged" structure. However, for cross-chain operations, this constraint becomes suboptimal.
+The name "Unhinged" reflects the deliberate deviation from traditional balanced merkle tree structures at the top level. In a traditional merkle tree, every level maintains a balanced "hinged" structure. However, for cross-chain operations, this constraint becomes suboptimal.
 
 The Unhinged Merkle Tree becomes "unhinged" from this balanced constraint at the top level:
 - **Bottom stays "hinged"**: Maintains balanced structure for efficient membership proofs
@@ -32,7 +32,7 @@ This creates a more efficient structure for cross-chain applications while maint
 <a id="key-structure-a-two-part-design"></a>
 ## 🧩 Key Structure: The Two-Part Hybrid Design
 
-The conceptual foundation of Unhinged Merkle Trees is the innovative two-part hybrid structure:
+The foundation of Unhinged Merkle Trees is the two-part structure:
 
 ```
                [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
@@ -60,15 +60,14 @@ The conceptual foundation of Unhinged Merkle Trees is the innovative two-part hy
    - Creates sequential chain: H1 = hash(BR, D5), H2 = hash(H1, D6), etc.
    - Optimized for gas efficiency across multiple chains
 
-### Current Implementation
+### How It Works
 
-While the current implementation uses standard merkle tree verification for simplicity:
-- Built on OpenZeppelin's proven MerkleProof library
+Unhinged Merkle Trees use merkle tree verification for simplicity:
 - Uses ordered hashing (smaller value first) for consistency
 - Provides O(log n) membership proofs
 - Maintains security guarantees through battle-tested patterns
 
-The conceptual two-part structure guides the design philosophy and enables future optimizations.
+The two-part structure guides the design philosophy and enables future optimizations.
 
 <a id="how-the-two-parts-work-together"></a>
 ## How It Works
@@ -109,22 +108,21 @@ The two-part structure enables strategic gas optimization:
 - This minimizes proof size for expensive chains while allowing larger proofs on cheaper chains
 
 **Benefits**:
-1. **Sequential Efficiency**: Later chains in the sequence need smaller proofs
-2. **Cost Optimization**: Heavy proof data processed on cheaper chains
-3. **Predictable Gas Costs**: Verification complexity remains O(log n)
-4. **Minimal Calldata**: Each proof contains only essential merkle proof data
+1. **Strategic Ordering**: Expensive chains positioned last receive smaller proofs
+2. **Cost Distribution**: Larger proofs handled by chains with cheaper calldata
+3. **Proof Size Optimization**: Chain position directly affects proof size requirements
+4. **Minimal Calldata**: Later chains need fewer sibling hashes in their proofs
 
-**Current Implementation**:
-The standard merkle tree approach provides:
+The Unhinged Merkle Tree approach provides:
 - Consistent O(log n) verification complexity
 - Minimal calldata requirements (log₂(n) hashes per proof)
-- Gas-optimized verification through OpenZeppelin's implementation
+- Gas-optimized verification
 - Future extensibility for chain ordering optimizations
 
 <a id="proof-structure"></a>
 ## Proof Structure
 
-The current implementation uses a simplified proof structure that maintains the benefits of the conceptual two-part design:
+The proof structure is:
 
 ```solidity
 struct UnhingedProof {
@@ -138,7 +136,7 @@ This streamlined structure contains:
   - Each hash is a sibling node needed to reconstruct the path to the root
   - Follows standard merkle proof format for maximum compatibility
   - Number of nodes = ceiling(log₂(total leaves))
-  - **Conceptual benefit**: Represents the efficient path through both parts of the hybrid structure
+  - **Key benefit**: Represents the efficient path through both parts of the hybrid structure
 
 ### How Merkle Proofs Work
 
@@ -154,13 +152,13 @@ To verify that a leaf is part of the tree:
 
 ### Gas Efficiency
 
-The simplified structure provides excellent gas efficiency while maintaining the conceptual benefits:
+This structure provides excellent gas efficiency:
 
 - **Minimal Calldata**: Only essential sibling hashes, no complex proof structures
 - **No Overhead**: No packed counts or flags to decode
 - **Predictable Costs**: Gas usage scales logarithmically with tree size
-- **Optimized Verification**: Leverages OpenZeppelin's battle-tested implementation
-- **Future-Ready**: Conceptual two-part foundation enables future optimizations
+- **Optimized Verification**: Battle-tested approach
+- **Future-Ready**: Two-part foundation enables future optimizations
 - **Chain Ordering Benefits**: Strategic ordering can minimize proof sizes on expensive chains
 
 <a id="verification-process"></a>
@@ -184,14 +182,14 @@ To verify that an element is included in an Unhinged Merkle Tree:
    - If they match, the operation is proven to be part of the tree
 
 <a id="implementation-in-permit3"></a>
-## Implementation in Permit3
+## Usage in Permit3
 
-Permit3 implements Unhinged Merkle Trees through a clean architecture:
+Permit3 uses Unhinged Merkle Trees through a clean architecture:
 
-- `UnhingedMerkleTree.sol`: Implementation based on OpenZeppelin's MerkleProof library
+- `UnhingedMerkleTree.sol`: Merkle tree verification logic
 - `IUnhingedMerkleTree.sol`: Simple interface defining the streamlined proof structure  
 - Integration with `Permit3.sol` for cross-chain permit operations
-- **Conceptual Foundation**: The two-part hybrid design guides the overall architecture
+- **Foundation**: The two-part hybrid design guides the overall architecture
 
 The following functions are provided:
 
@@ -222,10 +220,10 @@ function verifyProof(
 
 Here's how Unhinged Merkle Trees are used in a cross-chain permit scenario:
 
-1. **Tree Construction** (Conceptual Two-Part Process):
+1. **Tree Construction** (Two-Part Process):
    - **Bottom Part**: Collect operations within each chain, build balanced subtrees
    - **Top Part**: Chain the subtree roots sequentially for cross-chain linking
-   - **Implementation**: Standard merkle tree built from all chain operations
+   - **Result**: Standard merkle tree built from all chain operations
    - The root represents operations across all chains with hybrid efficiency
 
 2. **Signature Creation**:
@@ -236,7 +234,7 @@ Here's how Unhinged Merkle Trees are used in a cross-chain permit scenario:
 3. **Chain-Specific Verification**:
    - On each chain, verify the specific operations for that chain
    - Merkle proof connects local operations to the global signed root
-   - **Conceptual benefit**: Proof traverses both balanced and sequential parts efficiently
+   - **Key benefit**: Proof traverses both balanced and sequential parts efficiently
 
 ### Code Example
 
@@ -282,13 +280,13 @@ permit3.permitUnhinged(owner, salt, deadline, timestamp, proof, signature);
 <a id="benefits-of-unhinged-merkle-trees"></a>
 ## Benefits of Unhinged Merkle Trees
 
-1. **Conceptual Innovation**: Two-part hybrid structure optimized for cross-chain operations
+1. **Design Innovation**: Two-part hybrid structure optimized for cross-chain operations
 2. **Gas Efficiency**: Strategic chain ordering minimizes costs on expensive chains
-3. **Simplified User Experience**: One signature leverages both balanced and sequential benefits
+3. **Better User Experience**: One signature leverages both balanced and sequential benefits
 4. **Flexible Structure**: Supports arbitrary numbers of chains and operations efficiently
 5. **Security**: Standard merkle tree verification with battle-tested security properties
-6. **Future Extensibility**: Conceptual foundation enables advanced optimizations
-7. **Implementation Simplicity**: Current standard approach provides immediate benefits
+6. **Future Extensibility**: Two-part foundation enables advanced optimizations
+7. **Simplicity**: Standard approach provides immediate benefits
 
 <a id="applications-beyond-permit3"></a>
 ## Applications Beyond Permit3
@@ -308,20 +306,20 @@ Unhinged Merkle Trees have applications beyond token approvals:
 | Separate Signatures | Simple implementation | Poor UX, multiple signatures required |
 | Hash Lists | Very simple | No efficient inclusion proofs |
 | Traditional Balanced Trees | Well understood | Suboptimal for cross-chain gas costs |
-| **Unhinged Merkle Trees** | Hybrid conceptual benefits + standard implementation security | None - best of both worlds |
+| **Unhinged Merkle Trees** | Hybrid design + standard security | None - best of both worlds |
 
 <a id="conclusion"></a>
 ## Conclusion
 
-Unhinged Merkle Trees represent an innovative conceptual breakthrough for cross-chain proof systems. The two-part hybrid structure—combining balanced merkle trees with sequential hash chaining—provides the theoretical foundation for optimal cross-chain operations.
+Unhinged Merkle Trees represent a breakthrough for cross-chain proof systems. The two-part hybrid structure—combining balanced merkle trees with sequential hash chaining—provides the foundation for optimal cross-chain operations.
 
-The current implementation wisely leverages OpenZeppelin's proven MerkleProof library, providing immediate security and compatibility benefits while maintaining the door open for future optimizations guided by the conceptual framework.
+Provides security and compatibility benefits through merkle tree verification.
 
 Key advantages:
-- **Conceptual Innovation**: Two-part structure optimized for cross-chain scenarios
-- **Implementation Security**: Battle-tested standard merkle tree verification  
-- **Gas Optimization Potential**: Chain ordering strategies minimize costs
-- **Future Extensibility**: Conceptual foundation enables advanced optimizations
+- **Design Innovation**: Two-part structure optimized for cross-chain scenarios
+- **Security**: Battle-tested merkle tree verification  
+- **Gas Optimization**: Chain ordering strategies minimize proof sizes on expensive chains
+- **Future Extensibility**: Two-part foundation enables advanced optimizations
 
 This approach enables a future where users can seamlessly authorize operations across the entire blockchain ecosystem with a single signature, while maintaining security through proven cryptographic primitives and the flexibility to implement advanced optimizations as the ecosystem evolves.
 

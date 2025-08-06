@@ -222,15 +222,15 @@ Witness functionality extends the standard permit flow:
 Permit3 enables cross-chain operations through Unhinged Merkle Trees:
 
 1. Hash permits for each chain individually 
-2. Build an Unhinged Merkle Tree from all chain hashes (conceptual two-part structure)
+2. Build an Unhinged Merkle Tree from all chain hashes (two-part structure)
 3. Sign the Unhinged root
 4. Generate Unhinged proofs for each chain  
 5. Process the portion relevant to the current chain
 
-This approach leverages the innovative two-part hybrid design:
+This approach leverages the two-part design:
 - **Bottom Part**: Efficient membership proofs within individual chains
 - **Top Part**: Sequential chaining optimized for cross-chain linking
-- **Implementation**: Standard merkle tree verification for security and compatibility
+- **Verification**: Merkle tree verification for security and compatibility
 - **Benefits**: One signature for multiple chains with gas optimization potential
 - **Security**: Chain ID validation prevents cross-chain replay attacks
 - **Extensibility**: Supports witness data across chains with future optimization opportunities
@@ -242,7 +242,7 @@ This approach leverages the innovative two-part hybrid design:
 bytes32 leaf = permit3.hashChainPermits(proof.permits);
 
 // Verify the Unhinged Merkle Tree proof
-// (conceptually traverses both balanced and sequential parts)
+// (traverses both balanced and sequential parts)
 bool valid = UnhingedMerkleTree.verify(
     proof.unhingedProof,
     unhingedRoot,

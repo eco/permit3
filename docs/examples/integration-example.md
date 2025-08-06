@@ -158,7 +158,7 @@ const TokenApproval = () => {
 
 ### Backend Service for Cross-Chain Permits
 
-Here's a Node.js service that coordinates cross-chain permits using the simplified UnhingedMerkleTree:
+Here's a Node.js service that coordinates cross-chain permits using UnhingedMerkleTree:
 
 ```javascript
 const { ethers } = require('ethers');
@@ -786,4 +786,4 @@ This integration example demonstrates how to build a complete Permit3 implementa
 - Comprehensive testing
 - Best practices and troubleshooting
 
-The simplified UnhingedMerkleTree approach using standard merkle proofs makes the system easier to understand, implement, and maintain while providing the same functionality for cross-chain operations.
+The UnhingedMerkleTree approach using standard merkle proofs makes the system easy to understand, implement, and maintain while providing powerful functionality for cross-chain operations.

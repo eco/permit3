@@ -10,7 +10,7 @@ This document explains how Permit3 enables token operations across multiple bloc
 <a id="overview"></a>
 ## Overview
 
-One of the most powerful features of Permit3 is the ability to authorize token operations across multiple blockchains with a single signature. This is achieved through the use of Unhinged Merkle Trees - an innovative two-part hybrid structure that combines balanced merkle trees with sequential hash chaining, implemented using OpenZeppelin's proven MerkleProof library.
+One of the most powerful features of Permit3 is the ability to authorize token operations across multiple blockchains with a single signature. This is achieved through the use of Unhinged Merkle Trees.
 
 This approach allows different portions of a signed message to be verified and executed on different chains with optimal gas efficiency.
 
@@ -28,9 +28,9 @@ The cross-chain mechanism in Permit3 involves these key steps:
 <a id="legacy-hash-chaining-mechanism"></a>
 ### Unhinged Merkle Tree Construction
 
-The Unhinged Merkle Tree approach leverages the conceptual two-part hybrid structure to create an efficient root hash representing operations across multiple chains:
+The Unhinged Merkle Tree approach leverages the two-part hybrid structure to create an efficient root hash representing operations across multiple chains:
 
-**Conceptual Structure:**
+**Structure:**
 ```
                [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
             /      \      \      \
@@ -41,14 +41,12 @@ The Unhinged Merkle Tree approach leverages the conceptual two-part hybrid struc
 chainA_ops1 chainA_ops2 ...               ← Operations within chainA
 ```
 
-**Implementation:**
 ```
 chainA_leaf = hash(chainA_permits)
 chainB_leaf = hash(chainB_permits) 
 chainC_leaf = hash(chainC_permits)
 
-// Current implementation uses standard merkle tree
-// guided by the two-part conceptual structure
+// Unhinged Merkle Tree structure
 //        root
 //       /    \
 //     H1      chainC_leaf
@@ -57,10 +55,10 @@ chainC_leaf = hash(chainC_permits)
 root = buildMerkleRoot([chainA_leaf, chainB_leaf, chainC_leaf])
 ```
 
-The conceptual two-part structure provides the foundation for gas optimization strategies such as strategic chain ordering.
+The two-part structure provides the foundation for gas optimization strategies such as strategic chain ordering.
 
 <a id="unhinged-merkle-tree-approach"></a>
-When executing on any specific chain, a merkle proof is provided that proves that chain's permits are included in the signed root. This uses standard merkle tree verification with ordered hashing (smaller value first) for consistency.
+When executing on any specific chain, a merkle proof is provided that proves that chain's permits are included in the signed root. This uses merkle tree verification with ordered hashing (smaller value first) for consistency.
 
 <a id="proof-structures"></a>
 ## Proof Structure
@@ -81,7 +79,7 @@ struct UnhingedProof {
 }
 ```
 
-This approach is gas-efficient as it contains only the essential merkle proof data needed for verification, while the conceptual two-part structure enables strategic optimizations like chain ordering to minimize costs on expensive chains.
+This approach is gas-efficient as it contains only the essential merkle proof data needed for verification, while the two-part structure enables strategic optimizations like chain ordering to minimize costs on expensive chains.
 
 <a id="example-cross-chain-token-approval"></a>
 ## Example: Cross-Chain Token Approval
@@ -138,9 +136,8 @@ const optPermits = {
 ```javascript
 // Helper function to hash chain permits
 function hashChainPermits(permits) {
-    // Implementation details would depend on your environment
     // This should match the contract's hashChainPermits function
-    return ethers.utils.keccak256(/* implementation */);
+    return ethers.utils.keccak256(/* encoded permits */);
 }
 
 // Hash each chain's permits to create leaves
@@ -148,12 +145,11 @@ const ethLeaf = hashChainPermits(ethPermits);
 const arbLeaf = hashChainPermits(arbPermits);
 const optLeaf = hashChainPermits(optPermits);
 
-// Build Unhinged Merkle Tree (guided by two-part conceptual structure)
-// Implementation uses standard merkle tree for security and compatibility
+// Build Unhinged Merkle Tree
 const leaves = [ethLeaf, arbLeaf, optLeaf];
 const unhingedRoot = buildMerkleRoot(leaves);
 
-// Conceptual benefit: Chain ordering can optimize gas costs
+// Key benefit: Chain ordering can optimize gas costs
 // (e.g., place cheaper L2 chains first, expensive L1 chains last)
 ```
 
@@ -303,8 +299,8 @@ To minimize overall transaction costs across all chains, you should order chains
 
 This ordering strategy provides significant gas savings because:
 
-- **Proof Size vs. Chain Position**: The conceptual structure of Unhinged Merkle Trees means that chains later in the sequence can leverage more efficient proof structures
-- **Minimal Calldata on Expensive Chains**: While the current implementation uses standard merkle proofs, the conceptual framework enables future optimizations where expensive chains could use minimal proof data
+- **Proof Size vs. Chain Position**: The two-part structure of Unhinged Merkle Trees means chains later in the sequence have smaller proof requirements
+- **Minimal Calldata on Expensive Chains**: The Unhinged structure enables placing expensive chains last, minimizing their proof size
 - **Larger Proofs on Cheaper Chains**: The bulk of proof data can be processed on networks with lower calldata costs
 
 ### Concrete Gas Numbers
@@ -317,7 +313,7 @@ Consider a scenario with operations on Ethereum (high calldata cost) and two L2s
 
 **With Strategic Ordering (L2s First, Ethereum Last):**
 - L2s handle larger proofs where calldata is cheap
-- Ethereum benefits from the conceptual structure with potential for minimal proof data
+- Ethereum benefits from the two-part structure with potential for minimal proof data
 - Future optimizations could reduce Ethereum's proof to just 32 bytes
 - **Potential savings: 50% or more on total cross-chain gas costs**
 
@@ -327,7 +323,7 @@ Consider a scenario with operations on Ethereum (high calldata cost) and two L2s
 2. **Chain Ordering Benefits**: Strategic ordering minimizes costs on expensive chains
 3. **Predictable Verification**: Each proof verification has consistent gas costs  
 4. **Compact Proofs**: Only sibling hashes are needed, minimizing calldata
-5. **Future Optimization Potential**: The two-part conceptual structure enables advanced gas optimizations
+5. **Gas Efficient**: Optimized for minimal gas consumption across chains
 
 ### Example Gas Analysis
 
@@ -339,7 +335,7 @@ For an Unhinged Merkle Tree with 8 chains:
   - Expensive L1 (Ethereum): Positioned to benefit from future optimizations
 - **Result**: Cross-chain operations become economically viable
 
-This strategic approach ensures that cross-chain operations remain gas-efficient even as the ecosystem grows, with the innovative two-part structure providing a foundation for future optimizations.
+This strategic approach ensures that cross-chain operations remain gas-efficient even as the ecosystem grows, with the two-part structure providing a foundation for future optimizations.
 
 <a id="security-considerations"></a>
 ## Security Considerations
@@ -350,7 +346,7 @@ When working with cross-chain operations in Permit3, keep these critical securit
 Chain ID verification is paramount for cross-chain security:
 - **Always verify**: Each operation MUST validate `chainId` matches the executing network
 - **Prevent replay attacks**: Without proper chain ID checks, signatures could be replayed on unintended networks
-- **Implementation requirement**: Every permit includes the specific `chainId` in the signed data
+- **Requirement**: Every permit includes the specific `chainId` in the signed data
 - **Contract enforcement**: Permit3 automatically rejects operations with mismatched chain IDs
 
 ### 2. **Signature Domain Separation**

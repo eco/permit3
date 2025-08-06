@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through innovative UnhingedProofs and non-sequential nonces, while maintaining Permit2 compatibility.
+Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through UnhingedProofs and non-sequential nonces, while maintaining Permit2 compatibility.
 
 > **"Permit3 unlocks a one-click/signature cross-chain future."**
 
@@ -11,7 +11,7 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 - 🌉 **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
 - 🔐 **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
 - 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
-- 🌲 **Unhinged Merkle Trees**: Innovative hybrid two-part structure for cross-chain proofs:
+- 🌲 **Unhinged Merkle Trees**: Hybrid two-part structure for cross-chain proofs:
   ```
                  [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
               /      \      \      \
@@ -26,7 +26,7 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
   - 🔗 **Top Part**: Sequential chaining for linking across chains  
   - 🚀 **Gas Optimization**: Chain ordering (cheapest chains first, expensive last)
   - 🎯 **"Unhinged"**: Deliberate deviation from balanced trees at top level
-  - 💡 **Current Implementation**: Simplified to use standard merkle proofs while maintaining conceptual benefits
+  - 💡 **Security**: Uses merkle tree verification for compatibility
 - 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
 - 🔄 **Flexible Allowance Management**:
     - ⬆️ Increase/decrease allowances asynchronously

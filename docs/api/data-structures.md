@@ -75,7 +75,7 @@ struct UnhingedPermitProof {
 #### Fields
 
 - **permits**: The permits to execute on the current chain
-- **unhingedProof**: Array of Unhinged Merkle Tree proof nodes that prove these permits are part of the signed root. Based on the innovative two-part hybrid structure, but implemented using standard merkle proof format for security and compatibility.
+- **unhingedProof**: Array of merkle proof nodes that prove these permits are part of the signed root
 
 ### Allowance
 
@@ -112,7 +112,7 @@ struct NoncesToInvalidate {
 <a id="unhingedmerkletree-structures"></a>
 ## UnhingedMerkleTree Structures
 
-The UnhingedMerkleTree represents an innovative two-part hybrid structure (balanced merkle tree + sequential hash chain) but uses standard `bytes32[]` arrays for proof implementation. Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root, efficiently traversing both the balanced and sequential parts of the conceptual structure.
+The UnhingedMerkleTree uses standard `bytes32[]` arrays for proof implementation. Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
 
 <a id="relations-between-structures"></a>
 ## Relations Between Structures
@@ -140,11 +140,7 @@ This diagram shows how the different data structures relate to each other in the
 <a id="gas-optimization-note"></a>
 ## Gas Optimization Note
 
-These structures are designed for gas optimization guided by the Unhinged Merkle Tree concept:
+These structures are designed for gas optimization:
 
-- **UnhingedProof**: Simplified to contain only essential proof data while maintaining the benefits of the two-part conceptual structure
+- **UnhingedProof**: Contains only essential proof data
 - **AllowanceOrTransfer**: Unified structure for multiple operation types to reduce contract size and complexity
-- **Two-Part Benefits**: Chain ordering strategies enabled by the conceptual hybrid structure can minimize costs on expensive chains
-- **Logarithmic Scaling**: Proof size ensures efficient verification even for large cross-chain operation sets
-
-These optimizations, guided by the innovative two-part design philosophy, are crucial for cost-effective cross-chain operations.

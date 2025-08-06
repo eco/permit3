@@ -45,7 +45,7 @@ The limitations of existing token approval systems across multiple blockchains c
 
 ## Specification
 
-> **Note:** UnhingedMerkleTree represents an innovative two-part hybrid structure combining balanced merkle trees with sequential hash chaining. While the current implementation uses standard merkle tree verification for simplicity and security, the conceptual foundation enables efficient cross-chain proof verification with gas optimization through strategic chain ordering.
+> **Note:** For a detailed explanation of the UnhingedMerkleTree data structure used in this EIP, please see [EIP-UnhingedMerkleTree](./EIP-UnhingedMerkleTree.md).
 
 ### Core Data Structures
 
@@ -186,7 +186,7 @@ const merkleRoot = buildMerkleRoot([arbLeaf, optLeaf, ethLeaf]);
 Merkle trees provide predictable gas costs:
 - Each proof requires only log₂(n) hashes for verification
 - Gas usage scales logarithmically with the number of chains
-- Verification uses OpenZeppelin's optimized implementation
+- Efficient verification with predictable costs
 - Overall cross-chain transaction costs remain manageable
 
 ### How It Works
@@ -227,7 +227,7 @@ ethLeaf = hash(Ethereum Permissions)
 arbLeaf = hash(Arbitrum Permissions)  
 optLeaf = hash(Optimism Permissions)
 
-// Build standard merkle tree
+// Build Unhinged Merkle Tree
 merkleRoot = buildMerkleTree([ethLeaf, arbLeaf, optLeaf])
 ```
 

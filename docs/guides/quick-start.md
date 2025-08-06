@@ -309,7 +309,7 @@ const signature = signPermit3(owner, salt, deadline, timestamp, merkleRoot);
 
 // Generate merkle proofs (use a library in production)
 function generateMerkleProof(leaves, targetIndex) {
-    // Simplified - returns array of sibling hashes
+    // Returns array of sibling hashes
     // In this example with 3 leaves, proofs would be:
     // ethProof: [arbLeaf, hash(optLeaf, optLeaf)]
     // arbProof: [ethLeaf, hash(optLeaf, optLeaf)]

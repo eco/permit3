@@ -218,7 +218,7 @@ function permit(
 **Use Cases:**
 - ERC-7702 Token Approver integration
 - Direct permit execution without signatures
-- Simplified permit operations for trusted callers
+- Direct permit operations for trusted callers
 - Single-chain operations where caller has direct authority
 
 ### Witness Permit Functions

@@ -584,4 +584,4 @@ executeCrossChainPermits().catch(console.error);
 4. **Gas efficient** - Each chain only verifies its own proof
 5. **Flexible** - Add as many chains and operations as needed
 
-The simplified merkle tree approach makes cross-chain permits easier to understand and implement while maintaining security and efficiency.
+The merkle tree approach makes cross-chain permits easy to understand and implement while maintaining security and efficiency.

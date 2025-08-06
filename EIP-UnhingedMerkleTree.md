@@ -13,11 +13,11 @@ requires: 712
 
 ## Abstract
 
-This EIP proposes a standardized method for creating and verifying proofs across multiple blockchain networks using an innovative hybrid tree structure with a clear two-part design: a balanced Merkle tree for efficient membership proofs combined with sequential hash chaining for linking across chains. This structure, named "Unhinged Merkle Tree," enables efficient and compact proofs for cross-chain operations while maintaining security guarantees. The name "Unhinged" reflects the deliberate deviation from traditional balanced tree structures at the top level, creating a more efficient structure for cross-chain applications.
+This EIP proposes a standardized method for creating and verifying proofs across multiple blockchain networks using a hybrid tree structure that combines a balanced Merkle tree with sequential hash chaining. This structure, named "Unhinged Merkle Tree," enables efficient and compact proofs for cross-chain operations while maintaining security guarantees.
 
 ## Motivation
 
-Cross-chain operations have become increasingly important as blockchain ecosystems expand to multiple networks. However, current implementations lack a standardized, gas-efficient method for proving inclusion in multi-chain transaction sets. 
+Cross-chain operations have become increasingly important as blockchain ecosystems expand to multiple networks. However, existing solutions lack a standardized, gas-efficient method for proving inclusion in multi-chain transaction sets. 
 
 Common challenges in cross-chain operations include:
 1. Gas inefficiency when verifying operations across multiple chains
@@ -78,7 +78,7 @@ This hybrid approach combines the benefits of both structures:
 
 The Unhinged Merkle Tree consists of:
 
-1. **Balanced Subtrees**: Each chain has its own balanced Merkle tree of operations. These follow standard Merkle tree construction rules where leaf nodes are paired and hashed recursively until a single root hash is obtained.
+1. **Balanced Subtrees**: Each chain has its own balanced Merkle tree of operations. These follow traditional Merkle tree construction rules where leaf nodes are paired and hashed recursively until a single root hash is obtained.
 
 2. **Unhinged Chain**: The roots of these balanced subtrees are chained sequentially to form the "unhinged chain" through iterative hashing:
    ```
@@ -93,7 +93,7 @@ The final `result` is the Unhinged Root that can be signed using EIP-712 or othe
 
 ### Proof Format
 
-The current implementation uses a simplified proof format that leverages standard merkle proofs while maintaining the conceptual benefits of the two-part structure:
+The proof format is:
 
 ```solidity
 bytes32[] unhingedProof;  // Array of sibling hashes forming the merkle proof
@@ -102,12 +102,10 @@ bytes32[] unhingedProof;  // Array of sibling hashes forming the merkle proof
 Where:
 - `unhingedProof`: A standard merkle proof containing sibling hashes needed to reconstruct the path from a leaf to the root
 - Uses ordered hashing (smaller value first) for consistency  
-- Compatible with OpenZeppelin's MerkleProof library
-- **Implementation Note**: While the conceptual two-part structure provides the theoretical foundation, the current implementation uses simplified standard merkle tree verification for maximum compatibility and security
 
 #### Verification Process
 
-The Unhinged Merkle Tree uses standard merkle tree verification:
+The Unhinged Merkle Tree uses merkle tree verification:
 
 1. Start with the leaf (the hash of the current chain's permissions)
 2. For each element in the proof array:
@@ -116,12 +114,10 @@ The Unhinged Merkle Tree uses standard merkle tree verification:
 3. The final result should match the signed root
 
 This approach provides several advantages:
-1. **Conceptual Foundation**: The two-part hybrid structure guides the design philosophy
-2. **Simple Implementation**: Well-understood standard merkle tree verification
-3. **Library Compatibility**: Works with existing merkle proof libraries like OpenZeppelin's
-4. **Efficient Gas Usage**: Minimal overhead with predictable O(log n) complexity
-5. **Security**: Leverages battle-tested merkle tree verification patterns
-6. **Future Extensibility**: The conceptual framework allows for future optimizations
+1. **Simplicity**: Well-understood merkle tree verification
+2. **Library Compatibility**: Works with existing merkle proof libraries
+3. **Efficient Gas Usage**: Minimal overhead with predictable O(log n) complexity
+4. **Security**: Leverages battle-tested merkle tree verification patterns
 
 ### Verification Algorithm
 

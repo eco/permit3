@@ -214,7 +214,7 @@ The priority of operations is:
 The allowance system integrates with EIP-712 for secure signature-based approvals:
 
 ```solidity
-// Simplified typehash for AllowanceOrTransfer
+// Typehash for AllowanceOrTransfer
 bytes32 constant ALLOWANCE_TRANSFER_TYPEHASH = keccak256(
     "AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
 );
