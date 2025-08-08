@@ -1,10 +1,10 @@
 # Cross-Chain Permit Guide
 
-Learn how to use Permit3's Unhinged Merkle tree for seamless cross-chain token operations.
+Learn how to use Permit3's Unbalanced Merkle tree for seamless cross-chain token operations.
 
 ## 🌐 Understanding Cross-Chain Permits
 
-Cross-chain permits allow you to sign once and execute token operations across multiple chains. This is powered by the Unhinged Merkle tree, which uses standard merkle proofs to efficiently verify permissions on each chain.
+Cross-chain permits allow you to sign once and execute token operations across multiple chains. This is powered by the Unbalanced Merkle tree, which uses standard merkle proofs to efficiently verify permissions on each chain.
 
 ### Key Benefits
 
@@ -83,7 +83,7 @@ for (let i = 0; i < orderedChains.length; i++) {
 
 // Build the merkle tree
 const merkleTree = buildMerkleTree(leaves);
-const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
+const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```
 
 ### Step 4: Sign the Root
@@ -107,7 +107,7 @@ const types = {
         { name: "salt", type: "bytes32" },
         { name: "deadline", type: "uint48" },
         { name: "timestamp", type: "uint48" },
-        { name: "unhingedRoot", type: "bytes32" }
+        { name: "unbalancedRoot", type: "bytes32" }
     ]
 };
 
@@ -116,7 +116,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unhingedRoot
+    unbalancedRoot
 };
 
 const signature = await signer._signTypedData(domain, types, value);
@@ -135,7 +135,7 @@ for (const chain of orderedChains) {
     
     proofs[chain] = {
         permits: permits[chain],
-        unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+        unbalancedProof: proof.map(p => '0x' + p.data.toString('hex'))
     };
 }
 ```
@@ -274,7 +274,7 @@ class CrossChainPermitBuilder {
             const proof = merkleTree.getProof(leaves[index]);
             proofs[chain] = {
                 permits: permits[chain],
-                unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+                unbalancedProof: proof.map(p => '0x' + p.data.toString('hex'))
             };
         });
         
@@ -361,7 +361,7 @@ saveForLater(deferredChains, proofs, signature, salt, deadline, timestamp);
 When a chain receives a cross-chain permit:
 
 1. ✅ Verifies the chainId matches
-2. ✅ Validates the signature against the unhinged root
+2. ✅ Validates the signature against the unbalanced root
 3. ✅ Verifies the merkle proof connecting the chain's permits to the root
 4. ✅ Processes the permits if all checks pass
 
@@ -420,12 +420,12 @@ function debugCrossChainPermit(permits, merkleTree, proofs) {
         console.log(`\n${chain}:`);
         console.log("  Chain ID:", permit.chainId);
         console.log("  Permits:", permit.permits.length);
-        console.log("  Proof Length:", proofs[chain].unhingedProof.length);
+        console.log("  Proof Length:", proofs[chain].unbalancedProof.length);
         
         // Verify proof locally
         const leaf = ethers.utils.keccak256(/* hash chain permits */);
         const valid = merkleTree.verify(
-            proofs[chain].unhingedProof,
+            proofs[chain].unbalancedProof,
             leaf,
             merkleTree.getRoot()
         );
@@ -503,7 +503,7 @@ async function executeCrossChainPermits() {
     }
     
     const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-    const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
+    const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
     
     // Step 3: Create signature
     const owner = await signers.ethereum.getAddress();
@@ -524,11 +524,11 @@ async function executeCrossChainPermits() {
             { name: "salt", type: "bytes32" },
             { name: "deadline", type: "uint48" },
             { name: "timestamp", type: "uint48" },
-            { name: "unhingedRoot", type: "bytes32" }
+            { name: "unbalancedRoot", type: "bytes32" }
         ]
     };
     
-    const value = { owner, salt, deadline, timestamp, unhingedRoot };
+    const value = { owner, salt, deadline, timestamp, unbalancedRoot };
     const signature = await signers.ethereum._signTypedData(domain, types, value);
     
     // Step 4: Generate proofs
@@ -537,7 +537,7 @@ async function executeCrossChainPermits() {
         const proof = merkleTree.getProof(leaves[index]);
         proofs[chain] = {
             permits: permits[chain],
-            unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+            unbalancedProof: proof.map(p => '0x' + p.data.toString('hex'))
         };
     });
     
@@ -578,7 +578,7 @@ executeCrossChainPermits().catch(console.error);
 
 ## 🎓 Key Takeaways
 
-1. **Unhinged Merkle tree methodology uses standard merkle proofs** - Simple `bytes32[]` arrays with OpenZeppelin's MerkleProof.processProof()
+1. **Unbalanced Merkle tree methodology uses standard merkle proofs** - Simple `bytes32[]` arrays with OpenZeppelin's MerkleProof.processProof()
 2. **Sign once, execute anywhere** - One signature works across all chains
 3. **Order matters** - Keep chain ordering consistent
 4. **Gas efficient** - Each chain only verifies its own proof

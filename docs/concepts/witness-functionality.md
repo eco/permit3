@@ -30,7 +30,7 @@ The signature is constructed using a dynamic type string that combines the stand
 ```solidity
 // Standard type hash stub (provided by Permit3)
 string constant PERMIT_WITNESS_TYPEHASH_STUB = 
-    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
+    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,";
 
 // Custom witness type (provided by your application)
 string witnessTypeString = "bytes32 witnessData)";
@@ -267,7 +267,7 @@ Permit3 supports witness functionality across multiple chains using the same pri
 When implementing cross-chain witness operations:
 
 1. **Generate Unified Witness**: Create witness data that's meaningful across all target chains
-2. **Include in Merkle Tree**: The witness is part of the signed unhinged root
+2. **Include in Merkle Tree**: The witness is part of the signed unbalanced root
 3. **Verify on Each Chain**: Each chain independently verifies the witness against local state
 4. **Execute Conditionally**: Operations proceed only if witness conditions are satisfied
 
@@ -358,4 +358,4 @@ The ability to include arbitrary data in EIP-712 signatures opens up new possibi
 
 | ⬅️ Previous | 🏠 Section | ➡️ Next |
 |:-----------|:----------:|------------:|
-| [Unhinged Merkle Tree](/docs/concepts/unhinged-merkle-tree.md) | [Concepts](/docs/concepts/README.md) | [Allowance System](/docs/concepts/allowance-system.md) |
+| [Unbalanced Merkle Tree](/docs/concepts/unbalanced-merkle-tree.md) | [Concepts](/docs/concepts/README.md) | [Allowance System](/docs/concepts/allowance-system.md) |

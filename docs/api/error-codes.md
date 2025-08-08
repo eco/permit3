@@ -163,7 +163,7 @@ Thrown when the provided merkle proof fails verification against the signed root
 - Inconsistent proof structure
 
 **Mitigation:**
-- Generate proofs using the Unhinged Merkle tree methodology with OpenZeppelin's MerkleProof
+- Generate proofs using the Unbalanced Merkle tree methodology with OpenZeppelin's MerkleProof
 - Ensure consistent ordering of chains
 - Verify proofs locally before submitting
 - Ensure proper handling of the hasPreHash flag
@@ -454,7 +454,7 @@ When working with cross-chain permits, additional considerations apply:
 
 1. **Chain-Specific Validation:**
    - Each chain's proof needs to be validated for that specific chain
-   - The unhinged root must match across all chains
+   - The unbalanced root must match across all chains
    - The same salt/nonce applies across all chains
 
 2. **Network Congestion Considerations:**

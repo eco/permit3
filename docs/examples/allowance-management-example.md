@@ -60,7 +60,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: 'unbalancedRoot', type: 'bytes32' }
     ],
     ChainPermits: [
         { name: 'chainId', type: 'uint64' },
@@ -83,7 +83,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unhingedRoot: permitsHash
+    unbalancedRoot: permitsHash
 };
 
 // Sign the message
@@ -257,15 +257,15 @@ const arbHash = await permit3.hashChainPermits(arbitrumPermits);
 // Build merkle tree with ordered leaves
 const leaves = [ethHash, arbHash];
 const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
+const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
 
-// Sign with unhinged root
+// Sign with unbalanced root
 const value = {
     owner: wallet.address,
     salt,
     deadline,
     timestamp,
-    unhingedRoot
+    unbalancedRoot
 };
 
 const signature = await wallet._signTypedData(domain, types, value);
@@ -274,7 +274,7 @@ const signature = await wallet._signTypedData(domain, types, value);
 // On Ethereum chain (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unhingedProof: merkleTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
+    unbalancedProof: merkleTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
 };
 
 // Execute on Ethereum
@@ -290,7 +290,7 @@ const ethTx = await ethereumPermit3.permit(
 // On Arbitrum chain (index 1)
 const arbitrumProof = {
     permits: arbitrumPermits,
-    unhingedProof: merkleTree.getProof(arbHash).map(p => '0x' + p.data.toString('hex'))
+    unbalancedProof: merkleTree.getProof(arbHash).map(p => '0x' + p.data.toString('hex'))
 };
 
 // Execute on Arbitrum
@@ -360,7 +360,7 @@ async function emergencyLockdown(tokenAddresses) {
         salt,
         deadline,
         timestamp,
-        unhingedRoot: permitsHash
+        unbalancedRoot: permitsHash
     };
     
     const signature = await wallet._signTypedData(domain, types, value);

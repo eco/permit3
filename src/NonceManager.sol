@@ -42,10 +42,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
     /**
      * @notice EIP-712 typehash for invalidation signatures
-     * @dev Includes owner, deadline, and unhinged root for batch operations
+     * @dev Includes owner, deadline, and unbalanced root for batch operations
      */
     bytes32 public constant CANCEL_PERMIT3_TYPEHASH =
-        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 unhingedRoot)");
+        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 unbalancedRoot)");
 
     /**
      * @notice Initialize EIP-712 domain separator
@@ -115,16 +115,16 @@ abstract contract NonceManager is INonceManager, EIP712 {
     }
 
     /**
-     * @notice Cross-chain nonce invalidation using the Unhinged Merkle Tree approach
+     * @notice Cross-chain nonce invalidation using the Unbalanced Merkle Tree approach
      * @param owner Token owner
      * @param deadline Signature expiration
-     * @param proof Unhinged Merkle Tree invalidation proof
+     * @param proof Unbalanced Merkle Tree invalidation proof
      * @param signature Authorization signature
      */
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        UnhingedCancelPermitProof calldata proof,
+        UnbalancedCancelPermitProof calldata proof,
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
@@ -140,9 +140,9 @@ abstract contract NonceManager is INonceManager, EIP712 {
         // Calculate the root from the invalidations and proof
         // processProof performs validation internally and provides granular error messages
         bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
-        bytes32 unhingedRoot = MerkleProof.processProof(proof.unhingedProof, invalidationsHash);
+        bytes32 unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, invalidationsHash);
 
-        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
+        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unbalancedRoot));
 
         _verifySignature(owner, signedHash, signature);
 

@@ -276,7 +276,7 @@ contract DexWithWitness {
 
 ## Advanced: Using Witness with Cross-Chain Operations
 
-For cross-chain operations, you can combine witness functionality with unhinged proofs:
+For cross-chain operations, you can combine witness functionality with unbalanced proofs:
 
 ```typescript
 // Create the permit with witness for cross-chain operation
@@ -285,7 +285,7 @@ const tx = await permit3.permitWitness(
     salt,
     deadline,
     timestamp,
-    proof, // UnhingedPermitProof structure
+    proof, // UnbalancedPermitProof structure
     witness,
     witnessTypeString,
     signature

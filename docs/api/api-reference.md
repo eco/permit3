@@ -87,12 +87,12 @@ struct ChainPermits {
 }
 ```
 
-#### 🌲 UnhingedPermitProof
+#### 🌲 UnbalancedPermitProof
 
 ```solidity
-struct UnhingedPermitProof {
+struct UnbalancedPermitProof {
     ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] unhingedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes32[] unbalancedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 ```
 
@@ -105,12 +105,12 @@ bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
 );
 
 bytes32 public constant SIGNED_PERMIT3_TYPEHASH = keccak256(
-    "Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot)"
+    "Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot)"
 );
 
 // Witness type hash stub for constructing witness permit typehashes
 string public constant PERMIT_WITNESS_TYPEHASH_STUB = 
-    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
+    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,";
 ```
 
 <a id="custom-errors"></a>
@@ -180,7 +180,7 @@ function permit(
     bytes32 salt,
     uint48 deadline,
     uint48 timestamp,
-    UnhingedPermitProof calldata proof,
+    UnbalancedPermitProof calldata proof,
     bytes calldata signature
 ) external;
 ```
@@ -190,7 +190,7 @@ function permit(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data using Unhinged Merkle tree methodology
+- `proof`: Cross-chain proof data using Unbalanced Merkle tree methodology
 - `signature`: EIP-712 signature authorizing the batch
 
 **Behavior:**
@@ -198,7 +198,7 @@ function permit(
 - Checks chain ID matches current chain
 - Verifies the merkle proof using OpenZeppelin's MerkleProof library
 - Calculates the merkle root from the proof components
-- Validates signature against owner and unhinged root
+- Validates signature against owner and unbalanced root
 - Processes permits for current chain only
 
 #### Direct Permit (ERC-7702 Integration)
@@ -267,7 +267,7 @@ function permitWitness(
     bytes32 salt,
     uint48 deadline,
     uint48 timestamp,
-    UnhingedPermitProof calldata proof,
+    UnbalancedPermitProof calldata proof,
     bytes32 witness,
     string calldata witnessTypeString,
     bytes calldata signature
@@ -279,7 +279,7 @@ function permitWitness(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data using Unhinged Merkle tree methodology
+- `proof`: Cross-chain proof data using Unbalanced Merkle tree methodology
 - `witness`: Additional data to include in signature verification
 - `witnessTypeString`: EIP-712 type definition for witness data
 - `signature`: EIP-712 signature authorizing the batch
@@ -291,7 +291,7 @@ function permitWitness(
 - Verifies the merkle proof using OpenZeppelin's MerkleProof library
 - Calculates the merkle root from the proof components
 - Constructs type hash with witness data
-- Validates signature against owner, unhinged root, and witness
+- Validates signature against owner, unbalanced root, and witness
 - Processes permits for current chain only
 
 ### Witness TypeHash Helper Functions
@@ -447,7 +447,7 @@ function invalidateNonces(
 function invalidateNonces(
     address owner,
     uint48 deadline,
-    UnhingedCancelPermitProof memory proof,
+    UnbalancedCancelPermitProof memory proof,
     bytes calldata signature
 ) external;
 ```
@@ -455,7 +455,7 @@ function invalidateNonces(
 **Parameters:**
 - `owner`: Owner address
 - `deadline`: Signature expiration timestamp
-- `proof`: Unhinged invalidation proof
+- `proof`: Unbalanced invalidation proof
 - `signature`: EIP-712 signature authorizing the invalidation
 
 **Behavior:**
@@ -552,7 +552,7 @@ const domain = {
 ### Standard Permit
 
 ```
-Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot)
+Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot)
 ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)
 AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)
 ```
@@ -561,8 +561,8 @@ AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint16
 
 ```
 // Base type stubs (incomplete)
-PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,
-PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,
+PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,
+PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,
 
 // Completed by custom witness type string, for example:
 bytes32 witnessData)
@@ -652,17 +652,17 @@ bytes32[] memory arbProofNodes = new bytes32[](1);
 arbProofNodes[0] = ethLeaf; // Sibling for Arbitrum
 
 // Execute on Ethereum chain
-IPermit3.UnhingedPermitProof memory ethProof = IPermit3.UnhingedPermitProof({
+IPermit3.UnbalancedPermitProof memory ethProof = IPermit3.UnbalancedPermitProof({
     permits: ethPermits,
-    unhingedProof: ethProofNodes
+    unbalancedProof: ethProofNodes
 });
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 
 // Execute on Arbitrum chain
-IPermit3.UnhingedPermitProof memory arbProof = IPermit3.UnhingedPermitProof({
+IPermit3.UnbalancedPermitProof memory arbProof = IPermit3.UnbalancedPermitProof({
     permits: arbPermits,
-    unhingedProof: arbProofNodes
+    unbalancedProof: arbProofNodes
 });
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);

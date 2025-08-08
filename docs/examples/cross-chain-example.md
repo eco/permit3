@@ -51,9 +51,9 @@ const optimismPermits = {
 };
 ```
 
-## 2️⃣ Step 2: Generate Chain Hashes and Unhinged Root
+## 2️⃣ Step 2: Generate Chain Hashes and Unbalanced Root
 
-Generate the hash for each chain's permits, then combine them into the unhinged root:
+Generate the hash for each chain's permits, then combine them into the unbalanced root:
 
 ```javascript
 // Generate root for each chain's permits
@@ -61,12 +61,12 @@ const ethHash = permit3.hashChainPermits(ethereumPermits);
 const arbHash = permit3.hashChainPermits(arbitrumPermits);
 const optHash = permit3.hashChainPermits(optimismPermits);
 
-// Create the unhinged merkle tree root
+// Create the unbalanced merkle tree root
 // Order matters, so we combine in order of chain ID
 // Build merkle tree using standard approach
 const leaves = [ethHash, arbHash, optHash];
 const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
+const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```
 
 ## 3️⃣ Step 3: Create and Sign the Permit
@@ -91,7 +91,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: 'unbalancedRoot', type: 'bytes32' }
     ]
 };
 
@@ -101,7 +101,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unhingedRoot
+    unbalancedRoot
 };
 
 // Sign the message
@@ -148,19 +148,19 @@ function generateMerkleProof(leaves, targetIndex) {
 // On Ethereum (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unhingedProof: generateMerkleProof(leaves, 0)
+    unbalancedProof: generateMerkleProof(leaves, 0)
 };
 
 // On Arbitrum (index 1)
 const arbitrumProof = {
     permits: arbitrumPermits,
-    unhingedProof: generateMerkleProof(leaves, 1)
+    unbalancedProof: generateMerkleProof(leaves, 1)
 };
 
 // On Optimism (index 2)
 const optimismProof = {
     permits: optimismPermits,
-    unhingedProof: generateMerkleProof(leaves, 2)
+    unbalancedProof: generateMerkleProof(leaves, 2)
 };
 ```
 
@@ -231,19 +231,19 @@ When each chain receives its proof, the following verification happens under the
 
 1. For Ethereum:
    - Takes the USDC approval operation and hashes it
-   - Verifies `ethereumProof` against the signed unhinged root
+   - Verifies `ethereumProof` against the signed unbalanced root
    - Updates USDC allowance for DEX
    - Emits Permit and NonceUsed events
 
 2. For Arbitrum:
    - Takes the USDC decrease operation and hashes it
-   - Verifies `arbitrumProof` against the signed unhinged root
+   - Verifies `arbitrumProof` against the signed unbalanced root
    - Decreases USDC allowance for DEX
    - Emits Permit and NonceUsed events
 
 3. For Optimism:
    - Takes the USDC lock operation and hashes it
-   - Verifies `optimismProof` against the signed unhinged root
+   - Verifies `optimismProof` against the signed unbalanced root
    - Locks USDC allowances
    - Emits Permit and NonceUsed events
 
@@ -279,7 +279,7 @@ const completeTree = new MerkleTree(allLeaves, keccak256, { sortPairs: true });
 // Get proof for Ethereum (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unhingedProof: completeTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
+    unbalancedProof: completeTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
 };
 ```
 
@@ -292,4 +292,4 @@ This example demonstrates how Permit3 enables cross-chain operations with a sing
 3. 🔄 **Flexibility**: Supports different operation types on each chain
 4. 🧩 **Composability**: Works with any ERC20 token and spender contract
 
-By using the Unhinged Merkle tree methodology with standard merkle proofs, the system maintains security while minimizing gas costs for cross-chain verification.
+By using the Unbalanced Merkle tree methodology with standard merkle proofs, the system maintains security while minimizing gas costs for cross-chain verification.

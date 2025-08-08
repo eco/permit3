@@ -89,9 +89,9 @@ contract TestBase is Test {
         return abi.encodePacked(r, s, v);
     }
 
-    // Sign an unhinged permit
-    function _signUnhingedPermit(
-        IPermit3.UnhingedPermitProof memory proof,
+    // Sign an unbalanced permit
+    function _signUnbalancedPermit(
+        IPermit3.UnbalancedPermitProof memory proof,
         uint48 deadline,
         uint48 timestamp,
         bytes32 salt
@@ -100,22 +100,22 @@ contract TestBase is Test {
         bytes32 currentChainHash = IPermit3(address(permit3)).hashChainPermits(proof.permits);
 
         // Calculate the merkle root using standard merkle tree logic
-        bytes32 unhingedRoot = currentChainHash;
+        bytes32 unbalancedRoot = currentChainHash;
 
-        for (uint256 i = 0; i < proof.unhingedProof.length; i++) {
-            bytes32 proofElement = proof.unhingedProof[i];
+        for (uint256 i = 0; i < proof.unbalancedProof.length; i++) {
+            bytes32 proofElement = proof.unbalancedProof[i];
 
             // Standard merkle ordering: smaller value first
-            if (unhingedRoot <= proofElement) {
-                unhingedRoot = keccak256(abi.encodePacked(unhingedRoot, proofElement));
+            if (unbalancedRoot <= proofElement) {
+                unbalancedRoot = keccak256(abi.encodePacked(unbalancedRoot, proofElement));
             } else {
-                unhingedRoot = keccak256(abi.encodePacked(proofElement, unhingedRoot));
+                unbalancedRoot = keccak256(abi.encodePacked(proofElement, unbalancedRoot));
             }
         }
 
         // Create the signature
         bytes32 signedHash =
-            keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, unhingedRoot));
+            keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, unbalancedRoot));
 
         bytes32 digest = _getDigest(signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -142,18 +142,18 @@ contract TestBase is Test {
         );
     }
 
-    // Helper for unhinged invalidation struct hash
-    function _getUnhingedInvalidationStructHash(
+    // Helper for unbalanced invalidation struct hash
+    function _getUnbalancedInvalidationStructHash(
         address ownerAddress,
         uint48 deadline,
-        INonceManager.UnhingedCancelPermitProof memory proof
+        INonceManager.UnbalancedCancelPermitProof memory proof
     ) internal view returns (bytes32) {
         // For tests, manually calculate what the library would calculate
         // since we can't call library functions on memory structs
         bytes32 invalidationsHash = permit3.hashNoncesToInvalidate(proof.invalidations);
         // For a simple proof with no nodes, the root equals the leaf
-        bytes32 unhingedRoot = invalidationsHash;
-        return keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, unhingedRoot));
+        bytes32 unbalancedRoot = invalidationsHash;
+        return keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, unbalancedRoot));
     }
 
     // Helper struct for witness tests
@@ -172,8 +172,8 @@ contract TestBase is Test {
         bytes32 testSalt;
         bytes32[] salts;
         INonceManager.NoncesToInvalidate invalidations;
-        bytes32 unhingedRoot;
-        INonceManager.UnhingedCancelPermitProof proof;
+        bytes32 unbalancedRoot;
+        INonceManager.UnbalancedCancelPermitProof proof;
         uint48 deadline;
         bytes32 invalidationsHash;
         bytes32 signedHash;

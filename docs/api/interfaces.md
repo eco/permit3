@@ -27,9 +27,9 @@ interface IPermit3 is IPermit, INonceManager {
         uint160 amountDelta;
     }
     
-    struct UnhingedPermitProof {
+    struct UnbalancedPermitProof {
         ChainPermits permits;
-        bytes32[] unhingedProof;
+        bytes32[] unbalancedProof;
     }
     
     enum PermitType {
@@ -54,7 +54,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        UnbalancedPermitProof calldata proof,
         bytes calldata signature
     ) external;
     
@@ -80,7 +80,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        UnbalancedPermitProof calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -156,9 +156,9 @@ interface INonceManager is IPermit {
         bytes32[] salts;
     }
     
-    struct UnhingedCancelPermitProof {
+    struct UnbalancedCancelPermitProof {
         NoncesToInvalidate invalidations;
-        bytes32[] unhingedProof;
+        bytes32[] unbalancedProof;
     }
     
     // Core functions
@@ -178,7 +178,7 @@ interface INonceManager is IPermit {
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        UnhingedCancelPermitProof memory proof,
+        UnbalancedCancelPermitProof memory proof,
         bytes calldata signature
     ) external;
     
@@ -190,9 +190,9 @@ interface INonceManager is IPermit {
 ```
 
 <a id="merkle-tree-methodology"></a>
-## 🌲 Unhinged Merkle Tree Methodology
+## 🌲 Unbalanced Merkle Tree Methodology
 
-The Unhinged Merkle tree methodology uses OpenZeppelin's MerkleProof library for verification.
+The Unbalanced Merkle tree methodology uses OpenZeppelin's MerkleProof library for verification.
 
 ```solidity
 // Uses OpenZeppelin's MerkleProof.processProof() directly
@@ -249,6 +249,6 @@ The main contracts implementing these interfaces are:
 - 📄 **Permit3.sol**: Implements IPermit3, providing the complete functionality
 - 🔢 **NonceManager.sol**: Implements INonceManager for replay protection
 - 📃 **PermitBase.sol**: Implements IPermit for compatibility with contracts that are already using Permit2 for transfers
-- 🌲 **OpenZeppelin MerkleProof**: Standard library used for Unhinged Merkle tree methodology
+- 🌲 **OpenZeppelin MerkleProof**: Standard library used for Unbalanced Merkle tree methodology
 
 These interfaces provide a flexible and extensible foundation for the Permit3 system, allowing for future upgrades and extensions while maintaining compatibility with existing systems.

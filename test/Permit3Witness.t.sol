@@ -259,19 +259,19 @@ contract Permit3WitnessTest is Test {
         assertEq(token.balanceOf(recipient), AMOUNT * 2);
     }
 
-    // Test cross-chain witness functionality with UnhingedProofs
+    // Test cross-chain witness functionality with UnbalancedProofs
     function test_permitWitnessCrossChain() public {
         // Set specific values to ensure consistent calculation
         vm.warp(1000); // Set specific timestamp for reproducible results
 
-        // Create unhinged permit proof
-        IPermit3.UnhingedPermitProof memory proof = _createUnhingedProof();
+        // Create unbalanced permit proof
+        IPermit3.UnbalancedPermitProof memory proof = _createUnbalancedProof();
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
-        // Use our proper signing function for unhinged proofs
+        // Use our proper signing function for unbalanced proofs
         bytes memory signature =
-            _signWitnessUnhingedPermit(proof, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
+            _signWitnessUnbalancedPermit(proof, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
         // Execute cross-chain permit
         permit3.permitWitness(owner, SALT, deadline, timestamp, proof, WITNESS, WITNESS_TYPE_STRING, signature);
@@ -324,16 +324,16 @@ contract Permit3WitnessTest is Test {
         return IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
     }
 
-    function _createUnhingedProof() internal view returns (IPermit3.UnhingedPermitProof memory) {
+    function _createUnbalancedProof() internal view returns (IPermit3.UnbalancedPermitProof memory) {
         // Create the base permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
 
-        // Create a proper unhinged proof (using preHash only, no subtreeProof - mutually exclusive)
+        // Create a proper unbalanced proof (using preHash only, no subtreeProof - mutually exclusive)
         bytes32[] memory nodes = new bytes32[](2);
         nodes[0] = bytes32(uint256(0x1234)); // preHash
         nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
-        return IPermit3.UnhingedPermitProof({ permits: chainPermits, unhingedProof: nodes });
+        return IPermit3.UnbalancedPermitProof({ permits: chainPermits, unbalancedProof: nodes });
     }
 
     // Helper struct for signing witness permits
@@ -376,9 +376,9 @@ contract Permit3WitnessTest is Test {
     }
 
     // Helper struct to avoid stack too deep errors
-    struct UnhingedWitnessVars {
+    struct UnbalancedWitnessVars {
         bytes32 currentChainHash;
-        bytes32 unhingedRoot;
+        bytes32 unbalancedRoot;
         bytes32 typeHash;
         bytes32 structHash;
         bytes32 digest;
@@ -387,29 +387,29 @@ contract Permit3WitnessTest is Test {
         bytes32 s;
     }
 
-    function _signWitnessUnhingedPermit(
-        IPermit3.UnhingedPermitProof memory proof,
+    function _signWitnessUnbalancedPermit(
+        IPermit3.UnbalancedPermitProof memory proof,
         uint48 deadline,
         uint48 timestamp,
         bytes32 salt,
         bytes32 witness,
         string memory witnessTypeString
     ) internal view returns (bytes memory) {
-        UnhingedWitnessVars memory vars;
+        UnbalancedWitnessVars memory vars;
 
-        // Calculate the unhinged root the same way the contract would
+        // Calculate the unbalanced root the same way the contract would
         vars.currentChainHash = _hashChainPermits(proof.permits);
 
         // In the new simple structure, calculate merkle root using the proof
         // Using OpenZeppelin's MerkleProof directly
-        vars.unhingedRoot = MerkleProof.processProof(proof.unhingedProof, vars.currentChainHash);
+        vars.unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, vars.currentChainHash);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));
 
         // Compute the structured hash exactly as the contract would
         vars.structHash =
-            keccak256(abi.encode(vars.typeHash, owner, salt, deadline, timestamp, vars.unhingedRoot, witness));
+            keccak256(abi.encode(vars.typeHash, owner, salt, deadline, timestamp, vars.unbalancedRoot, witness));
 
         // Get the EIP-712 digest
         vars.digest = _hashTypedDataV4(vars.structHash);

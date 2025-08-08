@@ -2,7 +2,7 @@
  * Merkle Tree Helpers for Permit3
  * 
  * This module provides utility functions for working with merkle trees
- * in the context of Permit3's Unhinged Merkle tree methodology using OpenZeppelin's MerkleProof.
+ * in the context of Permit3's Unbalanced Merkle tree methodology using OpenZeppelin's MerkleProof.
  */
 
 const { MerkleTree } = require('merkletreejs');
@@ -93,7 +93,7 @@ async function buildCrossChainPermitTree(chainPermits, permit3Contracts) {
  * @param {MerkleTree} tree - The merkle tree
  * @param {Object} leaves - Object mapping chain names to leaf hashes
  * @param {Object} chainPermits - Object mapping chain names to permit data
- * @returns {Object} Object mapping chain names to UnhingedPermitProof structures
+ * @returns {Object} Object mapping chain names to UnbalancedPermitProof structures
  */
 function generateAllProofs(tree, leaves, chainPermits) {
     const proofs = {};
@@ -101,7 +101,7 @@ function generateAllProofs(tree, leaves, chainPermits) {
     for (const [chain, leaf] of Object.entries(leaves)) {
         proofs[chain] = {
             permits: chainPermits[chain],
-            unhingedProof: generateMerkleProof(tree, leaf)
+            unbalancedProof: generateMerkleProof(tree, leaf)
         };
     }
     
@@ -204,7 +204,7 @@ class CrossChainPermitHelper {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "unhingedRoot", type: "bytes32" }
+                { name: "unbalancedRoot", type: "bytes32" }
             ]
         };
         
@@ -213,7 +213,7 @@ class CrossChainPermitHelper {
             salt,
             deadline,
             timestamp,
-            unhingedRoot: root
+            unbalancedRoot: root
         };
         
         const signature = await signer._signTypedData(domain, types, value);

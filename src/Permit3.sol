@@ -33,11 +33,11 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * Binds owner, deadline, and permit data hash for signature verification
      */
     bytes32 public constant SIGNED_PERMIT3_TYPEHASH =
-        keccak256("Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot)");
+        keccak256("Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot)");
 
     // Constants for witness type hash strings
     string public constant PERMIT_WITNESS_TYPEHASH_STUB =
-        "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
+        "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,";
 
     /**
      * @dev Sets up EIP-712 domain separator with protocol identifiers
@@ -135,16 +135,16 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         uint48 deadline;
         uint48 timestamp;
         bytes32 currentChainHash;
-        bytes32 unhingedRoot;
+        bytes32 unbalancedRoot;
     }
 
     /**
-     * @notice Process token approvals across multiple chains using Unhinged Merkle Tree
+     * @notice Process token approvals across multiple chains using Unbalanced Merkle Tree
      * @param owner Token owner authorizing the operations
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unhinged Merkle Tree
+     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
      * @param signature EIP-712 signature covering the entire cross-chain batch
      */
     function permit(
@@ -152,7 +152,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        UnbalancedPermitProof calldata proof,
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
@@ -175,11 +175,11 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Hash current chain's permits
         params.currentChainHash = hashChainPermits(proof.permits);
 
-        // Calculate the unhinged root from the proof components
+        // Calculate the unbalanced root from the proof components
         // processProof performs validation internally and provides granular error messages
-        params.unhingedRoot = MerkleProof.processProof(proof.unhingedProof, params.currentChainHash);
+        params.unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, params.currentChainHash);
 
-        // Verify signature with unhinged root
+        // Verify signature with unbalanced root
         bytes32 signedHash = keccak256(
             abi.encode(
                 SIGNED_PERMIT3_TYPEHASH,
@@ -187,7 +187,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                 params.salt,
                 params.deadline,
                 params.timestamp,
-                params.unhingedRoot
+                params.unbalancedRoot
             )
         );
 
@@ -254,7 +254,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         uint48 timestamp;
         bytes32 witness;
         bytes32 currentChainHash;
-        bytes32 unhingedRoot;
+        bytes32 unbalancedRoot;
     }
 
     /**
@@ -263,7 +263,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unhinged Merkle Tree
+     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
      * @param witness Additional data to include in signature verification
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing the batch
@@ -273,7 +273,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        UnbalancedPermitProof calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -302,9 +302,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Hash current chain's permits
         params.currentChainHash = hashChainPermits(proof.permits);
 
-        // Calculate the unhinged root
+        // Calculate the unbalanced root
         // processProof performs validation internally and provides granular error messages
-        params.unhingedRoot = MerkleProof.processProof(proof.unhingedProof, params.currentChainHash);
+        params.unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
@@ -315,7 +315,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                 params.salt,
                 params.deadline,
                 params.timestamp,
-                params.unhingedRoot,
+                params.unbalancedRoot,
                 params.witness
             )
         );

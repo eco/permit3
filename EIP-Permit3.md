@@ -45,7 +45,7 @@ The limitations of existing token approval systems across multiple blockchains c
 
 ## Specification
 
-> **Note:** This EIP uses an "Unhinged Merkle tree" methodology for cross-chain operations, which strategically unbalances the tree structure to minimize gas costs by creating smaller proof sizes for expensive chains. High-cost chains are placed closer to the root, reducing their verification gas consumption.
+> **Note:** This EIP uses an "Unbalanced Merkle tree" methodology for cross-chain operations, which strategically unbalances the tree structure to minimize gas costs by creating smaller proof sizes for expensive chains. High-cost chains are placed closer to the root, reducing their verification gas consumption.
 
 ### Core Data Structures
 
@@ -82,13 +82,13 @@ struct ChainPermits {
 }
 
 /**
- * @notice Struct containing proof data for cross-chain permit operations using Unhinged Merkle Tree
+ * @notice Struct containing proof data for cross-chain permit operations using Unbalanced Merkle Tree
  * @param permits Permit operations for the current chain
- * @param unhingedProof Merkle proof array for verification (using OpenZeppelin's MerkleProof)
+ * @param unbalancedProof Merkle proof array for verification (using OpenZeppelin's MerkleProof)
  */
-struct UnhingedPermitProof {
+struct UnbalancedPermitProof {
     ChainPermits permits;
-    bytes32[] unhingedProof;
+    bytes32[] unbalancedProof;
 }
 ```
 
@@ -227,7 +227,7 @@ ethLeaf = hash(Ethereum Permissions)
 arbLeaf = hash(Arbitrum Permissions)  
 optLeaf = hash(Optimism Permissions)
 
-// Build Unhinged Merkle Tree
+// Build Unbalanced Merkle Tree
 merkleRoot = buildMerkleTree([ethLeaf, arbLeaf, optLeaf])
 ```
 
@@ -248,7 +248,7 @@ function transferFrom(address from, address to, uint160 amount) external;
 2. **Emergency Stop Button**
 ```solidity
 // Cancel all permissions everywhere with one signature
-function invalidateNonces(address owner, UnhingedCancelPermitProof proof, bytes calldata signature) external;
+function invalidateNonces(address owner, UnbalancedCancelPermitProof proof, bytes calldata signature) external;
 ```
 
 3. **Flexible Timing**
@@ -278,7 +278,7 @@ merkleRoot = buildMerkleRoot([leaf1, leaf2, leaf3]);
 ```solidity
 // For Ethereum (proving leaf1 is in the tree):
 {
-    "unhingedProof": {
+    "unbalancedProof": {
         "nodes": [siblingHash1, siblingHash2] // Merkle proof path
     },
     "permits": EthereumPermissions
@@ -286,7 +286,7 @@ merkleRoot = buildMerkleRoot([leaf1, leaf2, leaf3]);
 
 // For Arbitrum (proving leaf2 is in the tree):
 {
-    "unhingedProof": {
+    "unbalancedProof": {
         "nodes": [siblingHash3, siblingHash4] // Different proof path
     },
     "permits": ArbitrumPermissions
@@ -342,9 +342,9 @@ function testCrossChainPermit() {
     
     // Use it on Arbitrum with merkle proof
     bytes32[] memory proofNodes = generateMerkleProof(allLeaves, arbIndex);
-    UnhingedPermitProof memory proof = UnhingedPermitProof({
+    UnbalancedPermitProof memory proof = UnbalancedPermitProof({
         permits: arbPermits,
-        unhingedProof: UnhingedProof({ nodes: proofNodes })
+        unbalancedProof: UnbalancedProof({ nodes: proofNodes })
     });
     permit3.permit(owner, salt, deadline, timestamp, proof, signature);
 }
@@ -353,9 +353,9 @@ function testCrossChainPermit() {
 function testEmergencyLockdown() {
     // Cancel all permissions everywhere
     bytes32[] memory proofNodes = generateMerkleProof(allSalts, saltIndex);
-    UnhingedCancelPermitProof memory proof = UnhingedCancelPermitProof({
+    UnbalancedCancelPermitProof memory proof = UnbalancedCancelPermitProof({
         salts: saltsToCancel,
-        unhingedProof: UnhingedProof({ nodes: proofNodes })
+        unbalancedProof: UnbalancedProof({ nodes: proofNodes })
     });
     permit3.invalidateNonces(owner, proof, signature);
 }

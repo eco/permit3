@@ -63,9 +63,9 @@ contract Permit3EdgeTest is Test {
         IPermit3.ChainPermits chainPermits;
     }
 
-    struct UnhingedWitnessTestVars {
+    struct UnbalancedWitnessTestVars {
         bytes32 currentChainHash;
-        bytes32 unhingedRoot;
+        bytes32 unbalancedRoot;
         bytes32 typeHash;
         bytes32 signedHash;
         bytes32 digest;
@@ -75,7 +75,7 @@ contract Permit3EdgeTest is Test {
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
         bytes32[] merkleProof;
-        IPermit3.UnhingedPermitProof unhingedProof;
+        IPermit3.UnbalancedPermitProof unbalancedProof;
     }
 
     function setUp() public {
@@ -163,8 +163,8 @@ contract Permit3EdgeTest is Test {
         );
     }
 
-    function test_getUnhingedWitnessTypeHash() public {
-        // Test the _getUnhingedWitnessTypeHash function through a witness permit
+    function test_getUnbalancedWitnessTypeHash() public {
+        // Test the _getUnbalancedWitnessTypeHash function through a witness permit
         TestParams memory params;
         params.witness = keccak256("witness data");
         params.witnessTypeString = "bytes32 customData)";
@@ -185,9 +185,9 @@ contract Permit3EdgeTest is Test {
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
         // Create additional variables in a separate struct to avoid stack-too-deep
-        UnhingedWitnessTestVars memory vars;
+        UnbalancedWitnessTestVars memory vars;
 
-        // Create unhinged proof
+        // Create unbalanced proof
         vars.subtreeProof = new bytes32[](0);
         vars.followingHashes = new bytes32[](0);
 
@@ -195,12 +195,12 @@ contract Permit3EdgeTest is Test {
         bytes32[] memory emptyNodes = new bytes32[](0);
         vars.merkleProof = emptyNodes;
 
-        vars.unhingedProof =
-            IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: vars.merkleProof });
+        vars.unbalancedProof =
+            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, unbalancedProof: vars.merkleProof });
 
-        // Calculate the unhinged root
+        // Calculate the unbalanced root
         vars.currentChainHash = permit3Tester.hashChainPermits(inputs.chainPermits);
-        vars.unhingedRoot = permit3Tester.calculateUnhingedRoot(vars.currentChainHash, vars.merkleProof);
+        vars.unbalancedRoot = permit3Tester.calculateUnbalancedRoot(vars.currentChainHash, vars.merkleProof);
 
         // Create the witness typehash - identical to what the contract would compute internally
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), params.witnessTypeString));
@@ -208,7 +208,13 @@ contract Permit3EdgeTest is Test {
         // Create the signed hash
         vars.signedHash = keccak256(
             abi.encode(
-                vars.typeHash, owner, params.salt, params.deadline, params.timestamp, vars.unhingedRoot, params.witness
+                vars.typeHash,
+                owner,
+                params.salt,
+                params.deadline,
+                params.timestamp,
+                vars.unbalancedRoot,
+                params.witness
             )
         );
 
@@ -219,13 +225,13 @@ contract Permit3EdgeTest is Test {
         // Reset recipient balance
         deal(address(token), recipient, 0);
 
-        // Execute unhinged witness permit
+        // Execute unbalanced witness permit
         permit3.permitWitness(
             owner,
             params.salt,
             params.deadline,
             params.timestamp,
-            vars.unhingedProof,
+            vars.unbalancedProof,
             params.witness,
             params.witnessTypeString,
             params.signature
@@ -235,8 +241,8 @@ contract Permit3EdgeTest is Test {
         assertEq(token.balanceOf(recipient), AMOUNT);
     }
 
-    function test_verifyUnhingedProofInvalid() public {
-        // Test the _verifyUnhingedProof function with invalid input
+    function test_verifyUnbalancedProofInvalid() public {
+        // Test the _verifyUnbalancedProof function with invalid input
         TestParams memory params;
         params.salt = bytes32(uint256(0xabc));
         params.deadline = uint48(block.timestamp + 1 hours);
@@ -254,18 +260,18 @@ contract Permit3EdgeTest is Test {
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
-        // Create invalid unhinged proof with insufficient nodes for a valid tree
+        // Create invalid unbalanced proof with insufficient nodes for a valid tree
         bytes32[] memory nodes = new bytes32[](0); // Empty proof is invalid for multi-chain permits
 
-        IPermit3.UnhingedPermitProof memory unhingedProof =
-            IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: nodes });
+        IPermit3.UnbalancedPermitProof memory unbalancedProof =
+            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, unbalancedProof: nodes });
 
         // Create a simple signature (won't reach validation)
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
 
         // Should revert when merkle proof verification fails
         vm.expectRevert();
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, unhingedProof, params.signature);
+        permit3.permit(owner, params.salt, params.deadline, params.timestamp, unbalancedProof, params.signature);
     }
 
     // Additional struct to avoid stack-too-deep in test_zeroSubtreeProofCount
@@ -274,9 +280,9 @@ contract Permit3EdgeTest is Test {
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
         bytes32[] proof;
-        IPermit3.UnhingedPermitProof unhingedProof;
+        IPermit3.UnbalancedPermitProof unbalancedProof;
         bytes32 currentChainHash;
-        bytes32 unhingedRoot;
+        bytes32 unbalancedRoot;
         bytes32 signedHash;
         bytes32 digest;
         uint8 v;
@@ -306,7 +312,7 @@ contract Permit3EdgeTest is Test {
         // Move complex variable declarations to a struct to avoid stack-too-deep
         ZeroSubtreeProofVars memory vars;
 
-        // Create valid unhinged proof with zero subtree proof count but with preHash
+        // Create valid unbalanced proof with zero subtree proof count but with preHash
         vars.preHash = bytes32(uint256(42));
         vars.subtreeProof = new bytes32[](0);
         vars.followingHashes = new bytes32[](1);
@@ -320,11 +326,12 @@ contract Permit3EdgeTest is Test {
         // Create the proof with explicit hasPreHash flag
         vars.proof = nodes;
 
-        vars.unhingedProof = IPermit3.UnhingedPermitProof({ permits: inputs.chainPermits, unhingedProof: vars.proof });
+        vars.unbalancedProof =
+            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, unbalancedProof: vars.proof });
 
-        // Calculate the unhinged root
+        // Calculate the unbalanced root
         vars.currentChainHash = permit3Tester.hashChainPermits(inputs.chainPermits);
-        vars.unhingedRoot = permit3Tester.calculateUnhingedRoot(vars.currentChainHash, vars.proof);
+        vars.unbalancedRoot = permit3Tester.calculateUnbalancedRoot(vars.currentChainHash, vars.proof);
 
         // Create signature
         vars.signedHash = keccak256(
@@ -334,7 +341,7 @@ contract Permit3EdgeTest is Test {
                 params.salt,
                 params.deadline,
                 params.timestamp,
-                vars.unhingedRoot
+                vars.unbalancedRoot
             )
         );
 
@@ -345,8 +352,8 @@ contract Permit3EdgeTest is Test {
         // Reset recipient balance
         deal(address(token), recipient, 0);
 
-        // Execute unhinged permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, vars.unhingedProof, params.signature);
+        // Execute unbalanced permit
+        permit3.permit(owner, params.salt, params.deadline, params.timestamp, vars.unbalancedProof, params.signature);
 
         // Verify the transfer happened
         assertEq(token.balanceOf(recipient), AMOUNT);
@@ -579,8 +586,8 @@ contract Permit3EdgeTest is Test {
         assertEq(vars.timestamp, newerParams.timestamp); // Still from newer permit
     }
 
-    function test_calculateUnhingedRootInvalidLength() public view {
-        // Create an unhinged proof with invalid array length
+    function test_calculateUnbalancedRootInvalidLength() public view {
+        // Create an unbalanced proof with invalid array length
         // Create a valid proof structure
         bytes32[] memory nodes = new bytes32[](2);
         nodes[0] = bytes32(uint256(1));
@@ -591,7 +598,7 @@ contract Permit3EdgeTest is Test {
         // Try to calculate the root - with the new simple structure, this won't revert
         // as it's just a simple merkle proof calculation
         bytes32 leaf = keccak256("leaf");
-        bytes32 root = permit3Tester.calculateUnhingedRoot(leaf, invalidProof);
+        bytes32 root = permit3Tester.calculateUnbalancedRoot(leaf, invalidProof);
         // Just verify it calculates something
         assert(root != bytes32(0));
     }
@@ -603,7 +610,7 @@ contract Permit3EdgeTest is Test {
         // Verify stubs match expected values
         assertEq(
             permitStub,
-            "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,"
+            "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,"
         );
     }
 
@@ -1112,13 +1119,13 @@ contract Permit3EdgeTest is Test {
 
         // With empty proof, the leaf itself is the root
         bytes32 expectedRoot = leaf;
-        bytes32 calculatedRoot = permit3Tester.calculateUnhingedRoot(leaf, emptyProof);
+        bytes32 calculatedRoot = permit3Tester.calculateUnbalancedRoot(leaf, emptyProof);
 
         // Verify the root calculation
         assertEq(calculatedRoot, expectedRoot);
 
         // Also verify that the proof is valid
-        bool isValid = permit3Tester.verifyUnhingedProof(leaf, emptyProof, expectedRoot);
+        bool isValid = permit3Tester.verifyUnbalancedProof(leaf, emptyProof, expectedRoot);
         assertTrue(isValid);
     }
 

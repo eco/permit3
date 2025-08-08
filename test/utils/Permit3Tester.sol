@@ -12,19 +12,22 @@ contract Permit3Tester is Permit3 {
     /**
      * @notice Exposes the MerkleProof.processProof function for testing
      */
-    function calculateUnhingedRoot(bytes32 leaf, bytes32[] calldata unhingedProof) external pure returns (bytes32) {
-        return MerkleProof.processProof(unhingedProof, leaf);
+    function calculateUnbalancedRoot(
+        bytes32 leaf,
+        bytes32[] calldata unbalancedProof
+    ) external pure returns (bytes32) {
+        return MerkleProof.processProof(unbalancedProof, leaf);
     }
 
     /**
-     * @notice Verifies an unhinged proof structure
+     * @notice Verifies an unbalanced proof structure
      */
-    function verifyUnhingedProof(
+    function verifyUnbalancedProof(
         bytes32 leaf,
-        bytes32[] calldata unhingedProof,
+        bytes32[] calldata unbalancedProof,
         bytes32 expectedRoot
     ) external pure returns (bool) {
-        return MerkleProof.verify(unhingedProof, expectedRoot, leaf);
+        return MerkleProof.verify(unbalancedProof, expectedRoot, leaf);
     }
 
     /**

@@ -104,12 +104,12 @@ struct ChainPermits {
 }
 ```
 
-### UnhingedPermitProof Structure
+### UnbalancedPermitProof Structure
 
 ```solidity
-struct UnhingedPermitProof {
+struct UnbalancedPermitProof {
     ChainPermits permits;    // Permit operations for the current chain
-    bytes32[] unhingedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes32[] unbalancedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 
 // Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
@@ -215,12 +215,12 @@ Witness functionality extends the standard permit flow:
 <a id="cross-chain-mechanism"></a>
 ## Cross-Chain Mechanism
 
-Permit3 enables cross-chain operations through Unhinged Merkle Trees:
+Permit3 enables cross-chain operations through Unbalanced Merkle Trees:
 
 1. Hash permits for each chain individually 
-2. Build an Unhinged Merkle Tree from all chain hashes (two-part structure)
-3. Sign the Unhinged root
-4. Generate Unhinged proofs for each chain  
+2. Build an Unbalanced Merkle Tree from all chain hashes (two-part structure)
+3. Sign the Unbalanced root
+4. Generate Unbalanced proofs for each chain  
 5. Process the portion relevant to the current chain
 
 This approach leverages the two-part design:
@@ -231,27 +231,27 @@ This approach leverages the two-part design:
 - **Security**: Chain ID validation prevents cross-chain replay attacks
 - **Extensibility**: Supports witness data across chains with future optimization opportunities
 
-### Unhinged Merkle tree Example
+### Unbalanced Merkle tree Example
 
 ```solidity
 // Calculate the leaf hash for this chain's permits  
 bytes32 leaf = permit3.hashChainPermits(proof.permits);
 
-// Verify the Unhinged Merkle Tree proof using OpenZeppelin's MerkleProof
+// Verify the Unbalanced Merkle Tree proof using OpenZeppelin's MerkleProof
 // (traverses both balanced and sequential parts)
 bool valid = MerkleProof.processProof(
-    proof.unhingedProof,
+    proof.unbalancedProof,
     leaf
-) == unhingedRoot;
+) == unbalancedRoot;
 
-// Verify signature against Unhinged root
+// Verify signature against Unbalanced root
 bytes32 signedHash = keccak256(abi.encode(
     SIGNED_PERMIT3_TYPEHASH, 
     owner, 
     salt, 
     deadline, 
     timestamp, 
-    unhingedRoot  // The hybrid structure root
+    unbalancedRoot  // The hybrid structure root
 ));
 ```
 
@@ -308,7 +308,7 @@ Permit3 implements several gas optimization strategies:
 4. **Cross-Chain Efficiency**:
    - Execute only relevant operations on each chain
    - Single signature for multiple chains leveraging two-part structure
-   - Optimized Unhinged tree structure with gas optimization potential
+   - Optimized Unbalanced tree structure with gas optimization potential
 
 <a id="integration-with-external-systems"></a>
 ## Integration with External Systems

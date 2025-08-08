@@ -67,13 +67,13 @@ interface INonceManager is IPermit {
     }
 
     /**
-     * @notice Struct for unhinged nonce invalidation proof
+     * @notice Struct for unbalanced nonce invalidation proof
      * @param invalidations Current chain invalidation data
-     * @param unhingedProof Array of sibling hashes forming the merkle proof path
+     * @param unbalancedProof Array of sibling hashes forming the merkle proof path
      */
-    struct UnhingedCancelPermitProof {
+    struct UnbalancedCancelPermitProof {
         NoncesToInvalidate invalidations;
-        bytes32[] unhingedProof;
+        bytes32[] unbalancedProof;
     }
 
     /**
@@ -113,16 +113,16 @@ interface INonceManager is IPermit {
     ) external;
 
     /**
-     * @notice Cross-chain nonce invalidation using the Unhinged Merkle Tree approach
+     * @notice Cross-chain nonce invalidation using the Unbalanced Merkle Tree approach
      * @param owner Token owner address
      * @param deadline Signature expiration timestamp
-     * @param proof Unhinged invalidation proof
+     * @param proof Unbalanced invalidation proof
      * @param signature EIP-712 signature authorizing the invalidation
      */
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        UnhingedCancelPermitProof memory proof,
+        UnbalancedCancelPermitProof memory proof,
         bytes calldata signature
     ) external;
 

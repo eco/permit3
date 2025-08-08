@@ -158,7 +158,7 @@ const TokenApproval = () => {
 
 ### Backend Service for Cross-Chain Permits
 
-Here's a Node.js service that coordinates cross-chain permits using Unhinged Merkle tree:
+Here's a Node.js service that coordinates cross-chain permits using Unbalanced Merkle tree:
 
 ```javascript
 const { ethers } = require('ethers');
@@ -270,7 +270,7 @@ class CrossChainCoordinator {
         
         // Build the merkle tree
         const merkleTree = MerkleTreeHelper.buildTree(leaves);
-        const unhingedRoot = MerkleTreeHelper.getRoot(merkleTree);
+        const unbalancedRoot = MerkleTreeHelper.getRoot(merkleTree);
         
         // Create signature elements
         const salt = ethers.utils.randomBytes(32);
@@ -291,7 +291,7 @@ class CrossChainCoordinator {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "unhingedRoot", type: "bytes32" }
+                { name: "unbalancedRoot", type: "bytes32" }
             ]
         };
         
@@ -300,7 +300,7 @@ class CrossChainCoordinator {
             salt,
             deadline,
             timestamp,
-            unhingedRoot
+            unbalancedRoot
         };
         
         // Sign the message
@@ -313,7 +313,7 @@ class CrossChainCoordinator {
             const leaf = chainToLeafMap.get(chainName);
             proofs[chainName] = {
                 permits: this.permits[chainName],
-                unhingedProof: MerkleTreeHelper.getProof(merkleTree, leaf)
+                unbalancedProof: MerkleTreeHelper.getProof(merkleTree, leaf)
             };
         }
         
@@ -323,7 +323,7 @@ class CrossChainCoordinator {
             deadline,
             timestamp,
             signature,
-            unhingedRoot,
+            unbalancedRoot,
             chains: orderedChains,
             proofs
         };
@@ -345,7 +345,7 @@ class CrossChainCoordinator {
         // Get the contract for this chain
         const permit3 = this.permit3Contracts[chainName];
         
-        // Execute the unhinged permit
+        // Execute the unbalanced permit
         const tx = await permit3.permit(
             owner,
             salt,
@@ -406,7 +406,7 @@ async function exampleCrossChainPermit() {
     const crossChainPermit = await coordinator.generateCrossChainPermit(wallet);
     
     console.log('Cross-chain permit generated:', {
-        root: crossChainPermit.unhingedRoot,
+        root: crossChainPermit.unbalancedRoot,
         chains: crossChainPermit.chains,
         proofs: Object.keys(crossChainPermit.proofs)
     });
@@ -478,15 +478,15 @@ contract DeFiProtocol {
     }
     
     // Use a cross-chain permit
-    function executeWithUnhingedPermit(
+    function executeWithUnbalancedPermit(
         address owner,
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        IPermit3.UnhingedPermitProof calldata proof,
+        IPermit3.UnbalancedPermitProof calldata proof,
         bytes calldata signature
     ) external {
-        // Use Permit3 to process the unhinged permit
+        // Use Permit3 to process the unbalanced permit
         permit3.permit(owner, salt, deadline, timestamp, proof, signature);
         
         // Process the permits for this chain
@@ -611,7 +611,7 @@ describe("Permit3 Integration Tests", function () {
     });
     
     describe("Cross-Chain Permits", function () {
-        it("Should create and execute an unhinged permit", async function () {
+        it("Should create and execute an unbalanced permit", async function () {
             // Create permits for multiple chains
             const permits = [
                 {
@@ -672,7 +672,7 @@ describe("Permit3 Integration Tests", function () {
                     { name: "salt", type: "bytes32" },
                     { name: "deadline", type: "uint48" },
                     { name: "timestamp", type: "uint48" },
-                    { name: "unhingedRoot", type: "bytes32" }
+                    { name: "unbalancedRoot", type: "bytes32" }
                 ]
             };
             
@@ -681,24 +681,24 @@ describe("Permit3 Integration Tests", function () {
                 salt,
                 deadline,
                 timestamp,
-                unhingedRoot: root
+                unbalancedRoot: root
             };
             
             const signature = await owner._signTypedData(domain, types, value);
             
-            // Execute the unhinged permit
-            const unhingedProof = {
+            // Execute the unbalanced permit
+            const unbalancedProof = {
                 permits: permits[2], // Our chain's permits
-                unhingedProof: proof
+                unbalancedProof: proof
             };
             
             await expect(
-                defiProtocol.executeWithUnhingedPermit(
+                defiProtocol.executeWithUnbalancedPermit(
                     owner.address,
                     salt,
                     deadline,
                     timestamp,
-                    unhingedProof,
+                    unbalancedProof,
                     signature
                 )
             ).to.emit(defiProtocol, "TokensReceived")
@@ -786,4 +786,4 @@ This integration example demonstrates how to build a complete Permit3 implementa
 - Comprehensive testing
 - Best practices and troubleshooting
 
-The Unhinged Merkle tree methodology using standard merkle proofs with OpenZeppelin's MerkleProof makes the system easy to understand, implement, and maintain while providing powerful functionality for cross-chain operations.
+The Unbalanced Merkle tree methodology using standard merkle proofs with OpenZeppelin's MerkleProof makes the system easy to understand, implement, and maintain while providing powerful functionality for cross-chain operations.

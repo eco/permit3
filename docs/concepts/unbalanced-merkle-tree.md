@@ -1,16 +1,16 @@
-<a id="unhinged-merkle-tree-top"></a>
-# 🔏 Permit3: Unhinged Merkle Trees 🌲
+<a id="unbalanced-merkle-tree-top"></a>
+# 🔏 Permit3: Unbalanced Merkle Trees 🌲
 
-🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Unhinged Merkle Trees
+🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Unbalanced Merkle Trees
 
-The Unhinged Merkle Tree methodology is a key approach used in Permit3 that enables efficient cross-chain proofs. This document explains what they are, how they work, and how they're implemented within the Permit3 system.
+The Unbalanced Merkle Tree methodology is a key approach used in Permit3 that enables efficient cross-chain proofs. This document explains what they are, how they work, and how they're implemented within the Permit3 system.
 
-###### Navigation: [What Are They](#what-are-unhinged-merkle-trees) | [Why "Unhinged"](#why-unhinged) | [Key Structure](#key-structure-strategic-unbalancing) | [How It Works](#how-it-works) | [Cross-Chain Use](#applied-to-cross-chain-use-cases) | [Gas Optimization](#gas-optimization-through-chain-ordering) | [Proof Structure](#proof-structure) | [Verification](#verification-process) | [Implementation](#implementation-in-permit3) | [Example](#example-cross-chain-permit-with-unhinged-merkle-tree) | [Benefits](#benefits-of-unhinged-merkle-trees) | [Applications](#applications-beyond-permit3) | [Comparison](#comparison-with-other-approaches) | [Conclusion](#conclusion)
+###### Navigation: [What Are They](#what-are-unbalanced-merkle-trees) | [Why "Unbalanced"](#why-unbalanced) | [Key Structure](#key-structure-strategic-unbalancing) | [How It Works](#how-it-works) | [Cross-Chain Use](#applied-to-cross-chain-use-cases) | [Gas Optimization](#gas-optimization-through-chain-ordering) | [Proof Structure](#proof-structure) | [Verification](#verification-process) | [Implementation](#implementation-in-permit3) | [Example](#example-cross-chain-permit-with-unbalanced-merkle-tree) | [Benefits](#benefits-of-unbalanced-merkle-trees) | [Applications](#applications-beyond-permit3) | [Comparison](#comparison-with-other-approaches) | [Conclusion](#conclusion)
 
-<a id="what-are-unhinged-merkle-trees"></a>
-## 🤔 What are Unhinged Merkle Trees?
+<a id="what-are-unbalanced-merkle-trees"></a>
+## 🤔 What are Unbalanced Merkle Trees?
 
-The Unhinged Merkle Tree methodology is an approach for structuring merkle trees that strategically unbalances the tree to optimize gas costs across different chains. 
+The Unbalanced Merkle Tree methodology is an approach for structuring merkle trees that strategically unbalances the tree to optimize gas costs across different chains. 
 
 The key insight is **strategic gas optimization**:
 - **Expensive chains** (like Ethereum mainnet) are placed closer to the root for smaller proofs
@@ -18,10 +18,10 @@ The key insight is **strategic gas optimization**:
 
 Uses merkle tree verification for security and compatibility.
 
-<a id="why-unhinged"></a>
-## 🏷️ Why "Unhinged"?
+<a id="why-unbalanced"></a>
+## 🏷️ Why "Unbalanced"?
 
-The name "Unhinged" reflects the deliberate breaking away from creating separate, isolated merkle trees for each chain. Instead of traditional separate trees per chain, the methodology creates a single "unhinged" tree that spans multiple chains.
+The name "Unbalanced" reflects the deliberate breaking away from creating separate, isolated merkle trees for each chain. Instead of traditional separate trees per chain, the methodology creates a single "unbalanced" tree that spans multiple chains.
 
 The tree is strategically unbalanced to optimize gas costs:
 - **Expensive chains** are positioned for shorter merkle proofs
@@ -32,7 +32,7 @@ This creates a more gas-efficient structure for cross-chain operations while usi
 <a id="key-structure-strategic-unbalancing"></a>
 ## 🧩 Key Structure: Strategic Unbalancing for Gas Optimization
 
-The foundation of the Unhinged Merkle Tree methodology is strategic operation ordering:
+The foundation of the Unbalanced Merkle Tree methodology is strategic operation ordering:
 
 ```
                     ROOT
@@ -59,7 +59,7 @@ The foundation of the Unhinged Merkle Tree methodology is strategic operation or
 
 ### How It Works
 
-Unhinged Merkle Trees use merkle tree verification for simplicity:
+Unbalanced Merkle Trees use merkle tree verification for simplicity:
 - Uses ordered hashing (smaller value first) for consistency
 - Provides O(log n) membership proofs
 - Maintains security guarantees through battle-tested patterns
@@ -110,7 +110,7 @@ The strategic unbalancing enables significant gas optimization:
 3. **Proof Size Optimization**: Tree depth directly affects proof size requirements
 4. **Minimal Calldata**: Chains near root need fewer sibling hashes in their proofs
 
-The Unhinged Merkle Tree approach provides:
+The Unbalanced Merkle Tree approach provides:
 - Consistent O(log n) verification complexity
 - Minimal calldata requirements (log₂(n) hashes per proof)
 - Gas-optimized verification
@@ -122,15 +122,15 @@ The Unhinged Merkle Tree approach provides:
 The proof is simply a standard merkle proof array:
 
 ```solidity
-bytes32[] unhingedProof;    // Standard merkle proof array of sibling hashes
+bytes32[] unbalancedProof;    // Standard merkle proof array of sibling hashes
 ```
 
-When used in Permit3, it's part of the `UnhingedPermitProof` structure:
+When used in Permit3, it's part of the `UnbalancedPermitProof` structure:
 
 ```solidity
-struct UnhingedPermitProof {
+struct UnbalancedPermitProof {
     ChainPermits permits;      // Permit operations for the current chain
-    bytes32[] unhingedProof;   // Array of sibling hashes forming the merkle proof
+    bytes32[] unbalancedProof;   // Array of sibling hashes forming the merkle proof
 }
 ```
 
@@ -166,7 +166,7 @@ This structure provides excellent gas efficiency:
 <a id="verification-process"></a>
 ## Verification Process
 
-To verify that an element is included in an Unhinged Merkle Tree:
+To verify that an element is included in an Unbalanced Merkle Tree:
 
 1. **Calculate the leaf hash**:
    - Hash the operation data to get the leaf value
@@ -186,7 +186,7 @@ To verify that an element is included in an Unhinged Merkle Tree:
 <a id="implementation-in-permit3"></a>
 ## Usage in Permit3
 
-Permit3 uses Unhinged Merkle trees through a clean architecture:
+Permit3 uses Unbalanced Merkle trees through a clean architecture:
 
 - OpenZeppelin's `MerkleProof.sol`: Standard merkle tree verification logic
 - Integration directly with `Permit3.sol` for cross-chain permit operations
@@ -210,10 +210,10 @@ MerkleProof.processProof(
 ) → bytes32                  // Returns the calculated root
 ```
 
-<a id="example-cross-chain-permit-with-unhinged-merkle-tree"></a>
-## Example: Cross-Chain Permit with Unhinged Merkle Tree
+<a id="example-cross-chain-permit-with-unbalanced-merkle-tree"></a>
+## Example: Cross-Chain Permit with Unbalanced Merkle Tree
 
-Here's how Unhinged Merkle Trees are used in a cross-chain permit scenario:
+Here's how Unbalanced Merkle Trees are used in a cross-chain permit scenario:
 
 1. **Tree Construction** (Strategic Process):
    - **Operation Collection**: Gather operations from all chains
@@ -263,17 +263,17 @@ bytes signature = signMessage(merkleRoot);
 // Generate merkle proof for Arbitrum's leaf
 bytes32[] memory arbitrumProof = generateMerkleProof(leaves, 1); // Index 1 for Arbitrum
 
-UnhingedPermitProof memory proof = {
+UnbalancedPermitProof memory proof = {
     permits: arbitrumPermits,
-    unhingedProof: arbitrumProof
+    unbalancedProof: arbitrumProof
 };
 
 // Verify and process
 permit3.permit(owner, salt, deadline, timestamp, proof, signature);
 ```
 
-<a id="benefits-of-unhinged-merkle-trees"></a>
-## Benefits of Unhinged Merkle Trees
+<a id="benefits-of-unbalanced-merkle-trees"></a>
+## Benefits of Unbalanced Merkle Trees
 
 1. **Design Innovation**: Two-part hybrid structure optimized for cross-chain operations
 2. **Gas Efficiency**: Strategic chain ordering minimizes costs on expensive chains
@@ -286,7 +286,7 @@ permit3.permit(owner, salt, deadline, timestamp, proof, signature);
 <a id="applications-beyond-permit3"></a>
 ## Applications Beyond Permit3
 
-Unhinged Merkle Trees have applications beyond token approvals:
+Unbalanced Merkle Trees have applications beyond token approvals:
 
 - Cross-chain NFT verification and transfers
 - Multi-chain governance voting
@@ -301,12 +301,12 @@ Unhinged Merkle Trees have applications beyond token approvals:
 | Separate Signatures | Simple implementation | Poor UX, multiple signatures required |
 | Hash Lists | Very simple | No efficient inclusion proofs |
 | Traditional Balanced Trees | Well understood | Suboptimal for cross-chain gas costs |
-| **Unhinged Merkle Trees** | Hybrid design + standard security | None - best of both worlds |
+| **Unbalanced Merkle Trees** | Hybrid design + standard security | None - best of both worlds |
 
 <a id="conclusion"></a>
 ## Conclusion
 
-The Unhinged Merkle Tree methodology represents a breakthrough for cross-chain proof systems. The strategic unbalancing approach—positioning expensive chains closer to the root for smaller proofs—provides the foundation for gas-optimal cross-chain operations.
+The Unbalanced Merkle Tree methodology represents a breakthrough for cross-chain proof systems. The strategic unbalancing approach—positioning expensive chains closer to the root for smaller proofs—provides the foundation for gas-optimal cross-chain operations.
 
 Provides security and compatibility benefits through merkle tree verification.
 

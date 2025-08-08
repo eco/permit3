@@ -6,7 +6,7 @@ import { IPermit } from "./IPermit.sol";
 
 /**
  * @title IPermit3
- * @notice Interface for the Permit3 cross-chain token approval and transfer system using UnhingedProofs
+ * @notice Interface for the Permit3 cross-chain token approval and transfer system using UnbalancedProofs
  */
 interface IPermit3 is IPermit, INonceManager {
     /**
@@ -57,13 +57,13 @@ interface IPermit3 is IPermit, INonceManager {
     }
 
     /**
-     * @notice Proof format using Unhinged Merkle Tree structure for cross-chain operations
+     * @notice Proof format using Unbalanced Merkle Tree structure for cross-chain operations
      * @param permits Permit operations for the current chain
-     * @param unhingedProof Array of sibling hashes forming the merkle proof path
+     * @param unbalancedProof Array of sibling hashes forming the merkle proof path
      */
-    struct UnhingedPermitProof {
+    struct UnbalancedPermitProof {
         ChainPermits permits;
-        bytes32[] unhingedProof;
+        bytes32[] unbalancedProof;
     }
 
     /**
@@ -109,12 +109,12 @@ interface IPermit3 is IPermit, INonceManager {
     ) external;
 
     /**
-     * @notice Process permit for multi-chain token approvals using Unhinged Merkle Tree
+     * @notice Process permit for multi-chain token approvals using Unbalanced Merkle Tree
      * @param owner Token owner address
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unhinged Merkle Tree
+     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
      * @param signature EIP-712 signature authorizing the batch
      */
     function permit(
@@ -122,7 +122,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        UnbalancedPermitProof calldata proof,
         bytes calldata signature
     ) external;
 
@@ -154,7 +154,7 @@ interface IPermit3 is IPermit, INonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unhinged Merkle Tree
+     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
      * @param witness Additional data to include in signature verification
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing the batch
@@ -164,7 +164,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        UnbalancedPermitProof calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature

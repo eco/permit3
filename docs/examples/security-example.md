@@ -102,9 +102,9 @@ async function emergencyLockdownAllChains() {
         
         // Create merkle tree with ordered hashing
         const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-        const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
+        const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
         
-        // 3. Sign the unhinged root
+        // 3. Sign the unbalanced root
         const salt = ethers.utils.randomBytes(32);
         const timestamp = Math.floor(Date.now() / 1000);
         const deadline = timestamp + 300; // 5 minutes - quick action needed!
@@ -122,7 +122,7 @@ async function emergencyLockdownAllChains() {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "unhingedRoot", type: "bytes32" }
+                { name: "unbalancedRoot", type: "bytes32" }
             ]
         };
         
@@ -131,7 +131,7 @@ async function emergencyLockdownAllChains() {
             salt,
             deadline,
             timestamp,
-            unhingedRoot
+            unbalancedRoot
         };
         
         const signature = await wallets.ethereum._signTypedData(domain, types, value);
@@ -145,7 +145,7 @@ async function emergencyLockdownAllChains() {
             
             proofs[chain] = {
                 permits: chainPermits[chain],
-                unhingedProof: proof.map(p => '0x' + p.data.toString('hex'))
+                unbalancedProof: proof.map(p => '0x' + p.data.toString('hex'))
             };
         });
         

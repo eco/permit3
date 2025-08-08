@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unhinged Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
+Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unbalanced Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
 
 > **"Permit3 unlocks a one-click/signature cross-chain future."**
 
@@ -11,7 +11,7 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 - 🌉 **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
 - 🔐 **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
 - 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
-- 🌲 **Unhinged Merkle Trees**: Hybrid two-part structure for cross-chain proofs:
+- 🌲 **Unbalanced Merkle Trees**: Hybrid two-part structure for cross-chain proofs:
   ```
                  [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
               /      \      \      \
@@ -25,7 +25,7 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
   - 🔄 **Bottom Part**: Efficient membership proofs with O(log n) complexity
   - 🔗 **Top Part**: Sequential chaining for linking across chains  
   - 🚀 **Gas Optimization**: Chain ordering (cheapest chains first, expensive last)
-  - 🎯 **"Unhinged"**: Deliberate deviation from balanced trees at top level
+  - 🎯 **"Unbalanced"**: Deliberate deviation from balanced trees at top level
   - 💡 **Security**: Uses merkle tree verification for compatibility
 - 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
 - 🔄 **Flexible Allowance Management**:
@@ -51,7 +51,7 @@ Comprehensive documentation is available in the [docs](./docs) directory:
 | Section | Description | Quick Links |
 |---------|-------------|-------------|
 | [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#getting-started) |
-| [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unhinged-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
+| [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unbalanced-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
 | [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [ERC-7702](./docs/guides/erc7702-integration.md) · [Witness Integration](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
 | [📋 API Reference](./docs/api/README.md) | Technical specifications | [Full API](./docs/api/api-reference.md) · [Data Structures](./docs/api/data-structures.md) · [Interfaces](./docs/api/interfaces.md) · [Events](./docs/api/events.md) · [Error Codes](./docs/api/error-codes.md) |
 | [💻 Examples](./docs/examples/README.md) | Code samples | [ERC-7702](./docs/examples/erc7702-example.md) · [Witness](./docs/examples/witness-example.md) · [Cross-Chain](./docs/examples/cross-chain-example.md) · [Allowance](./docs/examples/allowance-management-example.md) · [Security](./docs/examples/security-example.md) · [Integration](./docs/examples/integration-example.md) |
@@ -92,9 +92,9 @@ function permit(AllowanceOrTransfer[] memory permits) external;
 function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, 
                 AllowanceOrTransfer[] calldata permits, bytes calldata signature) external;
 
-// Cross-chain operations with UnhingedProofs and signatures
+// Cross-chain operations with UnbalancedProofs and signatures
 function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp,
-                UnhingedPermitProof calldata proof, bytes calldata signature) external;
+                UnbalancedPermitProof calldata proof, bytes calldata signature) external;
 ```
 
 **Direct Permit Usage:**
@@ -227,7 +227,7 @@ permits[2] = AllowanceOrTransfer({
 permit3.permit(owner, salt, deadline, timestamp, permits, signature);
 ```
 
-### 🌉 Cross-Chain Usage with UnhingedProofs
+### 🌉 Cross-Chain Usage with UnbalancedProofs
 
 ```javascript
 // Create permits for each chain
@@ -261,10 +261,10 @@ const merkleRoot = buildMerkleRoot(leaves);
 
 // Generate merkle proof for specific chain
 const arbProof = generateMerkleProof(leaves, 1); // Index 1 for Arbitrum
-const unhingedProof = { nodes: arbProof };
+const unbalancedProof = { nodes: arbProof };
 
-// Create and sign with the unhinged root
-const signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);
+// Create and sign with the unbalanced root
+const signature = signPermit3(owner, salt, deadline, timestamp, unbalancedRoot);
 ```
 
 ## 🛡️ Security Guidelines

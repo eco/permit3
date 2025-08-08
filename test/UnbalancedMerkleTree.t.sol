@@ -6,10 +6,10 @@ import "forge-std/Test.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
- * @title UnhingedMerkleTreeTest
- * @notice Tests for simple UnhingedMerkleTree functionality using OpenZeppelin's MerkleProof
+ * @title UnbalancedMerkleTreeTest
+ * @notice Tests for simple UnbalancedMerkleTree functionality using OpenZeppelin's MerkleProof
  */
-contract UnhingedMerkleTreeTest is Test {
+contract UnbalancedMerkleTreeTest is Test {
     // Test verifying a simple merkle proof with single leaf
     function test_singleLeafVerification() public pure {
         bytes32 leaf = bytes32(uint256(0x1234));
@@ -174,7 +174,7 @@ contract UnhingedMerkleTreeTest is Test {
     }
 
     // Test proof structure with bytes32[] type
-    function test_unhingedProofStructure() public pure {
+    function test_unbalancedProofStructure() public pure {
         bytes32 leaf = bytes32(uint256(0x1111));
         bytes32 sibling = bytes32(uint256(0x2222));
 

@@ -61,21 +61,21 @@ struct ChainPermits {
 - **chainId**: The blockchain ID where these permits should be executed (uint64 type for gas efficiency)
 - **permits**: Array of AllowanceOrTransfer operations to perform on that chain
 
-### UnhingedPermitProof
+### UnbalancedPermitProof
 
 Combines a chain's permits with a proof of inclusion in the cross-chain permit root.
 
 ```solidity
-struct UnhingedPermitProof {
+struct UnbalancedPermitProof {
     ChainPermits permits;           // Chain-specific permit data
-    bytes32[] unhingedProof;        // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes32[] unbalancedProof;        // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 ```
 
 #### Fields
 
 - **permits**: The permits to execute on the current chain
-- **unhingedProof**: Standard merkle proof array that proves these permits are part of the signed root using OpenZeppelin's MerkleProof.processProof()
+- **unbalancedProof**: Standard merkle proof array that proves these permits are part of the signed root using OpenZeppelin's MerkleProof.processProof()
 
 ### Allowance
 
@@ -111,21 +111,21 @@ struct NoncesToInvalidate {
 - **chainId**: The blockchain ID where these nonces should be invalidated
 - **salts**: Array of salt values to mark as used/invalid
 
-### UnhingedCancelPermitProof
+### UnbalancedCancelPermitProof
 
 Proof structure for cross-chain nonce invalidation operations.
 
 ```solidity
-struct UnhingedCancelPermitProof {
+struct UnbalancedCancelPermitProof {
     NoncesToInvalidate invalidations;  // Current chain invalidation data
-    bytes32[] unhingedProof;           // Merkle proof array
+    bytes32[] unbalancedProof;           // Merkle proof array
 }
 ```
 
 #### Fields
 
 - **invalidations**: The nonce invalidation data for the current chain
-- **unhingedProof**: Standard merkle proof array for cross-chain verification
+- **unbalancedProof**: Standard merkle proof array for cross-chain verification
 
 ### TokenSpenderPair
 
@@ -166,15 +166,15 @@ struct AllowanceTransferDetails {
 <a id="merkle-tree-methodology"></a>
 ## Merkle Tree Methodology
 
-The Unhinged Merkle tree methodology uses standard `bytes32[]` arrays for proof implementation, compatible with OpenZeppelin's MerkleProof.processProof(). Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
+The Unbalanced Merkle tree methodology uses standard `bytes32[]` arrays for proof implementation, compatible with OpenZeppelin's MerkleProof.processProof(). Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
 
 <a id="relations-between-structures"></a>
 ## Relations Between Structures
 
 ```
 ┌─────────────────┐     ┌───────────────────┐     ┌───────────────────┐
-│ bytes32[]       │     │ UnhingedPermitProof│     │ ChainPermits      │
-│ (merkle proof)  │◄────┤ unhingedProof     │     │ chainId           │
+│ bytes32[]       │     │ UnbalancedPermitProof│     │ ChainPermits      │
+│ (merkle proof)  │◄────┤ unbalancedProof     │     │ chainId           │
 └─────────────────┘     ├───────────────────┤     ├───────────────────┤
                         │ permits           │◄────┤ permits[]         │◄─┐
                         └───────────────────┘     └───────────────────┘  │
