@@ -483,15 +483,16 @@ contract DeFiProtocol {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        IPermit3.UnbalancedPermitProof calldata proof,
+        IPermit3.ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external {
-        // Use Permit3 to process the unbalanced permit
-        permit3.permit(owner, salt, deadline, timestamp, proof, signature);
+        // Use Permit3 to process the cross-chain permit
+        permit3.permit(owner, salt, deadline, timestamp, permits, proof, signature);
         
         // Process the permits for this chain
-        for (uint i = 0; i < proof.permits.permits.length; i++) {
-            IPermit3.AllowanceOrTransfer memory permit = proof.permits.permits[i];
+        for (uint i = 0; i < permits.permits.length; i++) {
+            IPermit3.AllowanceOrTransfer memory permit = permits.permits[i];
             
             // Check if this is a transfer (mode = 0)
             if (permit.modeOrExpiration & 1 == 0) {
@@ -686,11 +687,9 @@ describe("Permit3 Integration Tests", function () {
             
             const signature = await owner._signTypedData(domain, types, value);
             
-            // Execute the unbalanced permit
-            const proof = {
-                permits: permits[2], // Our chain's permits
-                proof: proof
-            };
+            // Execute the cross-chain permit
+            const chainPermits = permits[2]; // Our chain's permits
+            const merkleProof = proof;
             
             await expect(
                 defiProtocol.executeWithUnbalancedPermit(
@@ -698,7 +697,8 @@ describe("Permit3 Integration Tests", function () {
                     salt,
                     deadline,
                     timestamp,
-                    proof,
+                    chainPermits,
+                    merkleProof,
                     signature
                 )
             ).to.emit(defiProtocol, "TokensReceived")

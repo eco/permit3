@@ -27,10 +27,9 @@ interface IPermit3 is IPermit, INonceManager {
         uint160 amountDelta;
     }
     
-    struct UnbalancedPermitProof {
-        ChainPermits permits;
-        bytes32[] proof;
-    }
+    // Note: In the implementation, cross-chain operations use separate parameters:
+    // - ChainPermits calldata permits: Permit operations for the current chain
+    // - bytes32[] calldata proof: Merkle proof array for verification
     
     enum PermitType {
         Transfer,
@@ -54,7 +53,8 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnbalancedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external;
     
@@ -80,7 +80,8 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnbalancedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -156,10 +157,9 @@ interface INonceManager is IPermit {
         bytes32[] salts;
     }
     
-    struct UnbalancedCancelPermitProof {
-        NoncesToInvalidate invalidations;
-        bytes32[] proof;
-    }
+    // Note: Cross-chain nonce invalidation uses separate parameters:
+    // - NoncesToInvalidate calldata invalidations: Current chain invalidation data
+    // - bytes32[] calldata proof: Merkle proof array for verification
     
     // Core functions
     function DOMAIN_SEPARATOR() external view returns (bytes32);
@@ -178,7 +178,8 @@ interface INonceManager is IPermit {
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        UnbalancedCancelPermitProof memory proof,
+        NoncesToInvalidate memory invalidations,
+        bytes32[] memory proof,
         bytes calldata signature
     ) external;
     

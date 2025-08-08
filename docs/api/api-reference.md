@@ -87,14 +87,11 @@ struct ChainPermits {
 }
 ```
 
-#### 🌲 UnbalancedPermitProof
+#### 🌲 Cross-Chain Permit Parameters
 
-```solidity
-struct UnbalancedPermitProof {
-    ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] proof; // Standard merkle proof using OpenZeppelin's MerkleProof
-}
-```
+Note: In the implementation, cross-chain operations now use separate parameters instead of a struct:
+- `ChainPermits calldata permits`: Permit operations for the current chain
+- `bytes32[] calldata proof`: Merkle proof array for verification using OpenZeppelin's MerkleProof
 
 <a id="constants"></a>
 ## Constants
@@ -180,7 +177,8 @@ function permit(
     bytes32 salt,
     uint48 deadline,
     uint48 timestamp,
-    UnbalancedPermitProof calldata proof,
+    ChainPermits calldata permits,
+    bytes32[] calldata proof,
     bytes calldata signature
 ) external;
 ```
@@ -190,7 +188,8 @@ function permit(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data using Unbalanced Merkle tree methodology
+- `permits`: Permit operations for the current chain
+- `proof`: Merkle proof array for verification
 - `signature`: EIP-712 signature authorizing the batch
 
 **Behavior:**
@@ -267,7 +266,8 @@ function permitWitness(
     bytes32 salt,
     uint48 deadline,
     uint48 timestamp,
-    UnbalancedPermitProof calldata proof,
+    ChainPermits calldata permits,
+    bytes32[] calldata proof,
     bytes32 witness,
     string calldata witnessTypeString,
     bytes calldata signature
@@ -279,7 +279,8 @@ function permitWitness(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data using Unbalanced Merkle tree methodology
+- `permits`: Permit operations for the current chain
+- `proof`: Merkle proof array for verification
 - `witness`: Additional data to include in signature verification
 - `witnessTypeString`: EIP-712 type definition for witness data
 - `signature`: EIP-712 signature authorizing the batch
@@ -447,7 +448,8 @@ function invalidateNonces(
 function invalidateNonces(
     address owner,
     uint48 deadline,
-    UnbalancedCancelPermitProof memory proof,
+    NoncesToInvalidate memory invalidations,
+    bytes32[] memory proof,
     bytes calldata signature
 ) external;
 ```
@@ -455,7 +457,8 @@ function invalidateNonces(
 **Parameters:**
 - `owner`: Owner address
 - `deadline`: Signature expiration timestamp
-- `proof`: Unbalanced invalidation proof
+- `invalidations`: Current chain invalidation data
+- `proof`: Merkle proof array for verification
 - `signature`: EIP-712 signature authorizing the invalidation
 
 **Behavior:**
@@ -652,20 +655,10 @@ bytes32[] memory arbProofNodes = new bytes32[](1);
 arbProofNodes[0] = ethLeaf; // Sibling for Arbitrum
 
 // Execute on Ethereum chain
-IPermit3.UnbalancedPermitProof memory ethProof = IPermit3.UnbalancedPermitProof({
-    permits: ethPermits,
-    proof: ethProofNodes
-});
-
-permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
+permit3.permit(owner, salt, deadline, timestamp, ethPermits, ethProofNodes, signature);
 
 // Execute on Arbitrum chain
-IPermit3.UnbalancedPermitProof memory arbProof = IPermit3.UnbalancedPermitProof({
-    permits: arbPermits,
-    proof: arbProofNodes
-});
-
-permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
+permit3.permit(owner, salt, deadline, timestamp, arbPermits, arbProofNodes, signature);
 ```
 
 ### Witness Permit

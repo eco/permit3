@@ -285,7 +285,8 @@ const tx = await permit3.permitWitness(
     salt,
     deadline,
     timestamp,
-    proof, // UnbalancedPermitProof structure
+    permits, // ChainPermits for current chain
+    proof,   // bytes32[] merkle proof array
     witness,
     witnessTypeString,
     signature

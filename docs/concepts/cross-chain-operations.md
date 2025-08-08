@@ -65,13 +65,20 @@ When executing on any specific chain, a merkle proof is provided that proves tha
 
 Permit3 uses a simple and efficient proof structure for cross-chain operations:
 
-### UnbalancedPermitProof Structure
+### Cross-Chain Permit Parameters
+
+In the implementation, cross-chain operations use separate parameters:
 
 ```solidity
-struct UnbalancedPermitProof {
-    ChainPermits permits;    // Permit operations for the current chain
-    bytes32[] proof; // Standard merkle proof using OpenZeppelin's MerkleProof
-}
+function permit(
+    address owner,
+    bytes32 salt,
+    uint48 deadline,
+    uint48 timestamp,
+    ChainPermits calldata permits,    // Permit operations for the current chain
+    bytes32[] calldata proof,         // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes calldata signature
+) external;
 
 // Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
 // Each element represents a sibling hash needed for proof verification
@@ -193,25 +200,13 @@ const signature = await signer._signTypedData(domain, types, permitData);
 // Each proof contains sibling hashes for the unbalanced tree structure
 
 // Ethereum proof (for leaf at index 0)
-const ethProof = generateMerkleProof(leaves, 0);
-const ethUnbalancedProof = {
-    permits: ethPermits,
-    proof: ethProof // Direct array of sibling hashes
-};
+const ethProof = generateMerkleProof(leaves, 0); // Direct array of sibling hashes
 
 // Arbitrum proof (for leaf at index 1)
-const arbProof = generateMerkleProof(leaves, 1);
-const arbUnbalancedProof = {
-    permits: arbPermits,
-    proof: arbProof // Direct array of sibling hashes
-};
+const arbProof = generateMerkleProof(leaves, 1); // Direct array of sibling hashes
 
 // Optimism proof (for leaf at index 2)
-const optProof = generateMerkleProof(leaves, 2);
-const optUnbalancedProof = {
-    permits: optPermits,
-    proof: optProof // Direct array of sibling hashes
-};
+const optProof = generateMerkleProof(leaves, 2); // Direct array of sibling hashes
 ```
 
 #### Step 5: Execute with Unbalanced Proofs
@@ -223,7 +218,8 @@ await permit3.permit(
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
-    ethUnbalancedProof,
+    ethPermits,
+    ethProof,
     signature
 );
 
@@ -233,7 +229,8 @@ await permit3.permit(
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
-    arbUnbalancedProof,
+    arbPermits,
+    arbProof,
     signature
 );
 
@@ -243,7 +240,8 @@ await permit3.permit(
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
-    optUnbalancedProof,
+    optPermits,
+    optProof,
     signature
 );
 ```
@@ -268,7 +266,8 @@ await permit3.permitWitness(
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
-    ethUnbalancedProof, // Chain-specific merkle proof
+    ethPermits,    // Chain-specific permits
+    ethProof,      // Chain-specific merkle proof
     witness,
     witnessTypeString,
     signature

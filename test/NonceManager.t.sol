@@ -95,16 +95,14 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
-        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
+        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, invalidations, nodes);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        permit3.invalidateNonces(owner, deadline, proof, signature);
+        permit3.invalidateNonces(owner, deadline, invalidations, nodes, signature);
 
         assertTrue(permit3.isNonceUsed(owner, bytes32(uint256(1))));
         assertTrue(permit3.isNonceUsed(owner, bytes32(uint256(2))));
@@ -151,17 +149,14 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
-
         uint48 deadline = uint48(block.timestamp + 1 hours);
-        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
+        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, invalidations, nodes);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
         vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(block.chainid), 1));
-        permit3.invalidateNonces(owner, deadline, proof, signature);
+        permit3.invalidateNonces(owner, deadline, invalidations, nodes, signature);
     }
 
     function test_crossChainNonceInvalidationExpired() public {
@@ -173,11 +168,8 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
-
         uint48 deadline = uint48(block.timestamp - 1);
-        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
+        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, invalidations, nodes);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -185,7 +177,7 @@ contract NonceManagerTest is TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(INonceManager.SignatureExpired.selector, deadline, uint48(block.timestamp))
         );
-        permit3.invalidateNonces(owner, deadline, proof, signature);
+        permit3.invalidateNonces(owner, deadline, invalidations, nodes, signature);
     }
 
     function test_crossChainNonceInvalidationWrongSigner() public {
@@ -197,18 +189,15 @@ contract NonceManagerTest is TestBase {
 
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
-        INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
-
         uint48 deadline = uint48(block.timestamp + 1 hours);
-        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
+        bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, invalidations, nodes);
         bytes32 digest = exposed_hashTypedDataV4(structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x5678, digest); // Different private key
         bytes memory signature = abi.encodePacked(r, s, v);
 
         // When signature is from wrong private key, the recovered signer will be different
         vm.expectRevert();
-        permit3.invalidateNonces(owner, deadline, proof, signature);
+        permit3.invalidateNonces(owner, deadline, invalidations, nodes, signature);
     }
 
     function test_hashNoncesToInvalidate() public view {
@@ -261,7 +250,7 @@ contract NonceManagerTest is TestBase {
 
         // Create a simple proof structure where the leaf is the root (no proof needed)
         bytes32[] memory proofNodes = new bytes32[](0);
-        p.proof = INonceManager.UnbalancedCancelPermitProof({ invalidations: p.invalidations, proof: proofNodes });
+        p.proof = proofNodes;
 
         // Set up deadline
         p.deadline = uint48(block.timestamp + 1 hours);
@@ -279,7 +268,7 @@ contract NonceManagerTest is TestBase {
         assertFalse(permit3.isNonceUsed(owner, p.testSalt));
 
         // Call the invalidateNonces function with proof
-        permit3.invalidateNonces(owner, p.deadline, p.proof, p.signature);
+        permit3.invalidateNonces(owner, p.deadline, p.invalidations, p.proof, p.signature);
 
         // Verify salt is now used
         assertTrue(permit3.isNonceUsed(owner, p.testSalt));

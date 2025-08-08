@@ -91,19 +91,20 @@ contract TestBase is Test {
 
     // Sign an unbalanced permit
     function _signUnbalancedPermit(
-        IPermit3.UnbalancedPermitProof memory proof,
+        IPermit3.ChainPermits memory permits,
+        bytes32[] memory proof,
         uint48 deadline,
         uint48 timestamp,
         bytes32 salt
     ) internal view returns (bytes memory) {
         // Calculate the current chain hash (leaf)
-        bytes32 currentChainHash = IPermit3(address(permit3)).hashChainPermits(proof.permits);
+        bytes32 currentChainHash = IPermit3(address(permit3)).hashChainPermits(permits);
 
         // Calculate the merkle root using standard merkle tree logic
         bytes32 merkleRoot = currentChainHash;
 
-        for (uint256 i = 0; i < proof.proof.length; i++) {
-            bytes32 proofElement = proof.proof[i];
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
 
             // Standard merkle ordering: smaller value first
             if (merkleRoot <= proofElement) {
@@ -146,13 +147,22 @@ contract TestBase is Test {
     function _getUnbalancedInvalidationStructHash(
         address ownerAddress,
         uint48 deadline,
-        INonceManager.UnbalancedCancelPermitProof memory proof
+        INonceManager.NoncesToInvalidate memory invalidations,
+        bytes32[] memory proof
     ) internal view returns (bytes32) {
         // For tests, manually calculate what the library would calculate
         // since we can't call library functions on memory structs
-        bytes32 invalidationsHash = permit3.hashNoncesToInvalidate(proof.invalidations);
-        // For a simple proof with no nodes, the root equals the leaf
+        bytes32 invalidationsHash = permit3.hashNoncesToInvalidate(invalidations);
+        // Calculate merkle root from proof
         bytes32 merkleRoot = invalidationsHash;
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+            if (merkleRoot <= proofElement) {
+                merkleRoot = keccak256(abi.encodePacked(merkleRoot, proofElement));
+            } else {
+                merkleRoot = keccak256(abi.encodePacked(proofElement, merkleRoot));
+            }
+        }
         return keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, merkleRoot));
     }
 
@@ -173,7 +183,7 @@ contract TestBase is Test {
         bytes32[] salts;
         INonceManager.NoncesToInvalidate invalidations;
         bytes32 merkleRoot;
-        INonceManager.UnbalancedCancelPermitProof proof;
+        bytes32[] proof;
         uint48 deadline;
         bytes32 invalidationsHash;
         bytes32 signedHash;

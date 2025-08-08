@@ -57,16 +57,6 @@ interface IPermit3 is IPermit, INonceManager {
     }
 
     /**
-     * @notice Proof format using Unbalanced Merkle Tree structure for cross-chain operations
-     * @param permits Permit operations for the current chain
-     * @param proof Array of sibling hashes forming the merkle proof path
-     */
-    struct UnbalancedPermitProof {
-        ChainPermits permits;
-        bytes32[] proof;
-    }
-
-    /**
      * @notice Returns the witness typehash stub for EIP-712 signature verification
      * @return The stub string for witness permit typehash
      */
@@ -109,12 +99,13 @@ interface IPermit3 is IPermit, INonceManager {
     ) external;
 
     /**
-     * @notice Process permit for multi-chain token approvals using Unbalanced Merkle Tree
+     * @notice Process permit for multi-chain token approvals using Merkle Tree
      * @param owner Token owner address
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
+     * @param permits Permit operations for the current chain
+     * @param proof Merkle proof array for verification
      * @param signature EIP-712 signature authorizing the batch
      */
     function permit(
@@ -122,7 +113,8 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnbalancedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external;
 
@@ -154,7 +146,8 @@ interface IPermit3 is IPermit, INonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
+     * @param permits Permit operations for the current chain
+     * @param proof Merkle proof array for verification
      * @param witness Additional data to include in signature verification
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing the batch
@@ -164,7 +157,8 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnbalancedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature

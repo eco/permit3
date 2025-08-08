@@ -61,21 +61,12 @@ struct ChainPermits {
 - **chainId**: The blockchain ID where these permits should be executed (uint64 type for gas efficiency)
 - **permits**: Array of AllowanceOrTransfer operations to perform on that chain
 
-### UnbalancedPermitProof
+### Cross-Chain Permit Parameters
 
-Combines a chain's permits with a proof of inclusion in the cross-chain permit root.
+In the implementation, cross-chain operations use separate parameters instead of a struct:
 
-```solidity
-struct UnbalancedPermitProof {
-    ChainPermits permits;           // Chain-specific permit data
-    bytes32[] proof;        // Standard merkle proof using OpenZeppelin's MerkleProof
-}
-```
-
-#### Fields
-
-- **permits**: The permits to execute on the current chain
-- **proof**: Standard merkle proof array that proves these permits are part of the signed root using OpenZeppelin's MerkleProof.processProof()
+- **ChainPermits calldata permits**: The permits to execute on the current chain
+- **bytes32[] calldata proof**: Standard merkle proof array that proves these permits are part of the signed root using OpenZeppelin's MerkleProof.processProof()
 
 ### Allowance
 
@@ -111,21 +102,12 @@ struct NoncesToInvalidate {
 - **chainId**: The blockchain ID where these nonces should be invalidated
 - **salts**: Array of salt values to mark as used/invalid
 
-### UnbalancedCancelPermitProof
+### Cross-Chain Nonce Invalidation Parameters
 
-Proof structure for cross-chain nonce invalidation operations.
+For cross-chain nonce invalidation operations, separate parameters are used:
 
-```solidity
-struct UnbalancedCancelPermitProof {
-    NoncesToInvalidate invalidations;  // Current chain invalidation data
-    bytes32[] proof;           // Merkle proof array
-}
-```
-
-#### Fields
-
-- **invalidations**: The nonce invalidation data for the current chain
-- **proof**: Standard merkle proof array for cross-chain verification
+- **NoncesToInvalidate calldata invalidations**: The nonce invalidation data for the current chain
+- **bytes32[] calldata proof**: Standard merkle proof array for cross-chain verification
 
 ### TokenSpenderPair
 
@@ -172,21 +154,21 @@ The Unbalanced Merkle tree methodology uses standard `bytes32[]` arrays for proo
 ## Relations Between Structures
 
 ```
-┌─────────────────┐     ┌───────────────────┐     ┌───────────────────┐
-│ bytes32[]       │     │ UnbalancedPermitProof│     │ ChainPermits      │
-│ (merkle proof)  │◄────┤ proof     │     │ chainId           │
-└─────────────────┘     ├───────────────────┤     ├───────────────────┤
-                        │ permits           │◄────┤ permits[]         │◄─┐
-                        └───────────────────┘     └───────────────────┘  │
-                                                                        │
-                        ┌───────────────────┐                          │
-                        │ AllowanceOrTransfer│                          │
-                        ├───────────────────┤                          │
-                        │ modeOrExpiration  │                          │
-                        │ token             │                          │
-                        │ account           │                          │
-                        │ amountDelta       │◄─────────────────────────┘
-                        └───────────────────┘
+┌───────────────────┐     ┌───────────────────┐
+│ ChainPermits      │     │ bytes32[]         │
+│ chainId           │     │ (merkle proof)    │
+├───────────────────┤     └───────────────────┘
+│ permits[]         │◄─┐  Passed as separate parameters
+└───────────────────┘  │  to permit() function
+                       │
+┌───────────────────┐  │
+│ AllowanceOrTransfer│  │
+├───────────────────┤  │
+│ modeOrExpiration  │  │
+│ token             │  │
+│ account           │  │
+│ amountDelta       │◄─┘
+└───────────────────┘
 ```
 
 This diagram shows how the different data structures relate to each other in the Permit3 system, particularly for cross-chain operations.

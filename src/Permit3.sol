@@ -139,12 +139,13 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     }
 
     /**
-     * @notice Process token approvals across multiple chains using Unbalanced Merkle Tree
+     * @notice Process token approvals across multiple chains using Merkle Tree
      * @param owner Token owner authorizing the operations
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
+     * @param permits Permit operations for the current chain
+     * @param proof Merkle proof array for verification
      * @param signature EIP-712 signature covering the entire cross-chain batch
      */
     function permit(
@@ -152,7 +153,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnbalancedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
@@ -161,8 +163,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
-        if (proof.permits.chainId != uint64(block.chainid)) {
-            revert WrongChainId(uint64(block.chainid), proof.permits.chainId);
+        if (permits.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), permits.chainId);
         }
 
         // Use a struct to avoid stack-too-deep errors
@@ -173,11 +175,11 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.timestamp = timestamp;
 
         // Hash current chain's permits
-        params.currentChainHash = hashChainPermits(proof.permits);
+        params.currentChainHash = hashChainPermits(permits);
 
         // Calculate the merkle root from the proof components
         // processProof performs validation internally and provides granular error messages
-        params.merkleRoot = MerkleProof.processProof(proof.proof, params.currentChainHash);
+        params.merkleRoot = MerkleProof.processProof(proof, params.currentChainHash);
 
         // Verify signature with merkle root
         bytes32 signedHash = keccak256(
@@ -188,7 +190,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
         _useNonce(owner, salt);
         _verifySignature(params.owner, signedHash, signature);
-        _processChainPermits(params.owner, params.timestamp, proof.permits);
+        _processChainPermits(params.owner, params.timestamp, permits);
     }
 
     /**
@@ -258,7 +260,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unbalanced Merkle Tree
+     * @param permits Permit operations for the current chain
+     * @param proof Merkle proof array for verification
      * @param witness Additional data to include in signature verification
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing the batch
@@ -268,7 +271,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnbalancedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -279,8 +283,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
-        if (proof.permits.chainId != uint64(block.chainid)) {
-            revert WrongChainId(uint64(block.chainid), proof.permits.chainId);
+        if (permits.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), permits.chainId);
         }
 
         // Validate witness type string format
@@ -295,11 +299,11 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.witness = witness;
 
         // Hash current chain's permits
-        params.currentChainHash = hashChainPermits(proof.permits);
+        params.currentChainHash = hashChainPermits(permits);
 
         // Calculate the merkle root
         // processProof performs validation internally and provides granular error messages
-        params.merkleRoot = MerkleProof.processProof(proof.proof, params.currentChainHash);
+        params.merkleRoot = MerkleProof.processProof(proof, params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
@@ -317,7 +321,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
         _useNonce(owner, salt);
         _verifySignature(params.owner, signedHash, signature);
-        _processChainPermits(params.owner, params.timestamp, proof.permits);
+        _processChainPermits(params.owner, params.timestamp, permits);
     }
 
     /**

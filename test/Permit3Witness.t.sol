@@ -265,16 +265,21 @@ contract Permit3WitnessTest is Test {
         vm.warp(1000); // Set specific timestamp for reproducible results
 
         // Create unbalanced permit proof
-        IPermit3.UnbalancedPermitProof memory proof = _createUnbalancedProof();
+        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
+        bytes32[] memory nodes = new bytes32[](2);
+        nodes[0] = bytes32(uint256(0x1234));
+        nodes[1] = bytes32(uint256(0x9abc));
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
         // Use our proper signing function for unbalanced proofs
         bytes memory signature =
-            _signWitnessUnbalancedPermit(proof, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
+            _signWitnessUnbalancedPermit(chainPermits, nodes, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
         // Execute cross-chain permit
-        permit3.permitWitness(owner, SALT, deadline, timestamp, proof, WITNESS, WITNESS_TYPE_STRING, signature);
+        permit3.permitWitness(
+            owner, SALT, deadline, timestamp, chainPermits, nodes, WITNESS, WITNESS_TYPE_STRING, signature
+        );
 
         // Verify transfer happened
         assertEq(token.balanceOf(recipient), AMOUNT);
@@ -322,18 +327,6 @@ contract Permit3WitnessTest is Test {
         });
 
         return IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
-    }
-
-    function _createUnbalancedProof() internal view returns (IPermit3.UnbalancedPermitProof memory) {
-        // Create the base permit
-        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
-
-        // Create a proper unbalanced proof (using preHash only, no subtreeProof - mutually exclusive)
-        bytes32[] memory nodes = new bytes32[](2);
-        nodes[0] = bytes32(uint256(0x1234)); // preHash
-        nodes[1] = bytes32(uint256(0x9abc)); // following hash
-
-        return IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
     }
 
     // Helper struct for signing witness permits
@@ -388,7 +381,8 @@ contract Permit3WitnessTest is Test {
     }
 
     function _signWitnessUnbalancedPermit(
-        IPermit3.UnbalancedPermitProof memory proof,
+        IPermit3.ChainPermits memory permits,
+        bytes32[] memory proof,
         uint48 deadline,
         uint48 timestamp,
         bytes32 salt,
@@ -398,11 +392,11 @@ contract Permit3WitnessTest is Test {
         UnbalancedWitnessVars memory vars;
 
         // Calculate the unbalanced root the same way the contract would
-        vars.currentChainHash = _hashChainPermits(proof.permits);
+        vars.currentChainHash = _hashChainPermits(permits);
 
         // In the new simple structure, calculate merkle root using the proof
         // Using OpenZeppelin's MerkleProof directly
-        vars.merkleRoot = MerkleProof.processProof(proof.proof, vars.currentChainHash);
+        vars.merkleRoot = MerkleProof.processProof(proof, vars.currentChainHash);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));

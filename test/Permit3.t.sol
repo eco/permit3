@@ -200,9 +200,6 @@ contract Permit3Test is TestBase {
         nodes[0] = bytes32(uint256(0x1234)); // preHash
         nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
-        IPermit3.UnbalancedPermitProof memory permitProof =
-            IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
-
         // Reset recipient balance
         deal(address(token), recipient, 0);
 
@@ -210,10 +207,10 @@ contract Permit3Test is TestBase {
         uint48 timestamp = uint48(block.timestamp);
 
         // Create signature
-        bytes memory signature = _signUnbalancedPermit(permitProof, deadline, timestamp, SALT);
+        bytes memory signature = _signUnbalancedPermit(chainPermits, nodes, deadline, timestamp, SALT);
 
         // Execute permit
-        permit3.permit(owner, SALT, deadline, timestamp, permitProof, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, nodes, signature);
 
         // Verify transfer happened
         assertEq(token.balanceOf(recipient), AMOUNT);
@@ -236,9 +233,6 @@ contract Permit3Test is TestBase {
         nodes[0] = bytes32(uint256(0x1)); // preHash only
 
         // Create invalid proof with insufficient nodes
-        IPermit3.UnbalancedPermitProof memory permitProof =
-            IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
-
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
 
@@ -248,7 +242,7 @@ contract Permit3Test is TestBase {
         // Test that an invalid proof reverts
         vm.expectRevert();
         vm.prank(owner);
-        permit3.permit(owner, SALT, deadline, timestamp, permitProof, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, nodes, signature);
     }
 
     function test_permitUnbalancedProofErrors() public {
@@ -264,9 +258,6 @@ contract Permit3Test is TestBase {
         bytes32[] memory nodes = new bytes32[](1);
         nodes[0] = bytes32(uint256(0x1));
 
-        IPermit3.UnbalancedPermitProof memory permitProof =
-            IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
-
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
 
@@ -276,7 +267,7 @@ contract Permit3Test is TestBase {
         // Test that wrong chain ID reverts with WrongChainId error
         vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(block.chainid), 999));
         vm.prank(owner);
-        permit3.permit(owner, SALT, deadline, timestamp, permitProof, signature);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, nodes, signature);
 
         // Test that expired deadline reverts with SignatureExpired error
         uint48 expiredDeadline = uint48(block.timestamp - 1);
@@ -285,6 +276,6 @@ contract Permit3Test is TestBase {
             abi.encodeWithSelector(INonceManager.SignatureExpired.selector, expiredDeadline, uint48(block.timestamp))
         );
         vm.prank(owner);
-        permit3.permit(owner, SALT, expiredDeadline, timestamp, permitProof, signature);
+        permit3.permit(owner, SALT, expiredDeadline, timestamp, chainPermits, nodes, signature);
     }
 }

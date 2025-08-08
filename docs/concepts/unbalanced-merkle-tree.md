@@ -125,13 +125,18 @@ The proof is simply a standard merkle proof array:
 bytes32[] proof;    // Standard merkle proof array of sibling hashes
 ```
 
-When used in Permit3, it's part of the `UnbalancedPermitProof` structure:
+When used in Permit3, these are passed as separate parameters to the permit function:
 
 ```solidity
-struct UnbalancedPermitProof {
-    ChainPermits permits;      // Permit operations for the current chain
-    bytes32[] proof;   // Array of sibling hashes forming the merkle proof
-}
+function permit(
+    address owner,
+    bytes32 salt,
+    uint48 deadline,
+    uint48 timestamp,
+    ChainPermits calldata permits,      // Permit operations for the current chain
+    bytes32[] calldata proof,           // Array of sibling hashes forming the merkle proof
+    bytes calldata signature
+) external;
 ```
 
 This streamlined approach:
@@ -263,13 +268,8 @@ bytes signature = signMessage(merkleRoot);
 // Generate merkle proof for Arbitrum's leaf
 bytes32[] memory arbitrumProof = generateMerkleProof(leaves, 1); // Index 1 for Arbitrum
 
-UnbalancedPermitProof memory proof = {
-    permits: arbitrumPermits,
-    proof: arbitrumProof
-};
-
 // Verify and process
-permit3.permit(owner, salt, deadline, timestamp, proof, signature);
+permit3.permit(owner, salt, deadline, timestamp, arbitrumPermits, arbitrumProof, signature);
 ```
 
 <a id="benefits-of-unbalanced-merkle-trees"></a>

@@ -124,7 +124,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        UnbalancedCancelPermitProof calldata proof,
+        NoncesToInvalidate calldata invalidations,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
@@ -133,20 +134,20 @@ abstract contract NonceManager is INonceManager, EIP712 {
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
-        if (proof.invalidations.chainId != uint64(block.chainid)) {
-            revert WrongChainId(uint64(block.chainid), proof.invalidations.chainId);
+        if (invalidations.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), invalidations.chainId);
         }
 
         // Calculate the root from the invalidations and proof
         // processProof performs validation internally and provides granular error messages
-        bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
-        bytes32 merkleRoot = MerkleProof.processProof(proof.proof, invalidationsHash);
+        bytes32 invalidationsHash = hashNoncesToInvalidate(invalidations);
+        bytes32 merkleRoot = MerkleProof.processProof(proof, invalidationsHash);
 
         bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, merkleRoot));
 
         _verifySignature(owner, signedHash, signature);
 
-        _processNonceInvalidation(owner, proof.invalidations.salts);
+        _processNonceInvalidation(owner, invalidations.salts);
     }
 
     /**

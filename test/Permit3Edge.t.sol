@@ -75,7 +75,8 @@ contract Permit3EdgeTest is Test {
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
         bytes32[] merkleProof;
-        IPermit3.UnbalancedPermitProof permitProof;
+        IPermit3.ChainPermits chainPermits;
+        bytes32[] permitProof;
     }
 
     function setUp() public {
@@ -195,7 +196,8 @@ contract Permit3EdgeTest is Test {
         bytes32[] memory emptyNodes = new bytes32[](0);
         vars.merkleProof = emptyNodes;
 
-        vars.permitProof = IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, proof: vars.merkleProof });
+        vars.chainPermits = inputs.chainPermits;
+        vars.permitProof = vars.merkleProof;
 
         // Calculate the unbalanced root
         vars.currentChainHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -224,6 +226,7 @@ contract Permit3EdgeTest is Test {
             params.salt,
             params.deadline,
             params.timestamp,
+            vars.chainPermits,
             vars.permitProof,
             params.witness,
             params.witnessTypeString,
@@ -256,15 +259,14 @@ contract Permit3EdgeTest is Test {
         // Create invalid unbalanced proof with insufficient nodes for a valid tree
         bytes32[] memory nodes = new bytes32[](0); // Empty proof is invalid for multi-chain permits
 
-        IPermit3.UnbalancedPermitProof memory unbalancedProof =
-            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, proof: nodes });
-
         // Create a simple signature (won't reach validation)
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
 
         // Should revert when merkle proof verification fails
         vm.expectRevert();
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, unbalancedProof, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, nodes, params.signature
+        );
     }
 
     // Additional struct to avoid stack-too-deep in test_zeroSubtreeProofCount
@@ -273,7 +275,8 @@ contract Permit3EdgeTest is Test {
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
         bytes32[] proof;
-        IPermit3.UnbalancedPermitProof permitProof;
+        IPermit3.ChainPermits chainPermits;
+        bytes32[] permitProof;
         bytes32 currentChainHash;
         bytes32 merkleRoot;
         bytes32 signedHash;
@@ -319,7 +322,8 @@ contract Permit3EdgeTest is Test {
         // Create the proof with explicit hasPreHash flag
         vars.proof = nodes;
 
-        vars.permitProof = IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, proof: vars.proof });
+        vars.chainPermits = inputs.chainPermits;
+        vars.permitProof = vars.proof;
 
         // Calculate the unbalanced root
         vars.currentChainHash = permit3Tester.hashChainPermits(inputs.chainPermits);
@@ -345,7 +349,9 @@ contract Permit3EdgeTest is Test {
         deal(address(token), recipient, 0);
 
         // Execute unbalanced permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, vars.permitProof, params.signature);
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, vars.chainPermits, vars.permitProof, params.signature
+        );
 
         // Verify the transfer happened
         assertEq(token.balanceOf(recipient), AMOUNT);

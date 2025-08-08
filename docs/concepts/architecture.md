@@ -104,13 +104,20 @@ struct ChainPermits {
 }
 ```
 
-### UnbalancedPermitProof Structure
+### Cross-Chain Permit Parameters
+
+In the implementation, cross-chain operations use separate parameters:
 
 ```solidity
-struct UnbalancedPermitProof {
-    ChainPermits permits;    // Permit operations for the current chain
-    bytes32[] proof; // Standard merkle proof using OpenZeppelin's MerkleProof
-}
+function permit(
+    address owner,
+    bytes32 salt,
+    uint48 deadline,
+    uint48 timestamp,
+    ChainPermits calldata permits,    // Permit operations for the current chain
+    bytes32[] calldata proof,         // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes calldata signature
+) external;
 
 // Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
 // Each element represents a sibling hash needed for proof verification

@@ -92,9 +92,9 @@ function permit(AllowanceOrTransfer[] memory permits) external;
 function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, 
                 AllowanceOrTransfer[] calldata permits, bytes calldata signature) external;
 
-// Cross-chain operations with UnbalancedProofs and signatures
+// Cross-chain operations with Merkle proofs and signatures
 function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp,
-                UnbalancedPermitProof calldata proof, bytes calldata signature) external;
+                ChainPermits calldata permits, bytes32[] calldata proof, bytes calldata signature) external;
 ```
 
 **Direct Permit Usage:**
@@ -227,7 +227,7 @@ permits[2] = AllowanceOrTransfer({
 permit3.permit(owner, salt, deadline, timestamp, permits, signature);
 ```
 
-### 🌉 Cross-Chain Usage with UnbalancedProofs
+### 🌉 Cross-Chain Usage with Merkle Proofs
 
 ```javascript
 // Create permits for each chain

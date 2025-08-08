@@ -81,15 +81,9 @@ struct ChainPermits {
     AllowanceOrTransfer[] permits;
 }
 
-/**
- * @notice Struct containing proof data for cross-chain permit operations using Unbalanced Merkle Tree
- * @param permits Permit operations for the current chain
- * @param proof Merkle proof array for verification (using OpenZeppelin's MerkleProof)
- */
-struct UnbalancedPermitProof {
-    ChainPermits permits;
-    bytes32[] proof;
-}
+// Note: In the implementation, cross-chain operations now use separate parameters:
+// - ChainPermits calldata permits: Permit operations for the current chain
+// - bytes32[] calldata proof: Merkle proof array for verification
 ```
 
 ### Witness Functionality
@@ -248,7 +242,7 @@ function transferFrom(address from, address to, uint160 amount) external;
 2. **Emergency Stop Button**
 ```solidity
 // Cancel all permissions everywhere with one signature
-function invalidateNonces(address owner, UnbalancedCancelPermitProof proof, bytes calldata signature) external;
+function invalidateNonces(address owner, uint48 deadline, NoncesToInvalidate calldata invalidations, bytes32[] calldata proof, bytes calldata signature) external;
 ```
 
 3. **Flexible Timing**
@@ -342,22 +336,18 @@ function testCrossChainPermit() {
     
     // Use it on Arbitrum with merkle proof
     bytes32[] memory proofNodes = generateMerkleProof(allLeaves, arbIndex);
-    UnbalancedPermitProof memory proof = UnbalancedPermitProof({
-        permits: arbPermits,
-        proof: UnbalancedProof({ nodes: proofNodes })
-    });
-    permit3.permit(owner, salt, deadline, timestamp, proof, signature);
+    permit3.permit(owner, salt, deadline, timestamp, arbPermits, proofNodes, signature);
 }
 
 // Test 2: Emergency cancellation with merkle proofs
 function testEmergencyLockdown() {
     // Cancel all permissions everywhere
     bytes32[] memory proofNodes = generateMerkleProof(allSalts, saltIndex);
-    UnbalancedCancelPermitProof memory proof = UnbalancedCancelPermitProof({
-        salts: saltsToCancel,
-        proof: UnbalancedProof({ nodes: proofNodes })
+    NoncesToInvalidate memory invalidations = NoncesToInvalidate({
+        chainId: block.chainid,
+        salts: saltsToCancel
     });
-    permit3.invalidateNonces(owner, proof, signature);
+    permit3.invalidateNonces(owner, deadline, invalidations, proofNodes, signature);
 }
 ```
 
