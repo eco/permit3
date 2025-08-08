@@ -197,7 +197,7 @@ async function createAndSignOrder(
 ) {
     // 1. Create permit data
     const chainPermits = {
-        chainId: await signer.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // Transfer mode
             token: order.tokenIn,
@@ -232,7 +232,7 @@ async function createAndSignOrder(
     const domain = {
         name: 'Permit3',
         version: '1',
-        chainId: await signer.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         verifyingContract: permit3Address
     };
     
@@ -242,7 +242,7 @@ async function createAndSignOrder(
             { name: 'permitted', type: 'ChainPermits' },
             { name: 'spender', type: 'address' },
             { name: 'salt', type: 'bytes32' },
-            { name: 'deadline', type: 'uint256' },
+            { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
             { name: 'order', type: 'Order' }
         ],
@@ -592,7 +592,7 @@ async function createAndSignMultiSigOrder(
     
     // 2. Create permit data
     const chainPermits = {
-        chainId: await makerSigner.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // Transfer mode
             token: order.tokenIn,
@@ -631,7 +631,7 @@ async function createAndSignMultiSigOrder(
     const domain = {
         name: 'Permit3',
         version: '1',
-        chainId: await makerSigner.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         verifyingContract: permit3Address
     };
     
@@ -641,7 +641,7 @@ async function createAndSignMultiSigOrder(
             { name: 'permitted', type: 'ChainPermits' },
             { name: 'spender', type: 'address' },
             { name: 'salt', type: 'bytes32' },
-            { name: 'deadline', type: 'uint256' },
+            { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
             { name: 'data', type: 'MultiSigData' }
         ],

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "../src/interfaces/INonceManager.sol";
-import "../src/interfaces/IUnhingedMerkleTree.sol";
 import "./utils/TestBase.sol";
 
 /**

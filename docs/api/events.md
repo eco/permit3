@@ -5,7 +5,7 @@
 
 This document provides a comprehensive reference for all events emitted by the Permit3 system.
 
-###### Navigation: [Core Events](#core-events) | [Permit Event](#permit) | [NonceInvalidation](#nonceinvalidation) | [NonceUsed](#nonceused) | [Event Flows](#event-flow-diagrams) | [Cross-Chain Considerations](#cross-chain-event-considerations) | [Indexing](#indexing-and-monitoring)
+###### Navigation: [Core Events](#core-events) | [Permit Event](#permit) | [Approval Event](#approval) | [Lockdown Event](#lockdown) | [NonceInvalidated](#nonceinvalidated) | [Event Flows](#event-flow-diagrams) | [Cross-Chain Considerations](#cross-chain-event-considerations) | [Indexing](#indexing-and-monitoring)
 
 <a id="core-events"></a>
 ## Core Events
@@ -31,13 +31,49 @@ event Permit(
 - Monitor spending permissions
 - Track operation ordering by timestamp
 
+### Approval
+
+Emitted when permissions are set directly through the approve() function.
+
+```solidity
+event Approval(
+    address indexed owner,    // Token owner
+    address indexed token,    // Token contract address
+    address indexed spender,  // Approved spender
+    uint160 amount,          // Approved amount
+    uint48 expiration        // Approval expiration timestamp
+);
+```
+
+**Use cases:**
+- Track direct approval operations
+- Monitor permission grants
+- Audit approval history
+
+### Lockdown
+
+Emitted when an approval is revoked through the lockdown() function.
+
+```solidity
+event Lockdown(
+    address indexed owner,   // Token owner
+    address token,          // Token contract address
+    address spender         // Spender whose approval was revoked
+);
+```
+
+**Use cases:**
+- Security incident monitoring
+- Emergency revocation tracking
+- Compliance auditing
+
 <a id="nonceinvalidation"></a>
-### NonceInvalidation
+### NonceInvalidated
 
 Emitted when a nonce (salt) is manually invalidated.
 
 ```solidity
-event NonceInvalidation(
+event NonceInvalidated(
     address indexed owner,   // Account invalidating the nonce
     bytes32 indexed salt     // The invalidated salt/nonce
 );
@@ -48,22 +84,6 @@ event NonceInvalidation(
 - Tracking revoked permissions
 - Audit logging
 
-<a id="nonceused"></a>
-### NonceUsed
-
-Emitted when a nonce (salt) is used in a permit operation.
-
-```solidity
-event NonceUsed(
-    address indexed owner,   // Account that used the nonce
-    bytes32 indexed salt     // The used salt/nonce
-);
-```
-
-**Use cases:**
-- Tracking permit usage
-- Preventing replay attacks
-- Monitoring signature usage
 
 <a id="event-flow-diagrams"></a>
 ## Event Flow Diagrams

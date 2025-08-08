@@ -5,7 +5,7 @@
 
 This document provides a detailed reference of all data structures used in Permit3.
 
-###### Navigation: [Core Structures](#core-data-structures) | [UnhingedMerkleTree](#unhingedmerkletree-structures) | [Relations](#relations-between-structures) | [Gas Optimization](#gas-optimization-note)
+###### Navigation: [Core Structures](#core-data-structures) | [Merkle Tree Methodology](#merkle-tree-methodology) | [Relations](#relations-between-structures) | [Gas Optimization](#gas-optimization-note)
 
 <a id="core-data-structures"></a>
 ## Core Data Structures
@@ -51,14 +51,14 @@ Groups multiple AllowanceOrTransfer operations for a specific blockchain.
 
 ```solidity
 struct ChainPermits {
-    uint256 chainId;                  // Target blockchain ID
+    uint64 chainId;                   // Target blockchain ID (uint64 for gas optimization)
     AllowanceOrTransfer[] permits;    // Array of operations for this chain
 }
 ```
 
 #### Fields
 
-- **chainId**: The blockchain ID where these permits should be executed
+- **chainId**: The blockchain ID where these permits should be executed (uint64 type for gas efficiency)
 - **permits**: Array of AllowanceOrTransfer operations to perform on that chain
 
 ### UnhingedPermitProof
@@ -68,14 +68,14 @@ Combines a chain's permits with a proof of inclusion in the cross-chain permit r
 ```solidity
 struct UnhingedPermitProof {
     ChainPermits permits;           // Chain-specific permit data
-    bytes32[] unhingedProof;        // Proof of inclusion (Unhinged Merkle Tree proof nodes)
+    bytes32[] unhingedProof;        // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 ```
 
 #### Fields
 
 - **permits**: The permits to execute on the current chain
-- **unhingedProof**: Array of merkle proof nodes that prove these permits are part of the signed root
+- **unhingedProof**: Standard merkle proof array that proves these permits are part of the signed root using OpenZeppelin's MerkleProof.processProof()
 
 ### Allowance
 
@@ -97,22 +97,76 @@ struct Allowance {
 
 ### NoncesToInvalidate
 
-Grouping of nonces (salts) to invalidate.
+Grouping of nonces (salts) to invalidate for a specific chain.
 
 ```solidity
 struct NoncesToInvalidate {
+    uint64 chainId;     // Target chain identifier
     bytes32[] salts;    // Array of salt values to invalidate
 }
 ```
 
 #### Fields
 
+- **chainId**: The blockchain ID where these nonces should be invalidated
 - **salts**: Array of salt values to mark as used/invalid
 
-<a id="unhingedmerkletree-structures"></a>
-## UnhingedMerkleTree Structures
+### UnhingedCancelPermitProof
 
-The UnhingedMerkleTree uses standard `bytes32[]` arrays for proof implementation. Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
+Proof structure for cross-chain nonce invalidation operations.
+
+```solidity
+struct UnhingedCancelPermitProof {
+    NoncesToInvalidate invalidations;  // Current chain invalidation data
+    bytes32[] unhingedProof;           // Merkle proof array
+}
+```
+
+#### Fields
+
+- **invalidations**: The nonce invalidation data for the current chain
+- **unhingedProof**: Standard merkle proof array for cross-chain verification
+
+### TokenSpenderPair
+
+Simple pairing of token and spender addresses for batch operations.
+
+```solidity
+struct TokenSpenderPair {
+    address token;      // Token contract address
+    address spender;    // Spender address
+}
+```
+
+#### Fields
+
+- **token**: The address of the ERC20 token contract
+- **spender**: The address approved to spend the token
+
+### AllowanceTransferDetails
+
+Details required for token transfer operations.
+
+```solidity
+struct AllowanceTransferDetails {
+    address from;       // Owner of the tokens
+    address to;         // Recipient of the tokens
+    uint160 amount;     // Number of tokens to transfer
+    address token;      // Token contract address
+}
+```
+
+#### Fields
+
+- **from**: The address that owns the tokens being transferred
+- **to**: The address that will receive the tokens
+- **amount**: The quantity of tokens to transfer
+- **token**: The address of the ERC20 token contract
+
+<a id="merkle-tree-methodology"></a>
+## Merkle Tree Methodology
+
+The Unhinged Merkle tree methodology uses standard `bytes32[]` arrays for proof implementation, compatible with OpenZeppelin's MerkleProof.processProof(). Each element in the array represents a sibling hash needed to verify the proof path from a leaf to the root.
 
 <a id="relations-between-structures"></a>
 ## Relations Between Structures
@@ -142,5 +196,5 @@ This diagram shows how the different data structures relate to each other in the
 
 These structures are designed for gas optimization:
 
-- **UnhingedProof**: Contains only essential proof data
+- **Merkle Proofs**: Standard bytes32[] arrays for maximum compatibility with existing libraries
 - **AllowanceOrTransfer**: Unified structure for multiple operation types to reduce contract size and complexity

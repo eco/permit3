@@ -1,10 +1,10 @@
 # Cross-Chain Permit Guide
 
-Learn how to use Permit3's UnhingedMerkleTree for seamless cross-chain token operations.
+Learn how to use Permit3's Unhinged Merkle tree for seamless cross-chain token operations.
 
 ## 🌐 Understanding Cross-Chain Permits
 
-Cross-chain permits allow you to sign once and execute token operations across multiple chains. This is powered by the UnhingedMerkleTree, which uses standard merkle proofs to efficiently verify permissions on each chain.
+Cross-chain permits allow you to sign once and execute token operations across multiple chains. This is powered by the Unhinged Merkle tree, which uses standard merkle proofs to efficiently verify permissions on each chain.
 
 ### Key Benefits
 
@@ -102,7 +102,7 @@ const domain = {
 };
 
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: "owner", type: "address" },
         { name: "salt", type: "bytes32" },
         { name: "deadline", type: "uint48" },
@@ -150,7 +150,7 @@ const permit3Ethereum = new ethers.Contract(
     signerEthereum
 );
 
-await permit3Ethereum.permitUnhinged(
+await permit3Ethereum.permit(
     owner,
     salt,
     deadline,
@@ -166,7 +166,7 @@ const permit3Arbitrum = new ethers.Contract(
     signerArbitrum
 );
 
-await permit3Arbitrum.permitUnhinged(
+await permit3Arbitrum.permit(
     owner,
     salt,
     deadline,
@@ -519,7 +519,7 @@ async function executeCrossChainPermits() {
     };
     
     const types = {
-        SignedPermit3: [
+        Permit3: [
             { name: "owner", type: "address" },
             { name: "salt", type: "bytes32" },
             { name: "deadline", type: "uint48" },
@@ -551,7 +551,7 @@ async function executeCrossChainPermits() {
         
         console.log(`Executing on ${chain}...`);
         
-        const tx = await permit3.permitUnhinged(
+        const tx = await permit3.permit(
             owner,
             salt,
             deadline,
@@ -578,7 +578,7 @@ executeCrossChainPermits().catch(console.error);
 
 ## 🎓 Key Takeaways
 
-1. **UnhingedMerkleTree uses standard merkle proofs** - Simple `bytes32[]` arrays
+1. **Unhinged Merkle tree methodology uses standard merkle proofs** - Simple `bytes32[]` arrays with OpenZeppelin's MerkleProof.processProof()
 2. **Sign once, execute anywhere** - One signature works across all chains
 3. **Order matters** - Keep chain ordering consistent
 4. **Gas efficient** - Each chain only verifies its own proof

@@ -2,7 +2,7 @@
  * Merkle Tree Helpers for Permit3
  * 
  * This module provides utility functions for working with merkle trees
- * in the context of Permit3's UnhingedMerkleTree implementation.
+ * in the context of Permit3's Unhinged Merkle tree methodology using OpenZeppelin's MerkleProof.
  */
 
 const { MerkleTree } = require('merkletreejs');
@@ -199,7 +199,7 @@ class CrossChainPermitHelper {
         };
         
         const types = {
-            SignedPermit3: [
+            Permit3: [
                 { name: "owner", type: "address" },
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
@@ -241,7 +241,7 @@ class CrossChainPermitHelper {
         const contract = this.contracts[chain];
         const proof = permitData.proofs[chain];
         
-        return contract.permitUnhinged(
+        return contract.permit(
             permitData.owner,
             permitData.salt,
             permitData.deadline,

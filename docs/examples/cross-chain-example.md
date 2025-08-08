@@ -63,8 +63,10 @@ const optHash = permit3.hashChainPermits(optimismPermits);
 
 // Create the unhinged merkle tree root
 // Order matters, so we combine in order of chain ID
-const combinedHash1 = UnhingedMerkleTree.hashLink(ethHash, arbHash);
-const unhingedRoot = UnhingedMerkleTree.hashLink(combinedHash1, optHash);
+// Build merkle tree using standard approach
+const leaves = [ethHash, arbHash, optHash];
+const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+const unhingedRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```
 
 ## 3️⃣ Step 3: Create and Sign the Permit
@@ -84,10 +86,10 @@ const domain = {
 };
 
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'unhingedRoot', type: 'bytes32' }
     ]
@@ -290,4 +292,4 @@ This example demonstrates how Permit3 enables cross-chain operations with a sing
 3. 🔄 **Flexibility**: Supports different operation types on each chain
 4. 🧩 **Composability**: Works with any ERC20 token and spender contract
 
-By using UnhingedMerkleTree proofs, the system maintains security while minimizing gas costs for cross-chain verification.
+By using the Unhinged Merkle tree methodology with standard merkle proofs, the system maintains security while minimizing gas costs for cross-chain verification.

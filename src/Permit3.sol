@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { IPermit3 } from "./interfaces/IPermit3.sol";
-import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import { NonceManager } from "./NonceManager.sol";
 import { PermitBase } from "./PermitBase.sol";
@@ -19,8 +19,6 @@ import { PermitBase } from "./PermitBase.sol";
  * 6. Merkle Proofs: Optimized proof structure for cross-chain verification
  */
 contract Permit3 is IPermit3, PermitBase, NonceManager {
-    using UnhingedMerkleTree for bytes32[];
-
     /**
      * @dev EIP-712 typehash for bundled chain permits
      * Includes nested SpendTransferPermit struct for structured token permissions
@@ -178,8 +176,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.currentChainHash = hashChainPermits(proof.permits);
 
         // Calculate the unhinged root from the proof components
-        // calculateRoot performs validation internally and provides granular error messages
-        params.unhingedRoot = UnhingedMerkleTree.calculateRoot(proof.unhingedProof, params.currentChainHash);
+        // processProof performs validation internally and provides granular error messages
+        params.unhingedRoot = MerkleProof.processProof(proof.unhingedProof, params.currentChainHash);
 
         // Verify signature with unhinged root
         bytes32 signedHash = keccak256(
@@ -305,8 +303,8 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         params.currentChainHash = hashChainPermits(proof.permits);
 
         // Calculate the unhinged root
-        // calculateRoot performs validation internally and provides granular error messages
-        params.unhingedRoot = UnhingedMerkleTree.calculateRoot(proof.unhingedProof, params.currentChainHash);
+        // processProof performs validation internally and provides granular error messages
+        params.unhingedRoot = MerkleProof.processProof(proof.unhingedProof, params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);

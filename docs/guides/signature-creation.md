@@ -35,10 +35,10 @@ Type definitions describe the structure of the data being signed:
 ```javascript
 const types = {
     // Primary type for standard permits
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'unhingedRoot', type: 'bytes32' }
     ],
@@ -145,16 +145,16 @@ const value = {
 const domain = {
     name: "Permit3",
     version: "1",
-    chainId: await signer.getChainId(),
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: PERMIT3_ADDRESS
 };
 
 // Define types for standard permit
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'unhingedRoot', type: 'bytes32' }
     ]
@@ -178,7 +178,7 @@ const signature = await signer._signTypedData(domain, types, value);
 //         ],
 //         ...types
 //     },
-//     primaryType: 'SignedPermit3',
+//     primaryType: 'Permit3',
 //     domain,
 //     message: value
 // });
@@ -272,7 +272,7 @@ const witnessTypes = {
         { name: 'owner', type: 'address' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'witness', type: 'bytes32' }
     ],
@@ -401,16 +401,16 @@ async function verifyPermitSignature(
     const domain = {
         name: "Permit3",
         version: "1",
-        chainId: await provider.getNetwork().then(n => n.chainId),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         verifyingContract: PERMIT3_ADDRESS
     };
     
     // Create the types
     const types = {
-        SignedPermit3: [
+        Permit3: [
             { name: 'owner', type: 'address' },
             { name: 'salt', type: 'bytes32' },
-            { name: 'deadline', type: 'uint256' },
+            { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
             { name: 'unhingedRoot', type: 'bytes32' }
         ]

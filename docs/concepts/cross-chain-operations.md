@@ -28,17 +28,17 @@ The cross-chain mechanism in Permit3 involves these key steps:
 <a id="legacy-hash-chaining-mechanism"></a>
 ### Unhinged Merkle Tree Construction
 
-The Unhinged Merkle Tree approach leverages the two-part hybrid structure to create an efficient root hash representing operations across multiple chains:
+The Unhinged Merkle Tree methodology creates a single tree spanning all chains, strategically unbalanced to optimize gas costs:
 
 **Structure:**
 ```
-               [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
+               [H1] → [H2] → [H3] → ROOT  ← Deliberately unbalanced for gas optimization
             /      \      \      \
-          [BR]    chainB  chainC  chainD   ← Chain data
+          [BR]    chainB  chainC  chainD   ← Expensive chains positioned for shorter proofs
          /     \
-     [BH1]     [BH2]                      ← Balanced tree (bottom part)  
+     [BH1]     [BH2]                      ← Operations grouped by chain  
     /    \     /    \
-chainA_ops1 chainA_ops2 ...               ← Operations within chainA
+chainA_ops1 chainA_ops2 ...               ← Individual operations
 ```
 
 ```
@@ -55,7 +55,7 @@ chainC_leaf = hash(chainC_permits)
 root = buildMerkleRoot([chainA_leaf, chainB_leaf, chainC_leaf])
 ```
 
-The two-part structure provides the foundation for gas optimization strategies such as strategic chain ordering.
+The strategic unbalancing provides gas optimization by positioning expensive chains closer to the root for smaller proofs.
 
 <a id="unhinged-merkle-tree-approach"></a>
 When executing on any specific chain, a merkle proof is provided that proves that chain's permits are included in the signed root. This uses merkle tree verification with ordered hashing (smaller value first) for consistency.
@@ -69,17 +69,15 @@ Permit3 uses a simple and efficient proof structure for cross-chain operations:
 
 ```solidity
 struct UnhingedPermitProof {
-    ChainPermits permits;                              // Permit operations for the current chain
-    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Merkle proof structure
+    ChainPermits permits;    // Permit operations for the current chain
+    bytes32[] unhingedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 
-// The simple UnhingedProof structure
-struct UnhingedProof {
-    bytes32[] nodes;    // Array of sibling hashes forming the merkle proof path
-}
+// Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
+// Each element represents a sibling hash needed for proof verification
 ```
 
-This approach is gas-efficient as it contains only the essential merkle proof data needed for verification, while the two-part structure enables strategic optimizations like chain ordering to minimize costs on expensive chains.
+This approach is gas-efficient as it contains only the essential merkle proof data needed for verification, while the strategic unbalancing enables optimizations like positioning expensive chains for smaller proofs.
 
 <a id="example-cross-chain-token-approval"></a>
 ## Example: Cross-Chain Token Approval
@@ -169,16 +167,16 @@ const permitData = {
 const domain = {
     name: 'Permit3',
     version: '1',
-    chainId: 0, // CROSS_CHAIN_ID for cross-chain operations
+    chainId: 1, // CROSS_CHAIN_ID for cross-chain operations
     verifyingContract: permit3Address
 };
 
 // Define types
 const types = {
-    SignedUnhingedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'unhingedRoot', type: 'bytes32' }
     ]
@@ -192,33 +190,27 @@ const signature = await signer._signTypedData(domain, types, permitData);
 
 ```javascript
 // Generate Unhinged Merkle Tree proofs for each chain  
-// Each proof contains sibling hashes leveraging the two-part structure
+// Each proof contains sibling hashes for the unbalanced tree structure
 
 // Ethereum proof (for leaf at index 0)
 const ethProof = generateMerkleProof(leaves, 0);
 const ethUnhingedProof = {
     permits: ethPermits,
-    unhingedProof: {
-        nodes: ethProof // Array of sibling hashes
-    }
+    unhingedProof: ethProof // Direct array of sibling hashes
 };
 
 // Arbitrum proof (for leaf at index 1)
 const arbProof = generateMerkleProof(leaves, 1);
 const arbUnhingedProof = {
     permits: arbPermits,
-    unhingedProof: {
-        nodes: arbProof // Array of sibling hashes
-    }
+    unhingedProof: arbProof // Direct array of sibling hashes
 };
 
 // Optimism proof (for leaf at index 2)
 const optProof = generateMerkleProof(leaves, 2);
 const optUnhingedProof = {
     permits: optPermits,
-    unhingedProof: {
-        nodes: optProof // Array of sibling hashes
-    }
+    unhingedProof: optProof // Direct array of sibling hashes
 };
 ```
 
@@ -226,7 +218,7 @@ const optUnhingedProof = {
 
 ```javascript
 // On Ethereum
-await permit3.permitUnhinged(
+await permit3.permit(
     permitData.owner,
     permitData.salt,
     permitData.deadline,
@@ -236,7 +228,7 @@ await permit3.permitUnhinged(
 );
 
 // On Arbitrum
-await permit3.permitUnhinged(
+await permit3.permit(
     permitData.owner,
     permitData.salt,
     permitData.deadline,
@@ -246,7 +238,7 @@ await permit3.permitUnhinged(
 );
 
 // On Optimism
-await permit3.permitUnhinged(
+await permit3.permit(
     permitData.owner,
     permitData.salt,
     permitData.deadline,
@@ -286,7 +278,7 @@ await permit3.permitWitness(
 <a id="chain-ordering-and-gas-optimization"></a>
 ## Gas Optimization with Unhinged Merkle Trees
 
-The two-part Unhinged Merkle Tree structure enables critical gas optimization for cross-chain operations through strategic chain ordering.
+The Unhinged Merkle Tree methodology enables critical gas optimization for cross-chain operations through strategic positioning of chains in the tree.
 
 ### Strategic Chain Ordering
 
@@ -299,7 +291,7 @@ To minimize overall transaction costs across all chains, you should order chains
 
 This ordering strategy provides significant gas savings because:
 
-- **Proof Size vs. Chain Position**: The two-part structure of Unhinged Merkle Trees means chains later in the sequence have smaller proof requirements
+- **Proof Size vs. Chain Position**: The unbalanced structure of Unhinged Merkle Trees means chains positioned closer to the root have smaller proof requirements
 - **Minimal Calldata on Expensive Chains**: The Unhinged structure enables placing expensive chains last, minimizing their proof size
 - **Larger Proofs on Cheaper Chains**: The bulk of proof data can be processed on networks with lower calldata costs
 
@@ -313,7 +305,7 @@ Consider a scenario with operations on Ethereum (high calldata cost) and two L2s
 
 **With Strategic Ordering (L2s First, Ethereum Last):**
 - L2s handle larger proofs where calldata is cheap
-- Ethereum benefits from the two-part structure with potential for minimal proof data
+- Ethereum benefits from strategic positioning near the root for minimal proof data
 - Future optimizations could reduce Ethereum's proof to just 32 bytes
 - **Potential savings: 50% or more on total cross-chain gas costs**
 
@@ -335,7 +327,7 @@ For an Unhinged Merkle Tree with 8 chains:
   - Expensive L1 (Ethereum): Positioned to benefit from future optimizations
 - **Result**: Cross-chain operations become economically viable
 
-This strategic approach ensures that cross-chain operations remain gas-efficient even as the ecosystem grows, with the two-part structure providing a foundation for future optimizations.
+This strategic approach ensures that cross-chain operations remain gas-efficient even as the ecosystem grows, with the unbalanced tree methodology providing a foundation for future optimizations.
 
 <a id="security-considerations"></a>
 ## Security Considerations

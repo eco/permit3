@@ -158,7 +158,7 @@ const TokenApproval = () => {
 
 ### Backend Service for Cross-Chain Permits
 
-Here's a Node.js service that coordinates cross-chain permits using UnhingedMerkleTree:
+Here's a Node.js service that coordinates cross-chain permits using Unhinged Merkle tree:
 
 ```javascript
 const { ethers } = require('ethers');
@@ -281,12 +281,12 @@ class CrossChainCoordinator {
         const domain = {
             name: "Permit3",
             version: "1",
-            chainId: this.chains.ethereum.chainId,
+            chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
             verifyingContract: this.chains.ethereum.permit3Address
         };
         
         const types = {
-            SignedPermit3: [
+            Permit3: [
                 { name: "owner", type: "address" },
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
@@ -346,7 +346,7 @@ class CrossChainCoordinator {
         const permit3 = this.permit3Contracts[chainName];
         
         // Execute the unhinged permit
-        const tx = await permit3.permitUnhinged(
+        const tx = await permit3.permit(
             owner,
             salt,
             deadline,
@@ -457,7 +457,7 @@ contract DeFiProtocol {
         bytes calldata signature
     ) external {
         // Use Permit3 to transfer tokens with the permit
-        permit3.permit(owner, chainPermits, salt, deadline, timestamp, signature);
+        permit3.permit(owner, salt, deadline, timestamp, chainPermits.permits, signature);
         
         // Now we can transfer tokens from the owner
         for (uint i = 0; i < chainPermits.permits.length; i++) {
@@ -487,7 +487,7 @@ contract DeFiProtocol {
         bytes calldata signature
     ) external {
         // Use Permit3 to process the unhinged permit
-        permit3.permitUnhinged(owner, salt, deadline, timestamp, proof, signature);
+        permit3.permit(owner, salt, deadline, timestamp, proof, signature);
         
         // Process the permits for this chain
         for (uint i = 0; i < proof.permits.permits.length; i++) {
@@ -553,7 +553,7 @@ describe("Permit3 Integration Tests", function () {
             
             // Create permit data
             const chainPermits = {
-                chainId: 31337, // Hardhat chainId
+                chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility // Hardhat chainId
                 permits: [{
                     modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
                     token: token.address,
@@ -569,12 +569,12 @@ describe("Permit3 Integration Tests", function () {
             const domain = {
                 name: "Permit3",
                 version: "1",
-                chainId: 31337,
+                chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
                 verifyingContract: permit3.address
             };
             
             const types = {
-                SignedPermit3: [
+                Permit3: [
                     { name: "owner", type: "address" },
                     { name: "salt", type: "bytes32" },
                     { name: "deadline", type: "uint48" },
@@ -631,7 +631,7 @@ describe("Permit3 Integration Tests", function () {
                     }]
                 },
                 {
-                    chainId: 31337, // Our test chain
+                    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility // Our test chain
                     permits: [{
                         modeOrExpiration: (BigInt(ethers.utils.parseEther("20")) << 48n) | BigInt(Math.floor(Date.now() / 1000) + 3600),
                         token: token.address,
@@ -662,12 +662,12 @@ describe("Permit3 Integration Tests", function () {
             const domain = {
                 name: "Permit3",
                 version: "1",
-                chainId: 31337,
+                chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
                 verifyingContract: permit3.address
             };
             
             const types = {
-                SignedPermit3: [
+                Permit3: [
                     { name: "owner", type: "address" },
                     { name: "salt", type: "bytes32" },
                     { name: "deadline", type: "uint48" },
@@ -786,4 +786,4 @@ This integration example demonstrates how to build a complete Permit3 implementa
 - Comprehensive testing
 - Best practices and troubleshooting
 
-The UnhingedMerkleTree approach using standard merkle proofs makes the system easy to understand, implement, and maintain while providing powerful functionality for cross-chain operations.
+The Unhinged Merkle tree methodology using standard merkle proofs with OpenZeppelin's MerkleProof makes the system easy to understand, implement, and maintain while providing powerful functionality for cross-chain operations.

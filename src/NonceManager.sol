@@ -6,7 +6,7 @@ import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/Sig
 
 import { INonceManager } from "./interfaces/INonceManager.sol";
 import { EIP712 } from "./lib/EIP712.sol";
-import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title NonceManager
@@ -20,7 +20,6 @@ import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
 abstract contract NonceManager is INonceManager, EIP712 {
     using ECDSA for bytes32;
     using SignatureChecker for address;
-    using UnhingedMerkleTree for bytes32[];
 
     /// @dev Constant representing an unused nonce
     uint256 private constant NONCE_NOT_USED = 0;
@@ -139,9 +138,9 @@ abstract contract NonceManager is INonceManager, EIP712 {
         }
 
         // Calculate the root from the invalidations and proof
-        // calculateRoot performs validation internally and provides granular error messages
+        // processProof performs validation internally and provides granular error messages
         bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
-        bytes32 unhingedRoot = UnhingedMerkleTree.calculateRoot(proof.unhingedProof, invalidationsHash);
+        bytes32 unhingedRoot = MerkleProof.processProof(proof.unhingedProof, invalidationsHash);
 
         bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
 

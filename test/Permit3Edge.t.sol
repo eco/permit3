@@ -11,7 +11,6 @@ import { Permit3Tester } from "./utils/Permit3Tester.sol";
 import "../src/interfaces/INonceManager.sol";
 import "../src/interfaces/IPermit.sol";
 import "../src/interfaces/IPermit3.sol";
-import "../src/interfaces/IUnhingedMerkleTree.sol";
 
 // Mock token for testing
 contract MockToken is ERC20 {

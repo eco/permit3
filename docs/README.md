@@ -12,7 +12,7 @@ For years, these scenarios required cumbersome processes: signing separate trans
 
 **That solution is Permit3 🔏**
 
-Permit3 introduces a revolutionary approach to cross-chain token operations. By combining cryptographic innovation (UnhingedMerkleTree proofs) with signature efficiency, it enables what was previously impossible: authorizing complex token operations across an unlimited number of blockchains with a single signature.
+Permit3 introduces a revolutionary approach to cross-chain token operations. By combining cryptographic innovation (Unhinged Merkle tree proofs) with signature efficiency, it enables what was previously impossible: authorizing complex token operations across an unlimited number of blockchains with a single signature.
 
 Unlike traditional cross-chain solutions that force compromises between security and usability, Permit3 maintains the highest security standards while dramatically improving the user experience. Each chain processes only what's relevant to it, keeping gas costs optimized while still preserving the mathematically verifiable connection to operations on other chains.
 

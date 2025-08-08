@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../src/interfaces/IUnhingedMerkleTree.sol";
-import "../src/lib/UnhingedMerkleTree.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
@@ -12,8 +10,6 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
  * @notice Tests for simple UnhingedMerkleTree functionality using OpenZeppelin's MerkleProof
  */
 contract UnhingedMerkleTreeTest is Test {
-    using UnhingedMerkleTree for bytes32[];
-
     // Test verifying a simple merkle proof with single leaf
     function test_singleLeafVerification() public pure {
         bytes32 leaf = bytes32(uint256(0x1234));
@@ -22,13 +18,13 @@ contract UnhingedMerkleTreeTest is Test {
         // Empty proof for single leaf
         bytes32[] memory proofNodes = new bytes32[](0);
 
-        // Verify using UnhingedMerkleTree wrapper
-        bool result = UnhingedMerkleTree.verifyProof(root, leaf, proofNodes);
+        // Verify using OpenZeppelin's MerkleProof
+        bool result = MerkleProof.verify(proofNodes, root, leaf);
         assert(result == true);
 
         // Also verify using the library function directly
         // (bytes32[] array is used for merkle proofs)
-        assert(UnhingedMerkleTree.verifyProof(root, leaf, proofNodes) == true);
+        assert(MerkleProof.verify(proofNodes, root, leaf) == true);
     }
 
     // Test verifying merkle proof with two leaves
@@ -45,7 +41,7 @@ contract UnhingedMerkleTreeTest is Test {
         proofNodes[0] = leaf2;
 
         // Verify the proof
-        bool result = UnhingedMerkleTree.verifyProof(root, leaf1, proofNodes);
+        bool result = MerkleProof.verify(proofNodes, root, leaf1);
         assert(result == true);
     }
 
@@ -71,11 +67,11 @@ contract UnhingedMerkleTreeTest is Test {
         proofNodes[1] = node2;
 
         // Verify using direct function
-        bool result = UnhingedMerkleTree.verifyProof(root, leaf1, proofNodes);
+        bool result = MerkleProof.verify(proofNodes, root, leaf1);
         assert(result == true);
 
         // Verify the proof
-        assert(UnhingedMerkleTree.verifyProof(root, leaf1, proofNodes) == true);
+        assert(MerkleProof.verify(proofNodes, root, leaf1) == true);
     }
 
     // Test invalid proof verification with incorrect root
@@ -95,7 +91,7 @@ contract UnhingedMerkleTreeTest is Test {
         bytes32 incorrectRoot = bytes32(uint256(correctRoot) + 1);
 
         // Verify the proof with incorrect root - should fail
-        bool result = UnhingedMerkleTree.verifyProof(incorrectRoot, leaf, proofNodes);
+        bool result = MerkleProof.verify(proofNodes, incorrectRoot, leaf);
         assert(result == false);
     }
 
@@ -114,7 +110,7 @@ contract UnhingedMerkleTreeTest is Test {
         invalidProof[0] = bytes32(uint256(correctSibling) + 1); // Wrong sibling
 
         // Verify should fail with invalid proof
-        bool result = UnhingedMerkleTree.verifyProof(root, leaf, invalidProof);
+        bool result = MerkleProof.verify(invalidProof, root, leaf);
         assert(result == false);
     }
 
@@ -130,16 +126,16 @@ contract UnhingedMerkleTreeTest is Test {
         proofNodes[1] = sibling2;
 
         // Calculate root using direct function
-        bytes32 calculatedRoot1 = UnhingedMerkleTree.calculateRoot(leaf, proofNodes);
+        bytes32 calculatedRoot1 = MerkleProof.processProof(proofNodes, leaf);
 
         // Calculate root using the same proof nodes
-        bytes32 calculatedRoot2 = UnhingedMerkleTree.calculateRoot(leaf, proofNodes);
+        bytes32 calculatedRoot2 = MerkleProof.processProof(proofNodes, leaf);
 
         // Both methods should give same result
         assert(calculatedRoot1 == calculatedRoot2);
 
         // Verify the calculated root is correct
-        assert(UnhingedMerkleTree.verifyProof(calculatedRoot1, leaf, proofNodes));
+        assert(MerkleProof.verify(proofNodes, calculatedRoot1, leaf));
     }
 
     // Test with empty proof array
@@ -150,11 +146,11 @@ contract UnhingedMerkleTreeTest is Test {
         bytes32[] memory emptyProof = new bytes32[](0);
 
         // Should verify successfully
-        assert(UnhingedMerkleTree.verifyProof(root, leaf, emptyProof));
+        assert(MerkleProof.verify(emptyProof, root, leaf));
 
         // Test with different leaf - should fail
         bytes32 differentLeaf = keccak256("differentLeaf");
-        assert(!UnhingedMerkleTree.verifyProof(root, differentLeaf, emptyProof));
+        assert(!MerkleProof.verify(emptyProof, root, differentLeaf));
     }
 
     // Test proof length edge cases
@@ -165,16 +161,16 @@ contract UnhingedMerkleTreeTest is Test {
         // 1-node proof
         bytes32[] memory proof1 = new bytes32[](1);
         proof1[0] = keccak256("node1");
-        bytes32 root1 = UnhingedMerkleTree.calculateRoot(leaf, proof1);
-        assert(UnhingedMerkleTree.verifyProof(root1, leaf, proof1));
+        bytes32 root1 = MerkleProof.processProof(proof1, leaf);
+        assert(MerkleProof.verify(proof1, root1, leaf));
 
         // 3-node proof (deeper tree)
         bytes32[] memory proof3 = new bytes32[](3);
         proof3[0] = keccak256("node1");
         proof3[1] = keccak256("node2");
         proof3[2] = keccak256("node3");
-        bytes32 root3 = UnhingedMerkleTree.calculateRoot(leaf, proof3);
-        assert(UnhingedMerkleTree.verifyProof(root3, leaf, proof3));
+        bytes32 root3 = MerkleProof.processProof(proof3, leaf);
+        assert(MerkleProof.verify(proof3, root3, leaf));
     }
 
     // Test proof structure with bytes32[] type
@@ -192,7 +188,7 @@ contract UnhingedMerkleTreeTest is Test {
 
         // Verify using the proof nodes directly
         // (bytes32[] array is used for merkle proofs)
-        bool result = UnhingedMerkleTree.verifyProof(root, leaf, proofNodes);
+        bool result = MerkleProof.verify(proofNodes, root, leaf);
         assert(result == true);
     }
 
@@ -206,21 +202,21 @@ contract UnhingedMerkleTreeTest is Test {
         proofNodes[1] = keccak256("sibling2");
 
         // Calculate root
-        bytes32 root = UnhingedMerkleTree.calculateRoot(leaf, proofNodes);
+        bytes32 root = MerkleProof.processProof(proofNodes, leaf);
 
         // Test direct verification
-        bool directResult = UnhingedMerkleTree.verifyProof(root, leaf, proofNodes);
+        bool directResult = MerkleProof.verify(proofNodes, root, leaf);
 
         // Test verification using the library function
-        bool structResult = UnhingedMerkleTree.verifyProof(root, leaf, proofNodes);
+        bool structResult = MerkleProof.verify(proofNodes, root, leaf);
 
         // Both methods should give the same result
         assert(directResult == structResult);
         assert(directResult == true);
 
-        // Also test calculateRoot consistency
-        bytes32 calculatedRoot1 = UnhingedMerkleTree.calculateRoot(leaf, proofNodes);
-        bytes32 calculatedRoot2 = UnhingedMerkleTree.calculateRoot(leaf, proofNodes);
+        // Also test processProof consistency
+        bytes32 calculatedRoot1 = MerkleProof.processProof(proofNodes, leaf);
+        bytes32 calculatedRoot2 = MerkleProof.processProof(proofNodes, leaf);
         assert(calculatedRoot1 == calculatedRoot2);
         assert(calculatedRoot1 == root);
     }

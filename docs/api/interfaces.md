@@ -5,7 +5,7 @@
 
 This document provides a comprehensive reference of all interfaces in the Permit3 system.
 
-###### Navigation: [IPermit3](#ipermit3) | [IPermit](#ipermit) | [INonceManager](#inoncemanager) | [IUnhingedMerkleTree](#iunhingedmerkletree) | [Inheritance Diagram](#interface-inheritance-diagram) | [Implementation Contracts](#implementation-contracts)
+###### Navigation: [IPermit3](#ipermit3) | [IPermit](#ipermit) | [INonceManager](#inoncemanager) | [Merkle Tree Methodology](#merkle-tree-methodology) | [Inheritance Diagram](#interface-inheritance-diagram) | [Implementation Contracts](#implementation-contracts)
 
 <a id="ipermit3"></a>
 ## 📄 IPermit3
@@ -54,7 +54,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata unhingedPermitProof,
+        UnhingedPermitProof calldata proof,
         bytes calldata signature
     ) external;
     
@@ -80,7 +80,7 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata unhingedPermitProof,
+        UnhingedPermitProof calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -94,9 +94,7 @@ interface IPermit3 is IPermit, INonceManager {
     function hashChainPermits(ChainPermits memory chainPermits) external pure returns (bytes32);
     
     // Type hash functions
-    function PERMIT_TRANSFER_FROM_TYPEHASH() external pure returns (bytes32);
-    function PERMIT_BATCH_TRANSFER_FROM_TYPEHASH() external pure returns (bytes32);
-    function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
+    function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
 }
 ```
 
@@ -128,16 +126,6 @@ interface IPermit {
         uint48 expiration
     ) external;
     
-    function permit(
-        address owner,
-        address token,
-        address spender,
-        uint160 amount,
-        uint48 expiration,
-        uint48 nonce,
-        bytes calldata signature
-    ) external;
-    
     // Transfer functions
     function transferFrom(
         address from,
@@ -161,48 +149,62 @@ interface IPermit {
 Interface for managing nonces (salts) to prevent replay attacks.
 
 ```solidity
-interface INonceManager {
+interface INonceManager is IPermit {
     // Core structs
     struct NoncesToInvalidate {
+        uint64 chainId;
         bytes32[] salts;
     }
     
+    struct UnhingedCancelPermitProof {
+        NoncesToInvalidate invalidations;
+        bytes32[] unhingedProof;
+    }
+    
+    // Core functions
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+    function isNonceUsed(address owner, bytes32 salt) external view returns (bool);
+    
     // Nonce operations
     function invalidateNonces(bytes32[] calldata salts) external;
-    function isNonceUsed(address owner, bytes32 salt) external view returns (bool);
+    
+    function invalidateNonces(
+        address owner,
+        uint48 deadline,
+        bytes32[] calldata salts,
+        bytes calldata signature
+    ) external;
+    
+    function invalidateNonces(
+        address owner,
+        uint48 deadline,
+        UnhingedCancelPermitProof memory proof,
+        bytes calldata signature
+    ) external;
+    
+    // Hash functions
+    function hashNoncesToInvalidate(
+        NoncesToInvalidate memory invalidations
+    ) external pure returns (bytes32);
 }
 ```
 
-<a id="iunhingedmerkletree"></a>
-## 🌲 IUnhingedMerkleTree
+<a id="merkle-tree-methodology"></a>
+## 🌲 Unhinged Merkle Tree Methodology
 
-Interface for the UnhingedMerkleTree library providing merkle proof functionality.
+The Unhinged Merkle tree methodology uses OpenZeppelin's MerkleProof library for verification.
 
 ```solidity
-interface IUnhingedMerkleTree {
-    // Error definitions
-    error InvalidMerkleProof();
-    error InvalidParameters();
-}
+// Uses OpenZeppelin's MerkleProof.processProof() directly
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-// Library functions (not part of interface, but available)
-library UnhingedMerkleTree {
-    function verify(
-        bytes32[] calldata unhingedProof,
-        bytes32 unhingedRoot,
-        bytes32 leaf
-    ) internal pure returns (bool);
-    
-    function calculateRoot(
-        bytes32[] calldata unhingedProof,
-        bytes32 leaf
-    ) internal pure returns (bytes32);
-    
-    function verifyProof(
-        bytes32 root,
-        bytes32 leaf,
-        bytes32[] memory proof
-    ) internal pure returns (bool);
+// Standard merkle proof verification
+function verify(
+    bytes32[] calldata proof,
+    bytes32 root,
+    bytes32 leaf
+) internal pure returns (bool) {
+    return MerkleProof.processProof(proof, leaf) == root;
 }
 ```
 
@@ -219,7 +221,7 @@ library UnhingedMerkleTree {
           │
           │
 ┌─────────▼───────┐     ┌─────────────────────┐
-│ IPermit         │     │ IUnhingedMerkleTree │
+│ IPermit         │     │ MerkleProof (OZ)    │
 ├─────────────────┤     ├─────────────────────┤
 │ approve         │     │ verify              │
 │ permit          │     │ hashLink            │
@@ -247,6 +249,6 @@ The main contracts implementing these interfaces are:
 - 📄 **Permit3.sol**: Implements IPermit3, providing the complete functionality
 - 🔢 **NonceManager.sol**: Implements INonceManager for replay protection
 - 📃 **PermitBase.sol**: Implements IPermit for compatibility with contracts that are already using Permit2 for transfers
-- 🌲 **UnhingedMerkleTree.sol**: Library implementing IUnhingedMerkleTree functionality
+- 🌲 **OpenZeppelin MerkleProof**: Standard library used for Unhinged Merkle tree methodology
 
 These interfaces provide a flexible and extensible foundation for the Permit3 system, allowing for future upgrades and extensions while maintaining compatibility with existing systems.

@@ -16,7 +16,7 @@ This document provides a comprehensive reference for all error codes that can be
 #### SignatureExpired
 
 ```solidity
-error SignatureExpired();
+error SignatureExpired(uint48 deadline, uint48 currentTimestamp);
 ```
 
 **Description:**
@@ -35,7 +35,7 @@ Thrown when attempting to use a signature past its deadline timestamp.
 #### InvalidSignature
 
 ```solidity
-error InvalidSignature();
+error InvalidSignature(address signer);
 ```
 
 **Description:**
@@ -58,7 +58,7 @@ Thrown when the provided signature does not match the expected signer or data.
 #### NonceAlreadyUsed
 
 ```solidity
-error NonceAlreadyUsed();
+error NonceAlreadyUsed(address owner, bytes32 salt);
 ```
 
 **Description:**
@@ -106,7 +106,7 @@ Thrown when the chainId in the permit doesn't match the actual chain where the t
 #### InvalidWitnessTypeString
 
 ```solidity
-error InvalidWitnessTypeString();
+error InvalidWitnessTypeString(string witnessTypeString);
 ```
 
 **Description:**
@@ -128,7 +128,7 @@ Thrown when the witnessTypeString is not properly formatted according to EIP-712
 #### AllowanceLocked
 
 ```solidity
-error AllowanceLocked();
+error AllowanceLocked(address owner, address token, address spender);
 ```
 
 **Description:**
@@ -147,14 +147,14 @@ Thrown when attempting to modify an allowance that is in the locked state.
 <a id="proof-errors"></a>
 ### Proof Errors
 
-#### InvalidUnhingedProof
+#### InvalidMerkleProof
 
 ```solidity
-error InvalidUnhingedProof();
+error InvalidMerkleProof();
 ```
 
 **Description:**
-Thrown when the provided UnhingedProof fails verification against the signed root.
+Thrown when the provided merkle proof fails verification against the signed root.
 
 **Possible Causes:**
 - Incorrectly constructed proof
@@ -163,10 +163,257 @@ Thrown when the provided UnhingedProof fails verification against the signed roo
 - Inconsistent proof structure
 
 **Mitigation:**
-- Generate proofs using the UnhingedMerkleTree library
+- Generate proofs using the Unhinged Merkle tree methodology with OpenZeppelin's MerkleProof
 - Ensure consistent ordering of chains
 - Verify proofs locally before submitting
 - Ensure proper handling of the hasPreHash flag
+
+#### InvalidParameters
+
+```solidity
+error InvalidParameters();
+```
+
+**Description:**
+Thrown when invalid parameters are provided to a function.
+
+**Possible Causes:**
+- Invalid parameter combinations
+- Out of bounds values
+- Logic errors in parameter construction
+
+**Mitigation:**
+- Validate parameters before function calls
+- Review parameter requirements in documentation
+- Test with valid parameter combinations
+
+### Input Validation Errors
+
+#### AllowanceExpired
+
+```solidity
+error AllowanceExpired(uint48 deadline);
+```
+
+**Description:**
+Thrown when attempting to use an allowance that has already expired.
+
+**Parameters:**
+- `deadline`: The timestamp when the allowance expired
+
+**Possible Causes:**
+- Using an outdated allowance
+- Time-based allowance expiration
+- Clock drift between client and blockchain
+
+**Mitigation:**
+- Check allowance expiration before attempting operations
+- Refresh allowances when expired
+- Account for network delays in expiration times
+
+#### InsufficientAllowance
+
+```solidity
+error InsufficientAllowance(uint256 requestedAmount, uint256 availableAmount);
+```
+
+**Description:**
+Thrown when attempting to transfer more tokens than the current allowance permits.
+
+**Parameters:**
+- `requestedAmount`: The amount that was attempted to be transferred
+- `availableAmount`: The actual amount available in the allowance
+
+**Possible Causes:**
+- Attempting to spend more than approved
+- Allowance decreased between approval and spending
+- Multiple concurrent transactions consuming the same allowance
+
+**Mitigation:**
+- Check current allowance before attempting transfers
+- Handle partial allowance scenarios
+- Implement retry logic with updated allowance checks
+
+#### EmptyArray
+
+```solidity
+error EmptyArray();
+```
+
+**Description:**
+Thrown when an empty array is provided where operations require at least one element.
+
+**Possible Causes:**
+- Providing empty permit arrays
+- Empty salt arrays for nonce invalidation
+- Missing operation data
+
+**Mitigation:**
+- Ensure arrays contain at least one element
+- Validate input data before submission
+- Check array lengths in client code
+
+### Address Validation Errors
+
+#### ZeroOwner
+
+```solidity
+error ZeroOwner();
+```
+
+**Description:**
+Thrown when the owner address is zero (0x0).
+
+**Possible Causes:**
+- Uninitialized owner address
+- Logic error in address assignment
+- Invalid function parameters
+
+**Mitigation:**
+- Validate owner addresses before function calls
+- Ensure proper address initialization
+- Use address validation in client code
+
+#### ZeroToken
+
+```solidity
+error ZeroToken();
+```
+
+**Description:**
+Thrown when the token address is zero (0x0).
+
+**Possible Causes:**
+- Uninitialized token address
+- Invalid token contract reference
+- Logic error in token assignment
+
+**Mitigation:**
+- Validate token addresses before operations
+- Ensure proper token contract deployment
+- Use address validation for all token references
+
+#### ZeroSpender
+
+```solidity
+error ZeroSpender();
+```
+
+**Description:**
+Thrown when the spender address is zero (0x0).
+
+**Possible Causes:**
+- Uninitialized spender address
+- Invalid spender reference
+- Logic error in address assignment
+
+**Mitigation:**
+- Validate spender addresses before approval operations
+- Ensure proper spender identification
+- Use address validation in client code
+
+#### ZeroFrom
+
+```solidity
+error ZeroFrom();
+```
+
+**Description:**
+Thrown when the from address is zero (0x0) in transfer operations.
+
+**Possible Causes:**
+- Uninitialized from address
+- Invalid transfer source
+- Logic error in transfer setup
+
+**Mitigation:**
+- Validate from addresses before transfer operations
+- Ensure proper source address identification
+- Use address validation for transfers
+
+#### ZeroTo
+
+```solidity
+error ZeroTo();
+```
+
+**Description:**
+Thrown when the to address is zero (0x0) in transfer operations.
+
+**Possible Causes:**
+- Uninitialized to address
+- Invalid transfer destination
+- Logic error in transfer setup
+
+**Mitigation:**
+- Validate to addresses before transfer operations
+- Ensure proper destination address identification
+- Use address validation for transfers
+
+#### ZeroAccount
+
+```solidity
+error ZeroAccount();
+```
+
+**Description:**
+Thrown when the account address is zero (0x0) in allowance operations.
+
+**Possible Causes:**
+- Uninitialized account address
+- Invalid account reference in allowance operations
+- Logic error in account assignment
+
+**Mitigation:**
+- Validate account addresses before allowance operations
+- Ensure proper account identification
+- Use address validation for all account-related operations
+
+### Value Validation Errors
+
+#### InvalidAmount
+
+```solidity
+error InvalidAmount(uint160 amount);
+```
+
+**Description:**
+Thrown when an invalid amount value is provided.
+
+**Parameters:**
+- `amount`: The invalid amount that was provided
+
+**Possible Causes:**
+- Amount exceeds maximum allowed value
+- Invalid amount for specific operation type
+- Logic error in amount calculation
+
+**Mitigation:**
+- Validate amounts against operation requirements
+- Check for overflow conditions
+- Use appropriate amount ranges for operations
+
+#### InvalidExpiration
+
+```solidity
+error InvalidExpiration(uint48 expiration);
+```
+
+**Description:**
+Thrown when an invalid expiration timestamp is provided.
+
+**Parameters:**
+- `expiration`: The invalid expiration timestamp
+
+**Possible Causes:**
+- Expiration timestamp in the past
+- Expiration timestamp too far in the future
+- Invalid timestamp format
+
+**Mitigation:**
+- Set expiration timestamps in the future
+- Validate expiration times before operations
+- Account for network delays and block times
 
 <a id="error-handling-best-practices"></a>
 ## Error Handling Best Practices
@@ -198,7 +445,7 @@ Thrown when the provided UnhingedProof fails verification against the signed roo
 | Chain | WrongChainId | High | Yes | Verify network connection |
 | Witness | InvalidWitnessTypeString | Medium | Yes | Validate format |
 | Allowance | AllowanceLocked | Medium | Yes | Check lock status first |
-| Proof | InvalidUnhingedProof | High | Yes | Verify proof locally |
+| Proof | InvalidMerkleProof | High | Yes | Verify proof locally |
 
 <a id="cross-chain-error-handling"></a>
 ## Cross-Chain Error Handling

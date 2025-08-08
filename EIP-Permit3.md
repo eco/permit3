@@ -45,7 +45,7 @@ The limitations of existing token approval systems across multiple blockchains c
 
 ## Specification
 
-> **Note:** For a detailed explanation of the UnhingedMerkleTree data structure used in this EIP, please see [EIP-UnhingedMerkleTree](./EIP-UnhingedMerkleTree.md).
+> **Note:** This EIP uses an "Unhinged Merkle tree" methodology for cross-chain operations, which strategically unbalances the tree structure to minimize gas costs by creating smaller proof sizes for expensive chains. High-cost chains are placed closer to the root, reducing their verification gas consumption.
 
 ### Core Data Structures
 
@@ -84,11 +84,11 @@ struct ChainPermits {
 /**
  * @notice Struct containing proof data for cross-chain permit operations using Unhinged Merkle Tree
  * @param permits Permit operations for the current chain
- * @param unhingedProof Unhinged Merkle Tree proof structure for verification
+ * @param unhingedProof Merkle proof array for verification (using OpenZeppelin's MerkleProof)
  */
 struct UnhingedPermitProof {
     ChainPermits permits;
-    UnhingedProof unhingedProof;
+    bytes32[] unhingedProof;
 }
 ```
 
@@ -423,4 +423,4 @@ When implementing or using Permit3, consider these important security aspects:
 
 ## Copyright
 
-Copyright and related rights: see [LICENSE](./LICENSE).
+Copyright and related rights waived via CC0.

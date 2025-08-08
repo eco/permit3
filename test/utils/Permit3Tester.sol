@@ -2,20 +2,18 @@
 pragma solidity ^0.8.0;
 
 import "../../src/Permit3.sol";
-import "../../src/lib/UnhingedMerkleTree.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title Permit3Tester
  * @notice Helper contract to expose internal functions for testing
  */
 contract Permit3Tester is Permit3 {
-    using UnhingedMerkleTree for bytes32[];
     /**
-     * @notice Exposes the UnhingedMerkleTree.calculateRoot function for testing
+     * @notice Exposes the MerkleProof.processProof function for testing
      */
-
     function calculateUnhingedRoot(bytes32 leaf, bytes32[] calldata unhingedProof) external pure returns (bytes32) {
-        return UnhingedMerkleTree.calculateRoot(unhingedProof, leaf);
+        return MerkleProof.processProof(unhingedProof, leaf);
     }
 
     /**
@@ -26,7 +24,7 @@ contract Permit3Tester is Permit3 {
         bytes32[] calldata unhingedProof,
         bytes32 expectedRoot
     ) external pure returns (bool) {
-        return UnhingedMerkleTree.verify(unhingedProof, expectedRoot, leaf);
+        return MerkleProof.verify(unhingedProof, expectedRoot, leaf);
     }
 
     /**

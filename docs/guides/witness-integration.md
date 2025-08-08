@@ -102,7 +102,7 @@ Create the domain and types for EIP-712 signature:
 const domain = {
     name: "Permit3",
     version: "1",
-    chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: PERMIT3_ADDRESS
 };
 
@@ -113,7 +113,7 @@ const types = {
         { name: 'owner', type: 'address' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'witness', type: 'bytes32' }
     ],
@@ -285,7 +285,7 @@ const tx = await permit3.permitWitness(
     salt,
     deadline,
     timestamp,
-    unhingedPermitProof, // UnhingedPermitProof structure
+    proof, // UnhingedPermitProof structure
     witness,
     witnessTypeString,
     signature

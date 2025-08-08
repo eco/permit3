@@ -62,7 +62,7 @@ ERC20(token).approve(PERMIT3_ADDRESS, type(uint256).max);
 const domain = {
     name: 'Permit3',
     version: '1',
-    chainId: chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: permit3Address
 };
 
@@ -74,7 +74,7 @@ const permit = {
 };
 
 const chainPermits = {
-    chainId: chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     permits: [permit]
 };
 
@@ -87,15 +87,15 @@ const permitData = {
 };
 
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'unhingedRoot', type: 'bytes32' }
     ],
     ChainPermits: [
-        { name: 'chainId', type: 'uint256' },
+        { name: 'chainId', type: 'uint64' },
         { name: 'permits', type: 'AllowanceOrTransfer[]' }
     ],
     AllowanceOrTransfer: [
@@ -127,7 +127,7 @@ const signature = await signer._signTypedData(domain, types, value);
 function executePermit(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
     IPermit3.ChainPermits calldata chainPermits,
     bytes calldata signature
@@ -182,7 +182,7 @@ const types = {
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'data', type: 'OrderData' }
     ],
@@ -212,7 +212,7 @@ const witnessSignature = await signer._signTypedData(domain, types, witnessValue
 function executeWitnessPermit(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
     IPermit3.ChainPermits calldata chainPermits,
     bytes32 witness,
@@ -319,9 +319,7 @@ function generateMerkleProof(leaves, targetIndex) {
 // On Ethereum
 const ethProof = {
     permits: ethPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 0)
-    }
+    unhingedProof: generateMerkleProof(leaves, 0) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
@@ -329,9 +327,7 @@ permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 // On Arbitrum
 const arbProof = {
     permits: arbPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 1)
-    }
+    unhingedProof: generateMerkleProof(leaves, 1) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
@@ -339,9 +335,7 @@ permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
 // On Optimism
 const optProof = {
     permits: optPermits,
-    unhingedProof: {
-        nodes: generateMerkleProof(leaves, 2)
-    }
+    unhingedProof: generateMerkleProof(leaves, 2) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, optProof, signature);

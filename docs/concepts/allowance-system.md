@@ -183,7 +183,7 @@ Locking is implemented by setting a special value in the allowance mapping and c
 
 ```solidity
 // Pseudocode for lock check
-if (allowances[owner][token][account].timestamp == type(uint48).max) {
+if (allowances[owner][token][account].expiration == LOCKED_ALLOWANCE) {
     revert AllowanceLocked();
 }
 ```

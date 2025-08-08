@@ -159,7 +159,7 @@ Construct the permit with witness data and sign it:
 const domain = {
     name: 'Permit3',
     version: '1',
-    chainId: chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: permit3Address
 };
 
@@ -168,7 +168,7 @@ const types = {
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'witnessData', type: 'bytes32' }
     ],
@@ -186,7 +186,7 @@ const types = {
         { name: 'orderId', type: 'uint256' },
         { name: 'minReturnAmount', type: 'uint256' },
         { name: 'maxSlippage', type: 'uint256' },
-        { name: 'deadline', type: 'uint256' }
+        { name: 'deadline', type: 'uint48' }
     ]
 };
 

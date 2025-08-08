@@ -7,7 +7,6 @@ import { Test, Vm } from "forge-std/Test.sol";
 
 import "../../src/Permit3.sol";
 import "../../src/interfaces/IPermit3.sol";
-import "../../src/interfaces/IUnhingedMerkleTree.sol";
 
 /**
  * @title MockToken

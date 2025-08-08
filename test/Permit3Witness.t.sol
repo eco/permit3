@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "../src/Permit3.sol";
 
@@ -400,8 +401,8 @@ contract Permit3WitnessTest is Test {
         vars.currentChainHash = _hashChainPermits(proof.permits);
 
         // In the new simple structure, calculate merkle root using the proof
-        // The UnhingedMerkleTree library now uses OpenZeppelin's MerkleProof
-        vars.unhingedRoot = UnhingedMerkleTree.calculateRoot(vars.currentChainHash, proof.unhingedProof);
+        // Using OpenZeppelin's MerkleProof directly
+        vars.unhingedRoot = MerkleProof.processProof(proof.unhingedProof, vars.currentChainHash);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));

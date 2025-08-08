@@ -7,8 +7,9 @@ import { Test } from "forge-std/Test.sol";
 
 import "../../src/Permit3.sol";
 import "../../src/interfaces/IPermit3.sol";
-import "../../src/lib/UnhingedMerkleTree.sol";
+
 import "./TestUtils.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title TestBase

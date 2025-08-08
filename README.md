@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through UnhingedProofs and non-sequential nonces, while maintaining Permit2 compatibility.
+Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unhinged Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
 
 > **"Permit3 unlocks a one-click/signature cross-chain future."**
 
@@ -35,7 +35,7 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 - ⚡ **Gas-Optimized Design**:
     - 🔢 Non-sequential nonces for concurrent operations
     - 🗃️ Bitmap-based nonce tracking for efficient gas usage
-    - 🔍 UnhingedProofs for efficient and secure cross-chain verification
+    - 🔍 Standard merkle proofs using OpenZeppelin's MerkleProof library
 - 🛡️ **Emergency Security Controls**:
     - 🚫 Cross-chain revocation system
     - 🔐 Account locking mechanism

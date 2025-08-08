@@ -117,7 +117,7 @@ async function emergencyLockdownAllChains() {
         };
         
         const types = {
-            SignedPermit3: [
+            Permit3: [
                 { name: "owner", type: "address" },
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
@@ -159,7 +159,7 @@ async function emergencyLockdownAllChains() {
             
             console.log(`🔒 Locking down ${chain}...`);
             
-            const tx = await permit3.permitUnhinged(
+            const tx = await permit3.permit(
                 wallets[chain].address,
                 salt,
                 deadline,
@@ -256,12 +256,12 @@ class SecurePermitManager {
         const domain = {
             name: "Permit3",
             version: "1",
-            chainId: chainPermits.chainId,
+            chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
             verifyingContract: this.permit3.address
         };
         
         const types = {
-            SignedPermit3: [
+            Permit3: [
                 { name: "owner", type: "address" },
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
@@ -502,12 +502,12 @@ class MultiSigPermitManager {
         const domain = {
             name: "Permit3",
             version: "1",
-            chainId: operation.chainPermits.chainId,
+            chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
             verifyingContract: this.permit3.address
         };
         
         const types = {
-            SignedPermit3: [
+            Permit3: [
                 { name: "owner", type: "address" },
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },

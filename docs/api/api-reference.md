@@ -92,7 +92,7 @@ struct ChainPermits {
 ```solidity
 struct UnhingedPermitProof {
     ChainPermits permits;     // Permit operations for the current chain
-    IUnhingedMerkleTree.UnhingedProof unhingedProof; // Unhinged Merkle Tree proof structure
+    bytes32[] unhingedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 ```
 
@@ -105,22 +105,12 @@ bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
 );
 
 bytes32 public constant SIGNED_PERMIT3_TYPEHASH = keccak256(
-    "SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)"
+    "Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot)"
 );
 
-bytes32 public constant SIGNED_UNHINGED_PERMIT3_TYPEHASH = keccak256(
-    "SignedUnhingedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)"
-);
-
-// Witness type hash stubs
-string private constant _PERMIT_WITNESS_TYPEHASH_STUB = 
+// Witness type hash stub for constructing witness permit typehashes
+string public constant PERMIT_WITNESS_TYPEHASH_STUB = 
     "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,";
-    
-string private constant _PERMIT_BATCH_WITNESS_TYPEHASH_STUB = 
-    "PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
-    
-string private constant _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
-    "PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,";
 ```
 
 <a id="custom-errors"></a>
@@ -128,13 +118,26 @@ string private constant _PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB =
 
 ```solidity
 // Standard Errors
-error SignatureExpired();
-error InvalidSignature();
-error WrongChainId(uint256 expected, uint256 actual);
-error AllowanceLocked();
-
-// Witness-specific Errors
-error InvalidWitnessTypeString();
+// Signature and validation errors
+error SignatureExpired(uint48 deadline, uint48 currentTimestamp);
+error InvalidSignature(address signer);
+error InvalidMerkleProof();
+error InvalidParameters();
+error WrongChainId(uint256 expected, uint256 provided);
+error AllowanceLocked(address owner, address token, address spender);
+error InvalidWitnessTypeString(string witnessTypeString);
+error NonceAlreadyUsed(address owner, bytes32 salt);
+error AllowanceExpired(uint48 deadline);
+error InsufficientAllowance(uint256 requestedAmount, uint256 availableAmount);
+error EmptyArray();
+error ZeroOwner();
+error ZeroToken();
+error ZeroSpender();
+error ZeroFrom();
+error ZeroTo();
+error ZeroAccount();
+error InvalidAmount(uint160 amount);
+error InvalidExpiration(uint48 expiration);
 ```
 
 <a id="function-signatures"></a>
@@ -187,14 +190,14 @@ function permit(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data using UnhingedMerkleTree
+- `proof`: Cross-chain proof data using Unhinged Merkle tree methodology
 - `signature`: EIP-712 signature authorizing the batch
 
 **Behavior:**
 - Verifies signature has not expired
 - Checks chain ID matches current chain
-- Verifies the UnhingedProof structure
-- Calculates the unhinged root from the proof components
+- Verifies the merkle proof using OpenZeppelin's MerkleProof library
+- Calculates the merkle root from the proof components
 - Validates signature against owner and unhinged root
 - Processes permits for current chain only
 
@@ -276,7 +279,7 @@ function permitWitness(
 - `salt`: Unique salt for replay protection
 - `deadline`: Signature expiration timestamp
 - `timestamp`: Timestamp of the permit
-- `proof`: Cross-chain proof data using UnhingedMerkleTree
+- `proof`: Cross-chain proof data using Unhinged Merkle tree methodology
 - `witness`: Additional data to include in signature verification
 - `witnessTypeString`: EIP-712 type definition for witness data
 - `signature`: EIP-712 signature authorizing the batch
@@ -285,8 +288,8 @@ function permitWitness(
 - Verifies signature has not expired
 - Checks chain ID matches current chain
 - Validates witness type string format
-- Verifies the UnhingedProof structure
-- Calculates the unhinged root from the proof components
+- Verifies the merkle proof using OpenZeppelin's MerkleProof library
+- Calculates the merkle root from the proof components
 - Constructs type hash with witness data
 - Validates signature against owner, unhinged root, and witness
 - Processes permits for current chain only
@@ -297,19 +300,7 @@ function permitWitness(
 function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
 ```
 
-**Returns:** The stub string for witness permit typehash
-
-```solidity
-function PERMIT_BATCH_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
-```
-
-**Returns:** The stub string for batch witness permit typehash
-
-```solidity
-function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
-```
-
-**Returns:** The stub string for unhinged witness permit typehash
+**Returns:** The stub string for witness permit typehash construction
 
 ### Permit2 Compatibility Functions
 
@@ -381,7 +372,7 @@ function allowance(
     address user,
     address token,
     address spender
-) external view returns (uint160 amount, uint48 expiration, uint48 nonce);
+) external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
 ```
 
 **Parameters:**
@@ -392,7 +383,7 @@ function allowance(
 **Returns:**
 - `amount`: Current approved amount
 - `expiration`: Approval expiration timestamp
-- `nonce`: Current nonce value
+- `timestamp`: Current timestamp value for the allowance
 
 #### Lockdown
 
@@ -413,48 +404,120 @@ function lockdown(
 
 ### NonceManager Functions
 
-#### Nonce Invalidation
+#### Nonce Invalidation (Direct)
+
+```solidity
+function invalidateNonces(
+    bytes32[] calldata salts
+) external;
+```
+
+**Parameters:**
+- `salts`: Array of salt values to invalidate
+
+**Behavior:**
+- Mark the nonces as used for msg.sender
+- Prevents signatures with those salts from being used
+
+#### Nonce Invalidation (With Signature)
 
 ```solidity
 function invalidateNonces(
     address owner,
-    bytes32 salt
+    uint48 deadline,
+    bytes32[] calldata salts,
+    bytes calldata signature
 ) external;
 ```
 
 **Parameters:**
 - `owner`: Owner address
-- `salt`: Salt to invalidate
+- `deadline`: Signature expiration timestamp
+- `salts`: Array of salt values to invalidate
+- `signature`: EIP-712 signature authorizing the invalidation
 
 **Behavior:**
-- Mark the nonce as used
-- Prevents signatures with that salt from being used
+- Verify signature authorization
+- Mark the nonces as used for the specified owner
+- Prevents signatures with those salts from being used
 
-#### Nonce Validation
+#### Cross-Chain Nonce Invalidation
 
 ```solidity
-function nonceBitmap(
+function invalidateNonces(
     address owner,
-    uint256 wordPos
-) external view returns (uint256);
+    uint48 deadline,
+    UnhingedCancelPermitProof memory proof,
+    bytes calldata signature
+) external;
 ```
 
 **Parameters:**
 - `owner`: Owner address
-- `wordPos`: Word position in bitmap
+- `deadline`: Signature expiration timestamp
+- `proof`: Unhinged invalidation proof
+- `signature`: EIP-712 signature authorizing the invalidation
 
-**Returns:** The nonce bitmap at the specified position
+**Behavior:**
+- Verify merkle proof and signature authorization
+- Mark the nonces as used for the specified owner on current chain
+- Prevents signatures with those salts from being used
+
+#### Hash Nonces Function
+
+```solidity
+function hashNoncesToInvalidate(
+    NoncesToInvalidate memory invalidations
+) external pure returns (bytes32);
+```
+
+**Parameters:**
+- `invalidations`: Nonce invalidation parameters
+
+**Returns:** EIP-712 compatible hash
+
+#### Domain Separator
+
+```solidity
+function DOMAIN_SEPARATOR() external view returns (bytes32);
+```
+
+**Returns:** The EIP-712 domain separator for this contract
+
+#### Nonce Query
+
+```solidity
+function isNonceUsed(
+    address owner,
+    bytes32 salt
+) external view returns (bool);
+```
+
+**Parameters:**
+- `owner`: Owner address
+- `salt`: Salt value to check
+
+**Returns:** True if the nonce has been used, false otherwise
 
 <a id="events"></a>
 ## Events
 
 ```solidity
-event NonceInvalidation(
+event Approval(
     address indexed owner,
-    bytes32 indexed salt
+    address indexed token,
+    address indexed spender,
+    uint160 amount,
+    uint48 expiration
 );
 
-event NonceUsed(
+event Lockdown(
+    address indexed owner,
+    address token,
+    address spender
+);
+
+event NonceInvalidated(
     address indexed owner,
     bytes32 indexed salt
 );
@@ -478,7 +541,7 @@ Permit3 uses EIP-712 domain separation with the following parameters:
 const domain = {
     name: 'Permit3',
     version: '1',
-    chainId: chainId,
+    chainId: 1,  // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: permit3Address
 };
 ```
@@ -489,8 +552,7 @@ const domain = {
 ### Standard Permit
 
 ```
-SignedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)
-SignedUnhingedPermit3(address owner,bytes32 salt,uint256 deadline,uint48 timestamp,bytes32 unhingedRoot)
+Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot)
 ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)
 AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)
 ```
@@ -500,8 +562,7 @@ AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint16
 ```
 // Base type stubs (incomplete)
 PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,
-PermitBatchWitnessTransferFrom(ChainPermits[] permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,
-PermitUnhingedWitnessTransferFrom(bytes32 unhingedRoot,address owner,bytes32 salt,uint256 deadline,uint48 timestamp,
+PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unhingedRoot,
 
 // Completed by custom witness type string, for example:
 bytes32 witnessData)
@@ -593,9 +654,7 @@ arbProofNodes[0] = ethLeaf; // Sibling for Arbitrum
 // Execute on Ethereum chain
 IPermit3.UnhingedPermitProof memory ethProof = IPermit3.UnhingedPermitProof({
     permits: ethPermits,
-    unhingedProof: IUnhingedMerkleTree.UnhingedProof({
-        nodes: ethProofNodes
-    })
+    unhingedProof: ethProofNodes
 });
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
@@ -603,9 +662,7 @@ permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 // Execute on Arbitrum chain
 IPermit3.UnhingedPermitProof memory arbProof = IPermit3.UnhingedPermitProof({
     permits: arbPermits,
-    unhingedProof: IUnhingedMerkleTree.UnhingedProof({
-        nodes: arbProofNodes
-    })
+    unhingedProof: arbProofNodes
 });
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
@@ -662,27 +719,32 @@ permit3.permitWitness(
 
 | Error | Description | Mitigation |
 |-------|-------------|------------|
-| `SignatureExpired()` | Deadline has passed | Use future deadlines, check system time |
-| `InvalidSignature()` | Signature verification failed | Verify signer, domain params, and hash construction |
-| `WrongChainId(expected, actual)` | Chain ID mismatch | Ensure chain ID in permit matches current chain |
-| `AllowanceLocked()` | Account is in locked state | Unlock with newer timestamp before operations |
-| `InvalidWitnessTypeString()` | Witness type string is malformed | Ensure type string is valid EIP-712 format with closing parenthesis |
+| `SignatureExpired(deadline, currentTimestamp)` | Deadline has passed | Use future deadlines, check system time |
+| `InvalidSignature(signer)` | Signature verification failed | Verify signer, domain params, and hash construction |
+| `WrongChainId(expected, provided)` | Chain ID mismatch | Ensure chain ID in permit matches current chain |
+| `AllowanceLocked(owner, token, spender)` | Account is in locked state | Unlock with newer timestamp before operations |
+| `InvalidWitnessTypeString(witnessTypeString)` | Witness type string is malformed | Ensure type string is valid EIP-712 format with closing parenthesis |
+| `NonceAlreadyUsed(owner, salt)` | Salt has been used | Generate unique salts for each signature |
+| `EmptyArray()` | Empty array provided | Ensure arrays contain at least one element |
+| `ZeroOwner()` | Owner address is zero | Validate addresses before function calls |
+| `AllowanceExpired(deadline)` | Allowance has expired | Check expiration before operations |
+| `InsufficientAllowance(requested, available)` | Not enough allowance | Check current allowance before transfers |
 
 <a id="nonce-management-reference"></a>
 ## Nonce Management Reference
 
-Permit3 uses a bitmap-based nonce system:
+Permit3 uses a salt-based nonce system:
 
-- Each user has a mapping of 256-bit words
-- Each word can track 256 different nonces
-- Nonces are invalidated by setting bits in the bitmap
-- Salt values determine which bit to set
+- Each user has a mapping from salt to usage status
+- Salts are bytes32 values that must be unique per signature
+- Once a salt is used, it cannot be reused
+- Users can pre-invalidate salts to prevent future use
 
 This approach:
 - Enables concurrent operations (different salts)
 - Prevents replay attacks
-- Optimizes gas usage for nonce tracking
-- Supports cross-chain nonce management
+- Provides flexible nonce management
+- Supports cross-chain operations with unique salts
 
 <a id="security-considerations"></a>
 ## Security Considerations

@@ -22,7 +22,7 @@ const DEX_ADDRESS = "0xDEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1"; // Example DEX
 // Create Permit3 interface
 const permit3 = new ethers.Contract(
     PERMIT3_ADDRESS,
-    ["function permit(address owner, bytes32 salt, uint256 deadline, uint48 timestamp, tuple(uint256 chainId, tuple(uint48 modeOrExpiration, address token, address account, uint160 amountDelta)[] permits) chain, bytes signature) external"],
+    ["function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, tuple(uint64 chainId, tuple(uint48 modeOrExpiration, address token, address account, uint160 amountDelta)[] permits) chain, bytes signature) external"],
     wallet
 );
 
@@ -55,10 +55,10 @@ const domain = {
 };
 
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'unhingedRoot', type: 'bytes32' }
     ],
@@ -278,7 +278,7 @@ const ethereumProof = {
 };
 
 // Execute on Ethereum
-const ethTx = await ethereumPermit3.permitUnhinged(
+const ethTx = await ethereumPermit3.permit(
     wallet.address,
     salt,
     deadline,
@@ -294,7 +294,7 @@ const arbitrumProof = {
 };
 
 // Execute on Arbitrum
-const arbTx = await arbitrumPermit3.permitUnhinged(
+const arbTx = await arbitrumPermit3.permit(
     wallet.address,
     salt,
     deadline,

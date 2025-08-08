@@ -99,7 +99,7 @@ struct AllowanceOrTransfer {
 
 ```solidity
 struct ChainPermits {
-    uint256 chainId;             // Target chain ID
+    uint64 chainId;              // Target chain ID (uint64 for gas optimization)
     AllowanceOrTransfer[] permits; // Operations for this chain
 }
 ```
@@ -108,13 +108,12 @@ struct ChainPermits {
 
 ```solidity
 struct UnhingedPermitProof {
-    ChainPermits permits;                              // Permit operations for the current chain
-    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Merkle proof structure
+    ChainPermits permits;    // Permit operations for the current chain
+    bytes32[] unhingedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 
-struct UnhingedProof {
-    bytes32[] nodes;    // Array of sibling hashes forming the merkle proof path
-}
+// Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
+// Each element represents a sibling hash needed for proof verification
 ```
 
 <a id="core-operations"></a>
@@ -171,13 +170,10 @@ Permit3 uses non-sequential nonces with salt parameters:
 
 ```solidity
 function _useNonce(address owner, bytes32 salt) internal {
-    uint256 wordPos = uint256(salt) / 256;
-    uint256 bitPos = uint256(salt) % 256;
-    uint256 bit = 1 << bitPos;
-    
-    noncesBitmap[owner][wordPos] |= bit;
-    
-    emit NonceUsed(owner, salt);
+    if (usedNonces[owner][salt] != NONCE_NOT_USED) {
+        revert NonceAlreadyUsed(owner, salt);
+    }
+    usedNonces[owner][salt] = NONCE_USED;
 }
 ```
 
@@ -235,19 +231,18 @@ This approach leverages the two-part design:
 - **Security**: Chain ID validation prevents cross-chain replay attacks
 - **Extensibility**: Supports witness data across chains with future optimization opportunities
 
-### UnhingedMerkleTree Example
+### Unhinged Merkle tree Example
 
 ```solidity
 // Calculate the leaf hash for this chain's permits  
 bytes32 leaf = permit3.hashChainPermits(proof.permits);
 
-// Verify the Unhinged Merkle Tree proof
+// Verify the Unhinged Merkle Tree proof using OpenZeppelin's MerkleProof
 // (traverses both balanced and sequential parts)
-bool valid = UnhingedMerkleTree.verify(
+bool valid = MerkleProof.processProof(
     proof.unhingedProof,
-    unhingedRoot,
     leaf
-);
+) == unhingedRoot;
 
 // Verify signature against Unhinged root
 bytes32 signedHash = keccak256(abi.encode(
