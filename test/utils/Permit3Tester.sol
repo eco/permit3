@@ -12,11 +12,8 @@ contract Permit3Tester is Permit3 {
     /**
      * @notice Exposes the MerkleProof.processProof function for testing
      */
-    function calculateUnbalancedRoot(
-        bytes32 leaf,
-        bytes32[] calldata unbalancedProof
-    ) external pure returns (bytes32) {
-        return MerkleProof.processProof(unbalancedProof, leaf);
+    function calculateUnbalancedRoot(bytes32 leaf, bytes32[] calldata proof) external pure returns (bytes32) {
+        return MerkleProof.processProof(proof, leaf);
     }
 
     /**
@@ -24,10 +21,10 @@ contract Permit3Tester is Permit3 {
      */
     function verifyUnbalancedProof(
         bytes32 leaf,
-        bytes32[] calldata unbalancedProof,
+        bytes32[] calldata proof,
         bytes32 expectedRoot
     ) external pure returns (bool) {
-        return MerkleProof.verify(unbalancedProof, expectedRoot, leaf);
+        return MerkleProof.verify(proof, expectedRoot, leaf);
     }
 
     /**

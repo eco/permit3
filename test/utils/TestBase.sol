@@ -100,22 +100,22 @@ contract TestBase is Test {
         bytes32 currentChainHash = IPermit3(address(permit3)).hashChainPermits(proof.permits);
 
         // Calculate the merkle root using standard merkle tree logic
-        bytes32 unbalancedRoot = currentChainHash;
+        bytes32 merkleRoot = currentChainHash;
 
-        for (uint256 i = 0; i < proof.unbalancedProof.length; i++) {
-            bytes32 proofElement = proof.unbalancedProof[i];
+        for (uint256 i = 0; i < proof.proof.length; i++) {
+            bytes32 proofElement = proof.proof[i];
 
             // Standard merkle ordering: smaller value first
-            if (unbalancedRoot <= proofElement) {
-                unbalancedRoot = keccak256(abi.encodePacked(unbalancedRoot, proofElement));
+            if (merkleRoot <= proofElement) {
+                merkleRoot = keccak256(abi.encodePacked(merkleRoot, proofElement));
             } else {
-                unbalancedRoot = keccak256(abi.encodePacked(proofElement, unbalancedRoot));
+                merkleRoot = keccak256(abi.encodePacked(proofElement, merkleRoot));
             }
         }
 
         // Create the signature
         bytes32 signedHash =
-            keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, unbalancedRoot));
+            keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, merkleRoot));
 
         bytes32 digest = _getDigest(signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -152,8 +152,8 @@ contract TestBase is Test {
         // since we can't call library functions on memory structs
         bytes32 invalidationsHash = permit3.hashNoncesToInvalidate(proof.invalidations);
         // For a simple proof with no nodes, the root equals the leaf
-        bytes32 unbalancedRoot = invalidationsHash;
-        return keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, unbalancedRoot));
+        bytes32 merkleRoot = invalidationsHash;
+        return keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, merkleRoot));
     }
 
     // Helper struct for witness tests
@@ -172,7 +172,7 @@ contract TestBase is Test {
         bytes32 testSalt;
         bytes32[] salts;
         INonceManager.NoncesToInvalidate invalidations;
-        bytes32 unbalancedRoot;
+        bytes32 merkleRoot;
         INonceManager.UnbalancedCancelPermitProof proof;
         uint48 deadline;
         bytes32 invalidationsHash;

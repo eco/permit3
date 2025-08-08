@@ -83,7 +83,7 @@ for (let i = 0; i < orderedChains.length; i++) {
 
 // Build the merkle tree
 const merkleTree = buildMerkleTree(leaves);
-const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
+const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```
 
 ### Step 4: Sign the Root
@@ -107,7 +107,7 @@ const types = {
         { name: "salt", type: "bytes32" },
         { name: "deadline", type: "uint48" },
         { name: "timestamp", type: "uint48" },
-        { name: "unbalancedRoot", type: "bytes32" }
+        { name: "merkleRoot", type: "bytes32" }
     ]
 };
 
@@ -116,7 +116,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unbalancedRoot
+    merkleRoot
 };
 
 const signature = await signer._signTypedData(domain, types, value);
@@ -135,7 +135,7 @@ for (const chain of orderedChains) {
     
     proofs[chain] = {
         permits: permits[chain],
-        unbalancedProof: proof.map(p => '0x' + p.data.toString('hex'))
+        proof: proof.map(p => '0x' + p.data.toString('hex'))
     };
 }
 ```
@@ -274,7 +274,7 @@ class CrossChainPermitBuilder {
             const proof = merkleTree.getProof(leaves[index]);
             proofs[chain] = {
                 permits: permits[chain],
-                unbalancedProof: proof.map(p => '0x' + p.data.toString('hex'))
+                proof: proof.map(p => '0x' + p.data.toString('hex'))
             };
         });
         
@@ -420,12 +420,12 @@ function debugCrossChainPermit(permits, merkleTree, proofs) {
         console.log(`\n${chain}:`);
         console.log("  Chain ID:", permit.chainId);
         console.log("  Permits:", permit.permits.length);
-        console.log("  Proof Length:", proofs[chain].unbalancedProof.length);
+        console.log("  Proof Length:", proofs[chain].proof.length);
         
         // Verify proof locally
         const leaf = ethers.utils.keccak256(/* hash chain permits */);
         const valid = merkleTree.verify(
-            proofs[chain].unbalancedProof,
+            proofs[chain].proof,
             leaf,
             merkleTree.getRoot()
         );
@@ -503,7 +503,7 @@ async function executeCrossChainPermits() {
     }
     
     const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-    const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
+    const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
     
     // Step 3: Create signature
     const owner = await signers.ethereum.getAddress();
@@ -524,11 +524,11 @@ async function executeCrossChainPermits() {
             { name: "salt", type: "bytes32" },
             { name: "deadline", type: "uint48" },
             { name: "timestamp", type: "uint48" },
-            { name: "unbalancedRoot", type: "bytes32" }
+            { name: "merkleRoot", type: "bytes32" }
         ]
     };
     
-    const value = { owner, salt, deadline, timestamp, unbalancedRoot };
+    const value = { owner, salt, deadline, timestamp, merkleRoot };
     const signature = await signers.ethereum._signTypedData(domain, types, value);
     
     // Step 4: Generate proofs
@@ -537,7 +537,7 @@ async function executeCrossChainPermits() {
         const proof = merkleTree.getProof(leaves[index]);
         proofs[chain] = {
             permits: permits[chain],
-            unbalancedProof: proof.map(p => '0x' + p.data.toString('hex'))
+            proof: proof.map(p => '0x' + p.data.toString('hex'))
         };
     });
     

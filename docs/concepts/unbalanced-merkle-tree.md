@@ -122,7 +122,7 @@ The Unbalanced Merkle Tree approach provides:
 The proof is simply a standard merkle proof array:
 
 ```solidity
-bytes32[] unbalancedProof;    // Standard merkle proof array of sibling hashes
+bytes32[] proof;    // Standard merkle proof array of sibling hashes
 ```
 
 When used in Permit3, it's part of the `UnbalancedPermitProof` structure:
@@ -130,7 +130,7 @@ When used in Permit3, it's part of the `UnbalancedPermitProof` structure:
 ```solidity
 struct UnbalancedPermitProof {
     ChainPermits permits;      // Permit operations for the current chain
-    bytes32[] unbalancedProof;   // Array of sibling hashes forming the merkle proof
+    bytes32[] proof;   // Array of sibling hashes forming the merkle proof
 }
 ```
 
@@ -265,7 +265,7 @@ bytes32[] memory arbitrumProof = generateMerkleProof(leaves, 1); // Index 1 for 
 
 UnbalancedPermitProof memory proof = {
     permits: arbitrumPermits,
-    unbalancedProof: arbitrumProof
+    proof: arbitrumProof
 };
 
 // Verify and process

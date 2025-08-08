@@ -84,11 +84,11 @@ struct ChainPermits {
 /**
  * @notice Struct containing proof data for cross-chain permit operations using Unbalanced Merkle Tree
  * @param permits Permit operations for the current chain
- * @param unbalancedProof Merkle proof array for verification (using OpenZeppelin's MerkleProof)
+ * @param proof Merkle proof array for verification (using OpenZeppelin's MerkleProof)
  */
 struct UnbalancedPermitProof {
     ChainPermits permits;
-    bytes32[] unbalancedProof;
+    bytes32[] proof;
 }
 ```
 
@@ -278,7 +278,7 @@ merkleRoot = buildMerkleRoot([leaf1, leaf2, leaf3]);
 ```solidity
 // For Ethereum (proving leaf1 is in the tree):
 {
-    "unbalancedProof": {
+    "proof": {
         "nodes": [siblingHash1, siblingHash2] // Merkle proof path
     },
     "permits": EthereumPermissions
@@ -286,7 +286,7 @@ merkleRoot = buildMerkleRoot([leaf1, leaf2, leaf3]);
 
 // For Arbitrum (proving leaf2 is in the tree):
 {
-    "unbalancedProof": {
+    "proof": {
         "nodes": [siblingHash3, siblingHash4] // Different proof path
     },
     "permits": ArbitrumPermissions
@@ -344,7 +344,7 @@ function testCrossChainPermit() {
     bytes32[] memory proofNodes = generateMerkleProof(allLeaves, arbIndex);
     UnbalancedPermitProof memory proof = UnbalancedPermitProof({
         permits: arbPermits,
-        unbalancedProof: UnbalancedProof({ nodes: proofNodes })
+        proof: UnbalancedProof({ nodes: proofNodes })
     });
     permit3.permit(owner, salt, deadline, timestamp, proof, signature);
 }
@@ -355,7 +355,7 @@ function testEmergencyLockdown() {
     bytes32[] memory proofNodes = generateMerkleProof(allSalts, saltIndex);
     UnbalancedCancelPermitProof memory proof = UnbalancedCancelPermitProof({
         salts: saltsToCancel,
-        unbalancedProof: UnbalancedProof({ nodes: proofNodes })
+        proof: UnbalancedProof({ nodes: proofNodes })
     });
     permit3.invalidateNonces(owner, proof, signature);
 }

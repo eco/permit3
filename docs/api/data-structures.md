@@ -68,14 +68,14 @@ Combines a chain's permits with a proof of inclusion in the cross-chain permit r
 ```solidity
 struct UnbalancedPermitProof {
     ChainPermits permits;           // Chain-specific permit data
-    bytes32[] unbalancedProof;        // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes32[] proof;        // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 ```
 
 #### Fields
 
 - **permits**: The permits to execute on the current chain
-- **unbalancedProof**: Standard merkle proof array that proves these permits are part of the signed root using OpenZeppelin's MerkleProof.processProof()
+- **proof**: Standard merkle proof array that proves these permits are part of the signed root using OpenZeppelin's MerkleProof.processProof()
 
 ### Allowance
 
@@ -118,14 +118,14 @@ Proof structure for cross-chain nonce invalidation operations.
 ```solidity
 struct UnbalancedCancelPermitProof {
     NoncesToInvalidate invalidations;  // Current chain invalidation data
-    bytes32[] unbalancedProof;           // Merkle proof array
+    bytes32[] proof;           // Merkle proof array
 }
 ```
 
 #### Fields
 
 - **invalidations**: The nonce invalidation data for the current chain
-- **unbalancedProof**: Standard merkle proof array for cross-chain verification
+- **proof**: Standard merkle proof array for cross-chain verification
 
 ### TokenSpenderPair
 
@@ -174,7 +174,7 @@ The Unbalanced Merkle tree methodology uses standard `bytes32[]` arrays for proo
 ```
 ┌─────────────────┐     ┌───────────────────┐     ┌───────────────────┐
 │ bytes32[]       │     │ UnbalancedPermitProof│     │ ChainPermits      │
-│ (merkle proof)  │◄────┤ unbalancedProof     │     │ chainId           │
+│ (merkle proof)  │◄────┤ proof     │     │ chainId           │
 └─────────────────┘     ├───────────────────┤     ├───────────────────┤
                         │ permits           │◄────┤ permits[]         │◄─┐
                         └───────────────────┘     └───────────────────┘  │

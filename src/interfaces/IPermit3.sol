@@ -59,11 +59,11 @@ interface IPermit3 is IPermit, INonceManager {
     /**
      * @notice Proof format using Unbalanced Merkle Tree structure for cross-chain operations
      * @param permits Permit operations for the current chain
-     * @param unbalancedProof Array of sibling hashes forming the merkle proof path
+     * @param proof Array of sibling hashes forming the merkle proof path
      */
     struct UnbalancedPermitProof {
         ChainPermits permits;
-        bytes32[] unbalancedProof;
+        bytes32[] proof;
     }
 
     /**

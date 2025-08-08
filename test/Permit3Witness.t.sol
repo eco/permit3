@@ -333,7 +333,7 @@ contract Permit3WitnessTest is Test {
         nodes[0] = bytes32(uint256(0x1234)); // preHash
         nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
-        return IPermit3.UnbalancedPermitProof({ permits: chainPermits, unbalancedProof: nodes });
+        return IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
     }
 
     // Helper struct for signing witness permits
@@ -378,7 +378,7 @@ contract Permit3WitnessTest is Test {
     // Helper struct to avoid stack too deep errors
     struct UnbalancedWitnessVars {
         bytes32 currentChainHash;
-        bytes32 unbalancedRoot;
+        bytes32 merkleRoot;
         bytes32 typeHash;
         bytes32 structHash;
         bytes32 digest;
@@ -402,14 +402,14 @@ contract Permit3WitnessTest is Test {
 
         // In the new simple structure, calculate merkle root using the proof
         // Using OpenZeppelin's MerkleProof directly
-        vars.unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, vars.currentChainHash);
+        vars.merkleRoot = MerkleProof.processProof(proof.proof, vars.currentChainHash);
 
         // Compute witness-specific typehash
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));
 
         // Compute the structured hash exactly as the contract would
         vars.structHash =
-            keccak256(abi.encode(vars.typeHash, owner, salt, deadline, timestamp, vars.unbalancedRoot, witness));
+            keccak256(abi.encode(vars.typeHash, owner, salt, deadline, timestamp, vars.merkleRoot, witness));
 
         // Get the EIP-712 digest
         vars.digest = _hashTypedDataV4(vars.structHash);

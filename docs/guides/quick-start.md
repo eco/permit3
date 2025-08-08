@@ -92,7 +92,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unbalancedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ],
     ChainPermits: [
         { name: 'chainId', type: 'uint64' },
@@ -114,7 +114,7 @@ const value = {
     salt: permitData.salt,
     deadline: permitData.deadline,
     timestamp: permitData.timestamp,
-    unbalancedRoot: permitsHash
+    merkleRoot: permitsHash
 };
 
 const signature = await signer._signTypedData(domain, types, value);
@@ -319,7 +319,7 @@ function generateMerkleProof(leaves, targetIndex) {
 // On Ethereum
 const ethProof = {
     permits: ethPermits,
-    unbalancedProof: generateMerkleProof(leaves, 0) // Direct array
+    proof: generateMerkleProof(leaves, 0) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
@@ -327,7 +327,7 @@ permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 // On Arbitrum
 const arbProof = {
     permits: arbPermits,
-    unbalancedProof: generateMerkleProof(leaves, 1) // Direct array
+    proof: generateMerkleProof(leaves, 1) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
@@ -335,7 +335,7 @@ permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
 // On Optimism
 const optProof = {
     permits: optPermits,
-    unbalancedProof: generateMerkleProof(leaves, 2) // Direct array
+    proof: generateMerkleProof(leaves, 2) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, optProof, signature);

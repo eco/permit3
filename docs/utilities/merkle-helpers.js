@@ -101,7 +101,7 @@ function generateAllProofs(tree, leaves, chainPermits) {
     for (const [chain, leaf] of Object.entries(leaves)) {
         proofs[chain] = {
             permits: chainPermits[chain],
-            unbalancedProof: generateMerkleProof(tree, leaf)
+            proof: generateMerkleProof(tree, leaf)
         };
     }
     
@@ -204,7 +204,7 @@ class CrossChainPermitHelper {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "unbalancedRoot", type: "bytes32" }
+                { name: "merkleRoot", type: "bytes32" }
             ]
         };
         
@@ -213,7 +213,7 @@ class CrossChainPermitHelper {
             salt,
             deadline,
             timestamp,
-            unbalancedRoot: root
+            merkleRoot: root
         };
         
         const signature = await signer._signTypedData(domain, types, value);

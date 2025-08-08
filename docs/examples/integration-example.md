@@ -270,7 +270,7 @@ class CrossChainCoordinator {
         
         // Build the merkle tree
         const merkleTree = MerkleTreeHelper.buildTree(leaves);
-        const unbalancedRoot = MerkleTreeHelper.getRoot(merkleTree);
+        const merkleRoot = MerkleTreeHelper.getRoot(merkleTree);
         
         // Create signature elements
         const salt = ethers.utils.randomBytes(32);
@@ -291,7 +291,7 @@ class CrossChainCoordinator {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "unbalancedRoot", type: "bytes32" }
+                { name: "merkleRoot", type: "bytes32" }
             ]
         };
         
@@ -300,7 +300,7 @@ class CrossChainCoordinator {
             salt,
             deadline,
             timestamp,
-            unbalancedRoot
+            merkleRoot
         };
         
         // Sign the message
@@ -313,7 +313,7 @@ class CrossChainCoordinator {
             const leaf = chainToLeafMap.get(chainName);
             proofs[chainName] = {
                 permits: this.permits[chainName],
-                unbalancedProof: MerkleTreeHelper.getProof(merkleTree, leaf)
+                proof: MerkleTreeHelper.getProof(merkleTree, leaf)
             };
         }
         
@@ -323,7 +323,7 @@ class CrossChainCoordinator {
             deadline,
             timestamp,
             signature,
-            unbalancedRoot,
+            merkleRoot,
             chains: orderedChains,
             proofs
         };
@@ -406,7 +406,7 @@ async function exampleCrossChainPermit() {
     const crossChainPermit = await coordinator.generateCrossChainPermit(wallet);
     
     console.log('Cross-chain permit generated:', {
-        root: crossChainPermit.unbalancedRoot,
+        root: crossChainPermit.merkleRoot,
         chains: crossChainPermit.chains,
         proofs: Object.keys(crossChainPermit.proofs)
     });
@@ -672,7 +672,7 @@ describe("Permit3 Integration Tests", function () {
                     { name: "salt", type: "bytes32" },
                     { name: "deadline", type: "uint48" },
                     { name: "timestamp", type: "uint48" },
-                    { name: "unbalancedRoot", type: "bytes32" }
+                    { name: "merkleRoot", type: "bytes32" }
                 ]
             };
             
@@ -681,15 +681,15 @@ describe("Permit3 Integration Tests", function () {
                 salt,
                 deadline,
                 timestamp,
-                unbalancedRoot: root
+                merkleRoot: root
             };
             
             const signature = await owner._signTypedData(domain, types, value);
             
             // Execute the unbalanced permit
-            const unbalancedProof = {
+            const proof = {
                 permits: permits[2], // Our chain's permits
-                unbalancedProof: proof
+                proof: proof
             };
             
             await expect(
@@ -698,7 +698,7 @@ describe("Permit3 Integration Tests", function () {
                     salt,
                     deadline,
                     timestamp,
-                    unbalancedProof,
+                    proof,
                     signature
                 )
             ).to.emit(defiProtocol, "TokensReceived")

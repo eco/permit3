@@ -109,7 +109,7 @@ struct ChainPermits {
 ```solidity
 struct UnbalancedPermitProof {
     ChainPermits permits;    // Permit operations for the current chain
-    bytes32[] unbalancedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes32[] proof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 
 // Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
@@ -240,9 +240,9 @@ bytes32 leaf = permit3.hashChainPermits(proof.permits);
 // Verify the Unbalanced Merkle Tree proof using OpenZeppelin's MerkleProof
 // (traverses both balanced and sequential parts)
 bool valid = MerkleProof.processProof(
-    proof.unbalancedProof,
+    proof.proof,
     leaf
-) == unbalancedRoot;
+) == merkleRoot;
 
 // Verify signature against Unbalanced root
 bytes32 signedHash = keccak256(abi.encode(
@@ -251,7 +251,7 @@ bytes32 signedHash = keccak256(abi.encode(
     salt, 
     deadline, 
     timestamp, 
-    unbalancedRoot  // The hybrid structure root
+    merkleRoot  // The hybrid structure root
 ));
 ```
 

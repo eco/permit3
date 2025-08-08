@@ -30,7 +30,7 @@ The signature is constructed using a dynamic type string that combines the stand
 ```solidity
 // Standard type hash stub (provided by Permit3)
 string constant PERMIT_WITNESS_TYPEHASH_STUB = 
-    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,";
+    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,";
 
 // Custom witness type (provided by your application)
 string witnessTypeString = "bytes32 witnessData)";

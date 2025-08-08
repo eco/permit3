@@ -261,10 +261,10 @@ const merkleRoot = buildMerkleRoot(leaves);
 
 // Generate merkle proof for specific chain
 const arbProof = generateMerkleProof(leaves, 1); // Index 1 for Arbitrum
-const unbalancedProof = { nodes: arbProof };
+const proof = { nodes: arbProof };
 
 // Create and sign with the unbalanced root
-const signature = signPermit3(owner, salt, deadline, timestamp, unbalancedRoot);
+const signature = signPermit3(owner, salt, deadline, timestamp, merkleRoot);
 ```
 
 ## 🛡️ Security Guidelines

@@ -45,7 +45,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @dev Includes owner, deadline, and unbalanced root for batch operations
      */
     bytes32 public constant CANCEL_PERMIT3_TYPEHASH =
-        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 unbalancedRoot)");
+        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 merkleRoot)");
 
     /**
      * @notice Initialize EIP-712 domain separator
@@ -140,9 +140,9 @@ abstract contract NonceManager is INonceManager, EIP712 {
         // Calculate the root from the invalidations and proof
         // processProof performs validation internally and provides granular error messages
         bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
-        bytes32 unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, invalidationsHash);
+        bytes32 merkleRoot = MerkleProof.processProof(proof.proof, invalidationsHash);
 
-        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unbalancedRoot));
+        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, merkleRoot));
 
         _verifySignature(owner, signedHash, signature);
 

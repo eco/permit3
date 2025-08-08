@@ -201,7 +201,7 @@ contract Permit3Test is TestBase {
         nodes[1] = bytes32(uint256(0x9abc)); // following hash
 
         IPermit3.UnbalancedPermitProof memory permitProof =
-            IPermit3.UnbalancedPermitProof({ permits: chainPermits, unbalancedProof: nodes });
+            IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
 
         // Reset recipient balance
         deal(address(token), recipient, 0);
@@ -237,7 +237,7 @@ contract Permit3Test is TestBase {
 
         // Create invalid proof with insufficient nodes
         IPermit3.UnbalancedPermitProof memory permitProof =
-            IPermit3.UnbalancedPermitProof({ permits: chainPermits, unbalancedProof: nodes });
+            IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
@@ -265,7 +265,7 @@ contract Permit3Test is TestBase {
         nodes[0] = bytes32(uint256(0x1));
 
         IPermit3.UnbalancedPermitProof memory permitProof =
-            IPermit3.UnbalancedPermitProof({ permits: chainPermits, unbalancedProof: nodes });
+            IPermit3.UnbalancedPermitProof({ permits: chainPermits, proof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);

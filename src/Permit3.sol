@@ -33,11 +33,11 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * Binds owner, deadline, and permit data hash for signature verification
      */
     bytes32 public constant SIGNED_PERMIT3_TYPEHASH =
-        keccak256("Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot)");
+        keccak256("Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot)");
 
     // Constants for witness type hash strings
     string public constant PERMIT_WITNESS_TYPEHASH_STUB =
-        "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,";
+        "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,";
 
     /**
      * @dev Sets up EIP-712 domain separator with protocol identifiers
@@ -135,7 +135,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         uint48 deadline;
         uint48 timestamp;
         bytes32 currentChainHash;
-        bytes32 unbalancedRoot;
+        bytes32 merkleRoot;
     }
 
     /**
@@ -175,19 +175,14 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Hash current chain's permits
         params.currentChainHash = hashChainPermits(proof.permits);
 
-        // Calculate the unbalanced root from the proof components
+        // Calculate the merkle root from the proof components
         // processProof performs validation internally and provides granular error messages
-        params.unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, params.currentChainHash);
+        params.merkleRoot = MerkleProof.processProof(proof.proof, params.currentChainHash);
 
-        // Verify signature with unbalanced root
+        // Verify signature with merkle root
         bytes32 signedHash = keccak256(
             abi.encode(
-                SIGNED_PERMIT3_TYPEHASH,
-                params.owner,
-                params.salt,
-                params.deadline,
-                params.timestamp,
-                params.unbalancedRoot
+                SIGNED_PERMIT3_TYPEHASH, params.owner, params.salt, params.deadline, params.timestamp, params.merkleRoot
             )
         );
 
@@ -254,7 +249,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         uint48 timestamp;
         bytes32 witness;
         bytes32 currentChainHash;
-        bytes32 unbalancedRoot;
+        bytes32 merkleRoot;
     }
 
     /**
@@ -302,9 +297,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         // Hash current chain's permits
         params.currentChainHash = hashChainPermits(proof.permits);
 
-        // Calculate the unbalanced root
+        // Calculate the merkle root
         // processProof performs validation internally and provides granular error messages
-        params.unbalancedRoot = MerkleProof.processProof(proof.unbalancedProof, params.currentChainHash);
+        params.merkleRoot = MerkleProof.processProof(proof.proof, params.currentChainHash);
 
         // Compute witness-specific typehash and signed hash
         bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
@@ -315,7 +310,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
                 params.salt,
                 params.deadline,
                 params.timestamp,
-                params.unbalancedRoot,
+                params.merkleRoot,
                 params.witness
             )
         );

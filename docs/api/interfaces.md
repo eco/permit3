@@ -29,7 +29,7 @@ interface IPermit3 is IPermit, INonceManager {
     
     struct UnbalancedPermitProof {
         ChainPermits permits;
-        bytes32[] unbalancedProof;
+        bytes32[] proof;
     }
     
     enum PermitType {
@@ -158,7 +158,7 @@ interface INonceManager is IPermit {
     
     struct UnbalancedCancelPermitProof {
         NoncesToInvalidate invalidations;
-        bytes32[] unbalancedProof;
+        bytes32[] proof;
     }
     
     // Core functions

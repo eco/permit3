@@ -70,7 +70,7 @@ Permit3 uses a simple and efficient proof structure for cross-chain operations:
 ```solidity
 struct UnbalancedPermitProof {
     ChainPermits permits;    // Permit operations for the current chain
-    bytes32[] unbalancedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes32[] proof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 
 // Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
@@ -145,7 +145,7 @@ const optLeaf = hashChainPermits(optPermits);
 
 // Build Unbalanced Merkle Tree
 const leaves = [ethLeaf, arbLeaf, optLeaf];
-const unbalancedRoot = buildMerkleRoot(leaves);
+const merkleRoot = buildMerkleRoot(leaves);
 
 // Key benefit: Chain ordering can optimize gas costs
 // (e.g., place cheaper L2 chains first, expensive L1 chains last)
@@ -160,7 +160,7 @@ const permitData = {
     salt: ethers.utils.randomBytes(32),
     deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
     timestamp: Math.floor(Date.now() / 1000),
-    unbalancedRoot: merkleRoot
+    merkleRoot: merkleRoot
 };
 
 // Set up EIP-712 domain
@@ -178,7 +178,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unbalancedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ]
 };
 
@@ -196,21 +196,21 @@ const signature = await signer._signTypedData(domain, types, permitData);
 const ethProof = generateMerkleProof(leaves, 0);
 const ethUnbalancedProof = {
     permits: ethPermits,
-    unbalancedProof: ethProof // Direct array of sibling hashes
+    proof: ethProof // Direct array of sibling hashes
 };
 
 // Arbitrum proof (for leaf at index 1)
 const arbProof = generateMerkleProof(leaves, 1);
 const arbUnbalancedProof = {
     permits: arbPermits,
-    unbalancedProof: arbProof // Direct array of sibling hashes
+    proof: arbProof // Direct array of sibling hashes
 };
 
 // Optimism proof (for leaf at index 2)
 const optProof = generateMerkleProof(leaves, 2);
 const optUnbalancedProof = {
     permits: optPermits,
-    unbalancedProof: optProof // Direct array of sibling hashes
+    proof: optProof // Direct array of sibling hashes
 };
 ```
 

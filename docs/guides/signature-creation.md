@@ -40,7 +40,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unbalancedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ],
     
     // Supporting types for permit data
@@ -68,7 +68,7 @@ const value = {
     salt: "0x456...",               // Random bytes32 for replay protection
     deadline: 1714732800,           // Unix timestamp when signature expires
     timestamp: 1714646400,          // Current Unix timestamp
-    unbalancedRoot: "0x789..."        // Hash of permit data
+    merkleRoot: "0x789..."        // Hash of permit data
 };
 ```
 
@@ -138,7 +138,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unbalancedRoot: permitsHash // For standard permit, this is just the permits hash
+    merkleRoot: permitsHash // For standard permit, this is just the permits hash
 };
 
 // Create EIP-712 domain
@@ -156,7 +156,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unbalancedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ]
 };
 ```
@@ -353,7 +353,7 @@ const ethereumHash = await ethereumPermit3.hashChainPermits(ethereumPermits);
 const arbitrumHash = await arbitrumPermit3.hashChainPermits(arbitrumPermits);
 
 // Create the unbalanced root
-const unbalancedRoot = ethers.utils.keccak256(
+const merkleRoot = ethers.utils.keccak256(
     ethers.utils.defaultAbiCoder.encode(
         ['bytes32', 'bytes32'],
         [ethereumHash, arbitrumHash]
@@ -366,7 +366,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unbalancedRoot
+    merkleRoot
 };
 ```
 
@@ -412,7 +412,7 @@ async function verifyPermitSignature(
             { name: 'salt', type: 'bytes32' },
             { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
-            { name: 'unbalancedRoot', type: 'bytes32' }
+            { name: 'merkleRoot', type: 'bytes32' }
         ]
     };
     
@@ -422,7 +422,7 @@ async function verifyPermitSignature(
         salt,
         deadline,
         timestamp,
-        unbalancedRoot: permitsHash
+        merkleRoot: permitsHash
     };
     
     // Calculate the digest

@@ -96,7 +96,7 @@ contract NonceManagerTest is TestBase {
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
         INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, unbalancedProof: nodes });
+            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
@@ -152,7 +152,7 @@ contract NonceManagerTest is TestBase {
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
         INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, unbalancedProof: nodes });
+            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
@@ -174,7 +174,7 @@ contract NonceManagerTest is TestBase {
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
         INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, unbalancedProof: nodes });
+            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
 
         uint48 deadline = uint48(block.timestamp - 1);
         bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
@@ -198,7 +198,7 @@ contract NonceManagerTest is TestBase {
         // Create a minimal proof structure for testing
         bytes32[] memory nodes = new bytes32[](0);
         INonceManager.UnbalancedCancelPermitProof memory proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, unbalancedProof: nodes });
+            INonceManager.UnbalancedCancelPermitProof({ invalidations: invalidations, proof: nodes });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         bytes32 structHash = _getUnbalancedInvalidationStructHash(owner, deadline, proof);
@@ -261,17 +261,16 @@ contract NonceManagerTest is TestBase {
 
         // Create a simple proof structure where the leaf is the root (no proof needed)
         bytes32[] memory proofNodes = new bytes32[](0);
-        p.proof =
-            INonceManager.UnbalancedCancelPermitProof({ invalidations: p.invalidations, unbalancedProof: proofNodes });
+        p.proof = INonceManager.UnbalancedCancelPermitProof({ invalidations: p.invalidations, proof: proofNodes });
 
         // Set up deadline
         p.deadline = uint48(block.timestamp + 1 hours);
 
         // The root will be calculated by the library from the proof and invalidations hash
-        p.unbalancedRoot = p.invalidationsHash; // For simple proof, root equals leaf
+        p.merkleRoot = p.invalidationsHash; // For simple proof, root equals leaf
 
         // Create the signature
-        p.signedHash = keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), owner, p.deadline, p.unbalancedRoot));
+        p.signedHash = keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), owner, p.deadline, p.merkleRoot));
         p.digest = _getDigest(p.signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, p.digest);
         p.signature = abi.encodePacked(r, s, v);

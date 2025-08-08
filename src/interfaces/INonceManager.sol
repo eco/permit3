@@ -69,11 +69,11 @@ interface INonceManager is IPermit {
     /**
      * @notice Struct for unbalanced nonce invalidation proof
      * @param invalidations Current chain invalidation data
-     * @param unbalancedProof Array of sibling hashes forming the merkle proof path
+     * @param proof Array of sibling hashes forming the merkle proof path
      */
     struct UnbalancedCancelPermitProof {
         NoncesToInvalidate invalidations;
-        bytes32[] unbalancedProof;
+        bytes32[] proof;
     }
 
     /**

@@ -92,7 +92,7 @@ struct ChainPermits {
 ```solidity
 struct UnbalancedPermitProof {
     ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] unbalancedProof; // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes32[] proof; // Standard merkle proof using OpenZeppelin's MerkleProof
 }
 ```
 
@@ -105,12 +105,12 @@ bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
 );
 
 bytes32 public constant SIGNED_PERMIT3_TYPEHASH = keccak256(
-    "Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot)"
+    "Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot)"
 );
 
 // Witness type hash stub for constructing witness permit typehashes
 string public constant PERMIT_WITNESS_TYPEHASH_STUB = 
-    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,";
+    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,";
 ```
 
 <a id="custom-errors"></a>
@@ -552,7 +552,7 @@ const domain = {
 ### Standard Permit
 
 ```
-Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot)
+Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot)
 ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)
 AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)
 ```
@@ -561,8 +561,8 @@ AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint16
 
 ```
 // Base type stubs (incomplete)
-PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,
-PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,
+PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,
+PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,
 
 // Completed by custom witness type string, for example:
 bytes32 witnessData)
@@ -654,7 +654,7 @@ arbProofNodes[0] = ethLeaf; // Sibling for Arbitrum
 // Execute on Ethereum chain
 IPermit3.UnbalancedPermitProof memory ethProof = IPermit3.UnbalancedPermitProof({
     permits: ethPermits,
-    unbalancedProof: ethProofNodes
+    proof: ethProofNodes
 });
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
@@ -662,7 +662,7 @@ permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 // Execute on Arbitrum chain
 IPermit3.UnbalancedPermitProof memory arbProof = IPermit3.UnbalancedPermitProof({
     permits: arbPermits,
-    unbalancedProof: arbProofNodes
+    proof: arbProofNodes
 });
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);

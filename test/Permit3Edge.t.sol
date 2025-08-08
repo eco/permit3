@@ -65,7 +65,7 @@ contract Permit3EdgeTest is Test {
 
     struct UnbalancedWitnessTestVars {
         bytes32 currentChainHash;
-        bytes32 unbalancedRoot;
+        bytes32 merkleRoot;
         bytes32 typeHash;
         bytes32 signedHash;
         bytes32 digest;
@@ -75,7 +75,7 @@ contract Permit3EdgeTest is Test {
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
         bytes32[] merkleProof;
-        IPermit3.UnbalancedPermitProof unbalancedProof;
+        IPermit3.UnbalancedPermitProof permitProof;
     }
 
     function setUp() public {
@@ -195,12 +195,11 @@ contract Permit3EdgeTest is Test {
         bytes32[] memory emptyNodes = new bytes32[](0);
         vars.merkleProof = emptyNodes;
 
-        vars.unbalancedProof =
-            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, unbalancedProof: vars.merkleProof });
+        vars.permitProof = IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, proof: vars.merkleProof });
 
         // Calculate the unbalanced root
         vars.currentChainHash = permit3Tester.hashChainPermits(inputs.chainPermits);
-        vars.unbalancedRoot = permit3Tester.calculateUnbalancedRoot(vars.currentChainHash, vars.merkleProof);
+        vars.merkleRoot = permit3Tester.calculateUnbalancedRoot(vars.currentChainHash, vars.merkleProof);
 
         // Create the witness typehash - identical to what the contract would compute internally
         vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), params.witnessTypeString));
@@ -208,13 +207,7 @@ contract Permit3EdgeTest is Test {
         // Create the signed hash
         vars.signedHash = keccak256(
             abi.encode(
-                vars.typeHash,
-                owner,
-                params.salt,
-                params.deadline,
-                params.timestamp,
-                vars.unbalancedRoot,
-                params.witness
+                vars.typeHash, owner, params.salt, params.deadline, params.timestamp, vars.merkleRoot, params.witness
             )
         );
 
@@ -231,7 +224,7 @@ contract Permit3EdgeTest is Test {
             params.salt,
             params.deadline,
             params.timestamp,
-            vars.unbalancedProof,
+            vars.permitProof,
             params.witness,
             params.witnessTypeString,
             params.signature
@@ -264,7 +257,7 @@ contract Permit3EdgeTest is Test {
         bytes32[] memory nodes = new bytes32[](0); // Empty proof is invalid for multi-chain permits
 
         IPermit3.UnbalancedPermitProof memory unbalancedProof =
-            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, unbalancedProof: nodes });
+            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, proof: nodes });
 
         // Create a simple signature (won't reach validation)
         params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
@@ -280,9 +273,9 @@ contract Permit3EdgeTest is Test {
         bytes32[] subtreeProof;
         bytes32[] followingHashes;
         bytes32[] proof;
-        IPermit3.UnbalancedPermitProof unbalancedProof;
+        IPermit3.UnbalancedPermitProof permitProof;
         bytes32 currentChainHash;
-        bytes32 unbalancedRoot;
+        bytes32 merkleRoot;
         bytes32 signedHash;
         bytes32 digest;
         uint8 v;
@@ -326,12 +319,11 @@ contract Permit3EdgeTest is Test {
         // Create the proof with explicit hasPreHash flag
         vars.proof = nodes;
 
-        vars.unbalancedProof =
-            IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, unbalancedProof: vars.proof });
+        vars.permitProof = IPermit3.UnbalancedPermitProof({ permits: inputs.chainPermits, proof: vars.proof });
 
         // Calculate the unbalanced root
         vars.currentChainHash = permit3Tester.hashChainPermits(inputs.chainPermits);
-        vars.unbalancedRoot = permit3Tester.calculateUnbalancedRoot(vars.currentChainHash, vars.proof);
+        vars.merkleRoot = permit3Tester.calculateUnbalancedRoot(vars.currentChainHash, vars.proof);
 
         // Create signature
         vars.signedHash = keccak256(
@@ -341,7 +333,7 @@ contract Permit3EdgeTest is Test {
                 params.salt,
                 params.deadline,
                 params.timestamp,
-                vars.unbalancedRoot
+                vars.merkleRoot
             )
         );
 
@@ -353,7 +345,7 @@ contract Permit3EdgeTest is Test {
         deal(address(token), recipient, 0);
 
         // Execute unbalanced permit
-        permit3.permit(owner, params.salt, params.deadline, params.timestamp, vars.unbalancedProof, params.signature);
+        permit3.permit(owner, params.salt, params.deadline, params.timestamp, vars.permitProof, params.signature);
 
         // Verify the transfer happened
         assertEq(token.balanceOf(recipient), AMOUNT);
@@ -609,8 +601,7 @@ contract Permit3EdgeTest is Test {
 
         // Verify stubs match expected values
         assertEq(
-            permitStub,
-            "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 unbalancedRoot,"
+            permitStub, "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,"
         );
     }
 

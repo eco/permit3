@@ -66,7 +66,7 @@ const optHash = permit3.hashChainPermits(optimismPermits);
 // Build merkle tree using standard approach
 const leaves = [ethHash, arbHash, optHash];
 const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
-const unbalancedRoot = '0x' + merkleTree.getRoot().toString('hex');
+const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```
 
 ## 3️⃣ Step 3: Create and Sign the Permit
@@ -91,7 +91,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unbalancedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ]
 };
 
@@ -101,7 +101,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unbalancedRoot
+    merkleRoot
 };
 
 // Sign the message
@@ -148,19 +148,19 @@ function generateMerkleProof(leaves, targetIndex) {
 // On Ethereum (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unbalancedProof: generateMerkleProof(leaves, 0)
+    proof: generateMerkleProof(leaves, 0)
 };
 
 // On Arbitrum (index 1)
 const arbitrumProof = {
     permits: arbitrumPermits,
-    unbalancedProof: generateMerkleProof(leaves, 1)
+    proof: generateMerkleProof(leaves, 1)
 };
 
 // On Optimism (index 2)
 const optimismProof = {
     permits: optimismPermits,
-    unbalancedProof: generateMerkleProof(leaves, 2)
+    proof: generateMerkleProof(leaves, 2)
 };
 ```
 
@@ -279,7 +279,7 @@ const completeTree = new MerkleTree(allLeaves, keccak256, { sortPairs: true });
 // Get proof for Ethereum (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unbalancedProof: completeTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
+    proof: completeTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
 };
 ```
 
