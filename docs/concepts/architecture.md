@@ -232,7 +232,7 @@ Permit3 enables cross-chain operations through Unbalanced Merkle Trees:
 
 This approach leverages the two-part design:
 - **Bottom Part**: Efficient membership proofs within individual chains
-- **Top Part**: Sequential chaining optimized for cross-chain linking
+- **Top Part**: Unbalanced upper structure that minimizes calldata for chains with high gas costs
 - **Verification**: Merkle tree verification for security and compatibility
 - **Benefits**: One signature for multiple chains with gas optimization potential
 - **Security**: Chain ID validation prevents cross-chain replay attacks
@@ -245,7 +245,7 @@ This approach leverages the two-part design:
 bytes32 leaf = permit3.hashChainPermits(proof.permits);
 
 // Verify the Unbalanced Merkle Tree proof using OpenZeppelin's MerkleProof
-// (traverses both balanced and sequential parts)
+// (traverses both balanced subtrees and unbalanced upper structure)
 bool valid = MerkleProof.processProof(
     proof.proof,
     leaf

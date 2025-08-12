@@ -222,19 +222,19 @@ Here's how Unbalanced Merkle Trees are used in a cross-chain permit scenario:
 
 1. **Tree Construction** (Strategic Process):
    - **Operation Collection**: Gather operations from all chains
-   - **Top Part**: Chain the subtree roots sequentially for cross-chain linking
+   - **Top Part**: Build unbalanced upper structure to minimize proof size on expensive chains
    - **Result**: Standard merkle tree built from all chain operations
    - The root represents operations across all chains with hybrid efficiency
 
 2. **Signature Creation**:
    - The user signs the merkle root using EIP-712
-   - Single signature leverages both balanced and sequential benefits
+   - Single signature leverages both balanced subtree and unbalanced upper structure benefits
    - Authorizes operations across all chains efficiently
 
 3. **Chain-Specific Verification**:
    - On each chain, verify the specific operations for that chain
    - Merkle proof connects local operations to the global signed root
-   - **Key benefit**: Proof traverses both balanced and sequential parts efficiently
+   - **Key benefit**: Proof traverses both balanced subtrees and unbalanced upper structure efficiently
 
 ### Code Example
 
@@ -277,7 +277,7 @@ permit3.permit(owner, salt, deadline, timestamp, arbitrumPermits, arbitrumProof,
 
 1. **Design Innovation**: Two-part hybrid structure optimized for cross-chain operations
 2. **Gas Efficiency**: Strategic chain ordering minimizes costs on expensive chains
-3. **Better User Experience**: One signature leverages both balanced and sequential benefits
+3. **Better User Experience**: One signature leverages both balanced subtree and unbalanced upper structure benefits
 4. **Flexible Structure**: Supports arbitrary numbers of chains and operations efficiently
 5. **Security**: Standard merkle tree verification with battle-tested security properties
 6. **Future Extensibility**: Two-part foundation enables advanced optimizations

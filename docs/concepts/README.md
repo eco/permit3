@@ -37,7 +37,7 @@ Permit3 enables operations across multiple blockchains with a single signature t
 
 ### 🌲 Unbalanced Merkle Trees
 
-Unbalanced Merkle Trees combine balanced subtrees with sequential hash chaining to provide efficient cross-chain proofs while minimizing gas costs.
+Unbalanced Merkle Trees combine balanced subtrees with an unbalanced upper structure to provide efficient cross-chain proofs while minimizing gas costs.
 
 ### 🧩 Witness Functionality
 

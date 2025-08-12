@@ -13,7 +13,7 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 - 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
 - 🌲 **Unbalanced Merkle Trees**: Hybrid two-part structure for cross-chain proofs:
   ```
-                 [H1] → [H2] → [H3] → ROOT  ← Sequential chain (top part)
+                 [H1] → [H2] → [H3] → ROOT  ← Unbalanced upper structure
               /      \      \      \
             [BR]    [D5]   [D6]   [D7]      ← Additional chain data
            /     \
@@ -21,9 +21,9 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
       /    \     /    \
     [D1]  [D2] [D3]  [D4]                   ← Leaf data
   ```
-  - 🏗️ **Two-Part Design**: Combines balanced merkle tree (bottom) with sequential hash chain (top)
+  - 🏗️ **Unbalanced Design**: Combines balanced subtrees with unbalanced upper structure for efficiency
   - 🔄 **Bottom Part**: Efficient membership proofs with O(log n) complexity
-  - 🔗 **Top Part**: Sequential chaining for linking across chains  
+  - 🔗 **Top Part**: Unbalanced structure minimizes proof size for expensive chains  
   - 🚀 **Gas Optimization**: Chain ordering (cheapest chains first, expensive last)
   - 🎯 **"Unbalanced"**: Deliberate deviation from balanced trees at top level
   - 💡 **Security**: Uses merkle tree verification for compatibility
