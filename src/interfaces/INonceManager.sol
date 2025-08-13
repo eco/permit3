@@ -2,37 +2,58 @@
 pragma solidity ^0.8.0;
 
 import { IPermit } from "./IPermit.sol";
-import { IUnhingedMerkleTree } from "./IUnhingedMerkleTree.sol";
 
 /**
  * @title INonceManager
  * @notice Interface for managing non-sequential nonces used in permit operations
  */
-interface INonceManager is IPermit, IUnhingedMerkleTree {
-    /// @notice Thrown when a signature has expired
-    /// @param deadline The timestamp when the signature expired
-    /// @param currentTimestamp The current block timestamp
+interface INonceManager is IPermit {
+    /**
+     * @notice Error when the merkle proof verification fails
+     */
+    error InvalidMerkleProof();
+
+    /**
+     * @notice Error when input parameters are invalid
+     */
+    error InvalidParameters();
+
+    /**
+     * @notice Thrown when a signature has expired
+     * @param deadline The timestamp when the signature expired
+     * @param currentTimestamp The current block timestamp
+     */
     error SignatureExpired(uint48 deadline, uint48 currentTimestamp);
 
-    /// @notice Thrown when a signature is invalid
-    /// @param signer The address whose signature failed verification
+    /**
+     * @notice Thrown when a signature is invalid
+     * @param signer The address whose signature failed verification
+     */
     error InvalidSignature(address signer);
 
-    /// @notice Thrown when a nonce has already been used
-    /// @param owner The owner of the nonce
-    /// @param salt The salt value that was already used
+    /**
+     * @notice Thrown when a nonce has already been used
+     * @param owner The owner of the nonce
+     * @param salt The salt value that was already used
+     */
     error NonceAlreadyUsed(address owner, bytes32 salt);
 
-    /// @notice Thrown when a chain ID is invalid
+    /**
+     * @notice Thrown when a chain ID is invalid
+     */
     error WrongChainId(uint256 expected, uint256 provided);
 
-    /// @notice Thrown when a witness type string is invalid
-    /// @param witnessTypeString The invalid witness type string provided
+    /**
+     * @notice Thrown when a witness type string is invalid
+     * @param witnessTypeString The invalid witness type string provided
+     */
     error InvalidWitnessTypeString(string witnessTypeString);
 
-    /// @notice Emitted when a nonce is invalidated
-    /// @param owner The owner of the nonce
-    /// @param salt The nonce salt that was invalidated
+    /**
+     * @notice Emitted when a nonce is invalidated
+     * @param owner The owner of the nonce
+     * @param salt The nonce salt that was invalidated
+     */
     event NonceInvalidated(address indexed owner, bytes32 indexed salt);
 
     /**
@@ -43,16 +64,6 @@ interface INonceManager is IPermit, IUnhingedMerkleTree {
     struct NoncesToInvalidate {
         uint64 chainId;
         bytes32[] salts;
-    }
-
-    /**
-     * @notice Struct for unhinged nonce invalidation proof
-     * @param invalidations Current chain invalidation data
-     * @param unhingedProof UnhingedProof structure for verification
-     */
-    struct UnhingedCancelPermitProof {
-        NoncesToInvalidate invalidations;
-        UnhingedProof unhingedProof;
     }
 
     /**
@@ -92,16 +103,18 @@ interface INonceManager is IPermit, IUnhingedMerkleTree {
     ) external;
 
     /**
-     * @notice Cross-chain nonce invalidation using the Unhinged Merkle Tree approach
+     * @notice Cross-chain nonce invalidation using Merkle Tree
      * @param owner Token owner address
      * @param deadline Signature expiration timestamp
-     * @param proof Unhinged invalidation proof
+     * @param invalidations Current chain invalidation data
+     * @param proof Merkle proof array for verification
      * @param signature EIP-712 signature authorizing the invalidation
      */
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        UnhingedCancelPermitProof memory proof,
+        NoncesToInvalidate memory invalidations,
+        bytes32[] memory proof,
         bytes calldata signature
     ) external;
 

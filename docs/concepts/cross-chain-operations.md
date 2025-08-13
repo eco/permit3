@@ -5,17 +5,14 @@
 
 This document explains how Permit3 enables token operations across multiple blockchains with a single signature.
 
-###### Navigation: [Overview](#overview) | [How It Works](#how-cross-chain-operations-work) | [Legacy Hash Chaining](#legacy-hash-chaining-mechanism) | [Unhinged Trees](#unhinged-merkle-tree-approach) | [Proof Structures](#proof-structures) | [Example](#example-cross-chain-token-approval) | [Chain Ordering](#chain-ordering-and-gas-optimization) | [Witness Functionality](#cross-chain-witness-functionality) | [Security](#security-considerations) | [Limitations](#limitations-and-considerations)
+###### Navigation: [Overview](#overview) | [How It Works](#how-cross-chain-operations-work) | [Legacy Hash Chaining](#legacy-hash-chaining-mechanism) | [Unbalanced Trees](#unbalanced-merkle-tree-approach) | [Proof Structures](#proof-structures) | [Example](#example-cross-chain-token-approval) | [Chain Ordering](#chain-ordering-and-gas-optimization) | [Witness Functionality](#cross-chain-witness-functionality) | [Security](#security-considerations) | [Limitations](#limitations-and-considerations)
 
 <a id="overview"></a>
 ## Overview
 
-One of the most powerful features of Permit3 is the ability to authorize token operations across multiple blockchains with a single signature. This is achieved through two complementary techniques:
+One of the most powerful features of Permit3 is the ability to authorize token operations across multiple blockchains with a single signature. This is achieved through the use of Unbalanced Merkle Trees.
 
-1. **Legacy Hash Chaining**: The original method that creates a sequential hash chain
-2. **Unhinged Merkle Trees**: An optimized approach that combines balanced Merkle trees with sequential hash chaining
-
-Both approaches allow different portions of a signed message to be verified and executed on different chains, with Unhinged Merkle Trees providing better gas efficiency.
+This approach allows different portions of a signed message to be verified and executed on different chains with optimal gas efficiency.
 
 <a id="how-cross-chain-operations-work"></a>
 ## How Cross-Chain Operations Work
@@ -23,84 +20,76 @@ Both approaches allow different portions of a signed message to be verified and 
 The cross-chain mechanism in Permit3 involves these key steps:
 
 1. **Create Permits for Each Chain**: Define permit operations for each target blockchain
-2. **Proof Structure Creation**: Combine the permit data using either hash chaining or Unhinged Merkle Trees
-3. **Signature Creation**: Sign the root hash with the user's private key
-4. **Cross-Chain Proof**: Create a proof for each chain that links the chain's permits to the root hash
+2. **Build Merkle Tree**: Hash each chain's permits and build a merkle tree from all leaves
+3. **Signature Creation**: Sign the merkle root with the user's private key
+4. **Generate Proofs**: Create a merkle proof for each chain's operations
 5. **Execution**: Submit the proof and signature on each chain for verification and execution
 
 <a id="legacy-hash-chaining-mechanism"></a>
-### Legacy Hash Chaining Mechanism
+### Unbalanced Merkle Tree Construction
 
-The original hash chaining technique creates a single root hash that represents permit operations across multiple chains:
+The Unbalanced Merkle Tree methodology creates a single tree spanning all chains, strategically unbalanced to optimize gas costs:
 
+**Structure:**
 ```
-chainA_hash = hash(chainA_permits)
-chainB_hash = hash(chainB_permits)
-chainC_hash = hash(chainC_permits)
-
-// Create an unbalanced hash chain
-root_hash = hash(hash(hash(chainA_hash), chainB_hash), chainC_hash)
-```
-
-<a id="unhinged-merkle-tree-approach"></a>
-### Unhinged Merkle Tree Approach
-
-The newer, more gas-efficient approach uses Unhinged Merkle Trees:
-
-```
-chainA_hash = hash(chainA_permits)
-chainB_hash = hash(chainB_permits)
-chainC_hash = hash(chainC_permits)
-
-// Create balanced subtrees for each chain's operations
-chainA_root = createBalancedMerkleRoot(chainA_operations)
-chainB_root = createBalancedMerkleRoot(chainB_operations)
-chainC_root = createBalancedMerkleRoot(chainC_operations)
-
-// Chain the roots sequentially
-unhinged_root = chainA_root
-unhinged_root = hash(unhinged_root, chainB_root)
-unhinged_root = hash(unhinged_root, chainC_root)
+               [H1] → [H2] → [H3] → ROOT  ← Deliberately unbalanced for gas optimization
+            /      \      \      \
+          [BR]    chainB  chainC  chainD   ← Expensive chains positioned for shorter proofs
+         /     \
+     [BH1]     [BH2]                      ← Operations grouped by chain  
+    /    \     /    \
+chainA_ops1 chainA_ops2 ...               ← Individual operations
 ```
 
-This root hash is what the user signs. When executing on any specific chain, a proof is provided that links that chain's permits to the root hash.
+```
+chainA_leaf = hash(chainA_permits)
+chainB_leaf = hash(chainB_permits) 
+chainC_leaf = hash(chainC_permits)
+
+// Unbalanced Merkle Tree structure
+//        root
+//       /    \
+//     H1      chainC_leaf
+//    /  \
+// chainA  chainB
+root = buildMerkleRoot([chainA_leaf, chainB_leaf, chainC_leaf])
+```
+
+The strategic unbalancing provides gas optimization by positioning expensive chains closer to the root for smaller proofs.
+
+<a id="unbalanced-merkle-tree-approach"></a>
+When executing on any specific chain, a merkle proof is provided that proves that chain's permits are included in the signed root. This uses merkle tree verification with ordered hashing (smaller value first) for consistency.
 
 <a id="proof-structures"></a>
-## Proof Structures
+## Proof Structure
 
-Permit3 offers two proof structures for cross-chain operations:
+Permit3 uses a simple and efficient proof structure for cross-chain operations:
 
-### Legacy Permit3Proof Structure
+### Cross-Chain Permit Parameters
 
-```solidity
-struct Permit3Proof {
-    bytes32 preHash;          // Hash of previous chain operations
-    ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] followingHashes; // Hashes of subsequent chain operations
-}
-```
-
-### Optimized UnhingedPermitProof Structure
+In the implementation, cross-chain operations use separate parameters:
 
 ```solidity
-struct UnhingedPermitProof {
-    ChainPermits permits;                  // Permit operations for the current chain
-    IUnhingedMerkleTree.UnhingedProof unhingedProof;  // Optimized proof structure
-}
+function permit(
+    address owner,
+    bytes32 salt,
+    uint48 deadline,
+    uint48 timestamp,
+    ChainPermits calldata permits,    // Permit operations for the current chain
+    bytes32[] calldata proof,         // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes calldata signature
+) external;
 
-// The optimized UnhingedProof structure
-struct UnhingedProof {
-    bytes32[] nodes;    // All nodes: [preHash, subtreeProof nodes..., followingHashes...]
-    bytes32 counts;     // Packed counts (subtreeProofCount << 128 | followingHashesCount)
-}
+// Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
+// Each element represents a sibling hash needed for proof verification
 ```
 
-The Unhinged Merkle Tree approach is more gas-efficient as it packs data more compactly and optimizes verification.
+This approach is gas-efficient as it contains only the essential merkle proof data needed for verification, while the strategic unbalancing enables optimizations like positioning expensive chains for smaller proofs.
 
 <a id="example-cross-chain-token-approval"></a>
 ## Example: Cross-Chain Token Approval
 
-Let's walk through practical examples of setting up approvals on Ethereum, Arbitrum, and Optimism with a single signature using both approaches.
+Let's walk through practical examples of setting up approvals on Ethereum, Arbitrum, and Optimism with a single signature using the Unbalanced Merkle Tree approach.
 
 ### Step 1: Create Chain-Specific Permits
 
@@ -145,29 +134,31 @@ const optPermits = {
 };
 ```
 
-### Legacy Hash Chain Approach
+### Unbalanced Merkle Tree Approach
 
-#### Step 2A: Create Hash Chain
+#### Step 2: Create Unbalanced Merkle Tree
 
 ```javascript
 // Helper function to hash chain permits
 function hashChainPermits(permits) {
-    // Implementation details would depend on your environment
     // This should match the contract's hashChainPermits function
-    return ethers.utils.keccak256(/* implementation */);
+    return ethers.utils.keccak256(/* encoded permits */);
 }
 
-// Hash each chain's permits
-const ethHash = hashChainPermits(ethPermits);
-const arbHash = hashChainPermits(arbPermits);
-const optHash = hashChainPermits(optPermits);
+// Hash each chain's permits to create leaves
+const ethLeaf = hashChainPermits(ethPermits);
+const arbLeaf = hashChainPermits(arbPermits);
+const optLeaf = hashChainPermits(optPermits);
 
-// Create the unhinged merkle tree root
-const combinedHash1 = UnhingedMerkleTree.hashLink(ethHash, arbHash);
-const rootHash = UnhingedMerkleTree.hashLink(combinedHash1, optHash);
+// Build Unbalanced Merkle Tree
+const leaves = [ethLeaf, arbLeaf, optLeaf];
+const merkleRoot = buildMerkleRoot(leaves);
+
+// Key benefit: Chain ordering can optimize gas costs
+// (e.g., place cheaper L2 chains first, expensive L1 chains last)
 ```
 
-#### Step 3A: Create and Sign Permit
+#### Step 3: Create and Sign Permit
 
 ```javascript
 // Create permit data
@@ -176,25 +167,25 @@ const permitData = {
     salt: ethers.utils.randomBytes(32),
     deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
     timestamp: Math.floor(Date.now() / 1000),
-    unbalancedPermitsRoot: rootHash
+    merkleRoot: merkleRoot
 };
 
 // Set up EIP-712 domain
 const domain = {
     name: 'Permit3',
     version: '1',
-    chainId: 0, // CROSS_CHAIN_ID for cross-chain operations
+    chainId: 1, // CROSS_CHAIN_ID for cross-chain operations
     verifyingContract: permit3Address
 };
 
 // Define types
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ]
 };
 
@@ -202,34 +193,23 @@ const types = {
 const signature = await signer._signTypedData(domain, types, permitData);
 ```
 
-#### Step 4A: Create Chain-Specific Proofs
+#### Step 4: Create Merkle Proofs
 
 ```javascript
-// Ethereum proof
-const ethProof = {
-    preHash: ethers.constants.HashZero, // No previous chains
-    permits: ethPermits,
-    followingHashes: [arbHash, optHash] // Subsequent chain hashes
-};
+// Generate Unbalanced Merkle Tree proofs for each chain  
+// Each proof contains sibling hashes for the unbalanced tree structure
 
-// Arbitrum proof
-const arbProof = {
-    preHash: ethHash, // Ethereum came before
-    permits: arbPermits,
-    followingHashes: [optHash] // Optimism comes after
-};
+// Ethereum proof (for leaf at index 0)
+const ethProof = generateMerkleProof(leaves, 0); // Direct array of sibling hashes
 
-// Optimism proof
-const optProof = {
-    preHash: ethers.utils.keccak256(
-        ethers.utils.solidityPack(['bytes32', 'bytes32'], [ethHash, arbHash])
-    ),
-    permits: optPermits,
-    followingHashes: [] // No subsequent chains
-};
+// Arbitrum proof (for leaf at index 1)
+const arbProof = generateMerkleProof(leaves, 1); // Direct array of sibling hashes
+
+// Optimism proof (for leaf at index 2)
+const optProof = generateMerkleProof(leaves, 2); // Direct array of sibling hashes
 ```
 
-#### Step 5A: Execute on Each Chain
+#### Step 5: Execute with Unbalanced Proofs
 
 ```javascript
 // On Ethereum
@@ -238,6 +218,7 @@ await permit3.permit(
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
+    ethPermits,
     ethProof,
     signature
 );
@@ -248,6 +229,7 @@ await permit3.permit(
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
+    arbPermits,
     arbProof,
     signature
 );
@@ -258,144 +240,8 @@ await permit3.permit(
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
+    optPermits,
     optProof,
-    signature
-);
-```
-
-### Unhinged Merkle Tree Approach
-
-#### Step 2B: Create Unhinged Merkle Tree
-
-```javascript
-// Hash each chain's permits
-const ethHash = hashChainPermits(ethPermits);
-const arbHash = hashChainPermits(arbPermits);
-const optHash = hashChainPermits(optPermits);
-
-// Create the unhinged chain
-let unhingedRoot = ethHash;
-unhingedRoot = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'bytes32'], [unhingedRoot, arbHash])
-);
-unhingedRoot = ethers.utils.keccak256(
-    ethers.utils.solidityPack(['bytes32', 'bytes32'], [unhingedRoot, optHash])
-);
-```
-
-#### Step 3B: Create and Sign Unhinged Permit
-
-```javascript
-// Create permit data
-const permitData = {
-    owner: userAddress,
-    salt: ethers.utils.randomBytes(32),
-    deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-    timestamp: Math.floor(Date.now() / 1000),
-    unhingedRoot: unhingedRoot
-};
-
-// Set up EIP-712 domain
-const domain = {
-    name: 'Permit3',
-    version: '1',
-    chainId: 0, // CROSS_CHAIN_ID for cross-chain operations
-    verifyingContract: permit3Address
-};
-
-// Define types
-const types = {
-    SignedUnhingedPermit3: [
-        { name: 'owner', type: 'address' },
-        { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
-        { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
-    ]
-};
-
-// Sign the permit
-const signature = await signer._signTypedData(domain, types, permitData);
-```
-
-#### Step 4B: Create Optimized Unhinged Proofs
-
-```javascript
-// Helper for packing counts
-function packCounts(subtreeProofCount, followingHashesCount) {
-    const packedValue = (BigInt(subtreeProofCount) << 128n) | BigInt(followingHashesCount);
-    return ethers.utils.hexZeroPad(ethers.utils.hexlify(packedValue), 32);
-}
-
-// Ethereum proof
-const ethUnhingedProof = {
-    permits: ethPermits,
-    unhingedProof: {
-        nodes: [
-            ethers.constants.HashZero, // preHash: No previous chains
-            arbHash, optHash           // followingHashes: Arbitrum and Optimism come after
-        ],
-        counts: packCounts(0, 2)       // 0 subtree proofs, 2 following hashes
-    }
-};
-
-// Arbitrum proof
-const arbUnhingedProof = {
-    permits: arbPermits,
-    unhingedProof: {
-        nodes: [
-            ethHash,    // preHash: Ethereum came before
-            optHash     // followingHashes: Optimism comes after
-        ],
-        counts: packCounts(0, 1) // 0 subtree proofs, 1 following hash
-    }
-};
-
-// Optimism proof
-const optUnhingedProof = {
-    permits: optPermits,
-    unhingedProof: {
-        nodes: [
-            ethers.utils.keccak256( // preHash: Combined hash of Ethereum and Arbitrum
-                ethers.utils.solidityPack(['bytes32', 'bytes32'], [ethHash, arbHash])
-            )
-            // No following hashes
-        ],
-        counts: packCounts(0, 0) // 0 subtree proofs, 0 following hashes
-    }
-};
-```
-
-#### Step 5B: Execute with Unhinged Proofs
-
-```javascript
-// On Ethereum
-await permit3.permitUnhinged(
-    permitData.owner,
-    permitData.salt,
-    permitData.deadline,
-    permitData.timestamp,
-    ethUnhingedProof,
-    signature
-);
-
-// On Arbitrum
-await permit3.permitUnhinged(
-    permitData.owner,
-    permitData.salt,
-    permitData.deadline,
-    permitData.timestamp,
-    arbUnhingedProof,
-    signature
-);
-
-// On Optimism
-await permit3.permitUnhinged(
-    permitData.owner,
-    permitData.salt,
-    permitData.deadline,
-    permitData.timestamp,
-    optUnhingedProof,
     signature
 );
 ```
@@ -414,13 +260,14 @@ const witness = ethers.utils.keccak256(
 );
 const witnessTypeString = "Order order)Order(uint256 orderId)";
 
-// Use witnessPermitTransferFrom instead of permit
+// Use permitWitness for witness functionality
 await permit3.permitWitness(
     permitData.owner,
     permitData.salt,
     permitData.deadline,
     permitData.timestamp,
-    ethProof, // Chain-specific proof
+    ethPermits,    // Chain-specific permits
+    ethProof,      // Chain-specific merkle proof
     witness,
     witnessTypeString,
     signature
@@ -428,47 +275,101 @@ await permit3.permitWitness(
 ```
 
 <a id="chain-ordering-and-gas-optimization"></a>
-## Chain Ordering and Gas Optimization
+## Gas Optimization with Unbalanced Merkle Trees
 
-The order of chains in the Unhinged Merkle Tree structure is critically important for gas optimization. To minimize overall transaction costs across all chains, you should order chains strategically based on their calldata costs:
+The Unbalanced Merkle Tree methodology enables critical gas optimization for cross-chain operations through strategic positioning of chains in the tree.
 
 ### Strategic Chain Ordering
 
-1. **Lowest Cost Chains First**: Place chains with the lowest calldata/blob gas cost (typically L2s like Arbitrum, Optimism, etc.) at the beginning of the hash chain
-2. **Highest Cost Chains Last**: Place chains with the highest calldata/blob gas cost (like Ethereum mainnet) at the end of the hash chain
+To minimize overall transaction costs across all chains, you should order chains strategically based on their calldata costs:
 
-### Why This Ordering Matters
+1. **Lowest Cost Chains First**: Place chains with the lowest calldata/blob gas cost (typically L2s like Arbitrum, Optimism, etc.) at the beginning of the sequence
+2. **Highest Cost Chains Last**: Place chains with the highest calldata/blob gas cost (like Ethereum mainnet) at the end of the sequence
+
+### Why Chain Ordering Matters
 
 This ordering strategy provides significant gas savings because:
 
-- **Proof Size vs. Chain Position**: Earlier chains in the sequence require more data in their proofs (followingHashes), while later chains require less (just a preHash)
-- **Minimal Calldata on Expensive Chains**: Chains at the end of the sequence only need to verify a single preHash value, requiring minimal calldata on the most expensive networks
-- **Larger Proofs on Cheaper Chains**: The larger proof requirements for chains at the beginning of the sequence are more affordable on networks with lower calldata costs
+- **Proof Size vs. Chain Position**: The unbalanced structure of Unbalanced Merkle Trees means chains positioned closer to the root have smaller proof requirements
+- **Minimal Calldata on Expensive Chains**: The Unbalanced structure enables placing expensive chains last, minimizing their proof size
+- **Larger Proofs on Cheaper Chains**: The bulk of proof data can be processed on networks with lower calldata costs
 
-### Example Gas Savings
+### Concrete Gas Numbers
 
 Consider a scenario with operations on Ethereum (high calldata cost) and two L2s (lower calldata cost):
 
-**Inefficient Ordering (Ethereum First):**
-- Ethereum: No preHash, but two followingHashes (64+ bytes of expensive calldata)
-- L2s: Larger preHash data, but on cheaper networks
+**Without Optimization (Random Ordering):**
+- Ethereum might require: 64+ bytes of expensive calldata for a full proof
+- Total cost dominated by Ethereum's high gas prices
 
-**Efficient Ordering (Ethereum Last):**
-- L2s: More proof data, but on cheaper networks
-- Ethereum: Single preHash value (32 bytes of expensive calldata)
+**With Strategic Ordering (L2s First, Ethereum Last):**
+- L2s handle larger proofs where calldata is cheap
+- Ethereum benefits from strategic positioning near the root for minimal proof data
+- Future optimizations could reduce Ethereum's proof to just 32 bytes
+- **Potential savings: 50% or more on total cross-chain gas costs**
 
-The efficient ordering could save 50% or more on the total gas cost for cross-chain operations, making previously uneconomical cross-chain interactions viable.
+### Gas Characteristics
+
+1. **Logarithmic Scaling**: Proof size grows as O(log n) with the number of operations
+2. **Chain Ordering Benefits**: Strategic ordering minimizes costs on expensive chains
+3. **Predictable Verification**: Each proof verification has consistent gas costs  
+4. **Compact Proofs**: Only sibling hashes are needed, minimizing calldata
+5. **Gas Efficient**: Optimized for minimal gas consumption across chains
+
+### Example Gas Analysis
+
+For an Unbalanced Merkle Tree with 8 chains:
+- Each proof requires only 3 hashes (log₂(8) = 3)
+- Base calldata per chain: 96 bytes (3 × 32 bytes)
+- With strategic ordering:
+  - Cheap L2 chains: Handle full 96-byte proofs economically
+  - Expensive L1 (Ethereum): Positioned to benefit from future optimizations
+- **Result**: Cross-chain operations become economically viable
+
+This strategic approach ensures that cross-chain operations remain gas-efficient even as the ecosystem grows, with the unbalanced tree methodology providing a foundation for future optimizations.
 
 <a id="security-considerations"></a>
 ## Security Considerations
 
-When working with cross-chain operations in Permit3, keep these security considerations in mind:
+When working with cross-chain operations in Permit3, keep these critical security considerations in mind:
 
-1. **Chain ID Validation**: Always verify the chain ID matches the current chain to prevent cross-chain replay attacks
-2. **Salt Management**: Use unique salts for each signature to prevent replay attacks
-3. **Deadline Validation**: Set reasonable deadlines to limit the window of vulnerability
-4. **Timestamp Ordering**: Be aware of timestamp-based operation ordering across chains
-5. **Proof Verification**: Ensure proofs correctly link chain-specific permits to the root hash
+### 1. **Chain ID Validation**
+Chain ID verification is paramount for cross-chain security:
+- **Always verify**: Each operation MUST validate `chainId` matches the executing network
+- **Prevent replay attacks**: Without proper chain ID checks, signatures could be replayed on unintended networks
+- **Requirement**: Every permit includes the specific `chainId` in the signed data
+- **Contract enforcement**: Permit3 automatically rejects operations with mismatched chain IDs
+
+### 2. **Signature Domain Separation**
+Proper domain separation prevents signature misuse:
+- **EIP-712 domains**: Each signature includes chain-specific domain parameters
+- **Cross-chain consideration**: When using `CROSS_CHAIN_ID` (0), signatures are intentionally valid across multiple chains
+- **Explicit intent**: Users must understand whether they're signing for single-chain or cross-chain operations
+- **Domain components**:
+  ```solidity
+  domain = {
+      name: "Permit3",
+      version: "1", 
+      chainId: chainId, // Critical for domain separation
+      verifyingContract: permit3Address
+  }
+  ```
+
+### 3. **Nonce Management Across Chains**
+Sophisticated nonce handling prevents replay attacks:
+- **Salt-based system**: Each operation uses a unique salt that becomes permanently invalidated
+- **Cross-chain coordination**: Same salt can be used across chains for atomic invalidation
+- **Invalidation strategies**:
+  - Single nonce: Invalidate one specific operation
+  - Batch invalidation: Cancel multiple operations efficiently
+  - Emergency lockdown: Invalidate all pending operations
+- **State tracking**: Each chain independently tracks used nonces
+
+### 4. **Additional Security Best Practices**
+- **Deadline Validation**: Set reasonable deadlines to limit the window of vulnerability
+- **Timestamp Ordering**: Be aware of timestamp-based operation ordering across chains
+- **Proof Verification**: Ensure proofs correctly link chain-specific permits to the root hash
+- **Witness validation**: When using witness data, ensure proper validation on each chain
 
 <a id="limitations-and-considerations"></a>
 ## Limitations and Considerations
@@ -476,7 +377,7 @@ When working with cross-chain operations in Permit3, keep these security conside
 - **Atomicity**: Cross-chain operations are not atomic; each chain's operations execute independently
 - **Timing**: Operations may execute at different times on different chains
 - **Order Dependency**: If operations have dependencies across chains, consider the execution order
-- **Gas Costs**: Cross-chain proofs incur additional gas costs, especially for chains early in the hash chain
+- **Gas Costs**: Merkle proofs have predictable O(log n) gas costs
 - **Signature Reuse**: The same signature can be used on multiple chains, which can be a feature or a risk depending on your use case
 
 ## Conclusion

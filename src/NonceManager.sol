@@ -6,7 +6,7 @@ import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/Sig
 
 import { INonceManager } from "./interfaces/INonceManager.sol";
 import { EIP712 } from "./lib/EIP712.sol";
-import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
+import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 /**
  * @title NonceManager
@@ -20,7 +20,6 @@ import { UnhingedMerkleTree } from "./lib/UnhingedMerkleTree.sol";
 abstract contract NonceManager is INonceManager, EIP712 {
     using ECDSA for bytes32;
     using SignatureChecker for address;
-    using UnhingedMerkleTree for UnhingedProof;
 
     /// @dev Constant representing an unused nonce
     uint256 private constant NONCE_NOT_USED = 0;
@@ -43,10 +42,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
     /**
      * @notice EIP-712 typehash for invalidation signatures
-     * @dev Includes owner, deadline, and unhinged root for batch operations
+     * @dev Includes owner, deadline, and unbalanced root for batch operations
      */
     bytes32 public constant CANCEL_PERMIT3_TYPEHASH =
-        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 unhingedRoot)");
+        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 merkleRoot)");
 
     /**
      * @notice Initialize EIP-712 domain separator
@@ -116,16 +115,17 @@ abstract contract NonceManager is INonceManager, EIP712 {
     }
 
     /**
-     * @notice Cross-chain nonce invalidation using the Unhinged Merkle Tree approach
+     * @notice Cross-chain nonce invalidation using the Unbalanced Merkle Tree approach
      * @param owner Token owner
      * @param deadline Signature expiration
-     * @param proof Unhinged Merkle Tree invalidation proof
+     * @param proof Unbalanced Merkle Tree invalidation proof
      * @param signature Authorization signature
      */
     function invalidateNonces(
         address owner,
         uint48 deadline,
-        UnhingedCancelPermitProof calldata proof,
+        NoncesToInvalidate calldata invalidations,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external {
         if (owner == address(0)) {
@@ -134,20 +134,20 @@ abstract contract NonceManager is INonceManager, EIP712 {
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
-        if (proof.invalidations.chainId != uint64(block.chainid)) {
-            revert WrongChainId(uint64(block.chainid), proof.invalidations.chainId);
+        if (invalidations.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), invalidations.chainId);
         }
 
         // Calculate the root from the invalidations and proof
-        // calculateRoot performs validation internally and provides granular error messages
-        bytes32 invalidationsHash = hashNoncesToInvalidate(proof.invalidations);
-        bytes32 unhingedRoot = proof.unhingedProof.calculateRoot(invalidationsHash);
+        // processProof performs validation internally and provides granular error messages
+        bytes32 invalidationsHash = hashNoncesToInvalidate(invalidations);
+        bytes32 merkleRoot = MerkleProof.processProof(proof, invalidationsHash);
 
-        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, unhingedRoot));
+        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, merkleRoot));
 
         _verifySignature(owner, signedHash, signature);
 
-        _processNonceInvalidation(owner, proof.invalidations.salts);
+        _processNonceInvalidation(owner, invalidations.salts);
     }
 
     /**
