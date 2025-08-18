@@ -104,7 +104,8 @@ contract PermitBase is IPermit {
         if (allowed.expiration == LOCKED_ALLOWANCE) {
             revert AllowanceLocked(from, token, msg.sender);
         }
-        if (block.timestamp > allowed.expiration) {
+
+        if (allowed.expiration != 0 && block.timestamp > allowed.expiration) {
             revert AllowanceExpired(allowed.expiration);
         }
 

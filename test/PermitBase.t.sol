@@ -269,4 +269,60 @@ contract PermitBaseTest is TestBase {
         vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidExpiration.selector, NOW));
         permit3.approve(address(token), spender, AMOUNT, NOW);
     }
+
+    function test_transferFromWithZeroExpirationNeverExpires() public {
+        // Setup approval with zero expiration (never expires)
+        vm.prank(owner);
+        permit3.approve(address(token), spender, AMOUNT, 0);
+
+        // Reset recipient balance
+        deal(address(token), recipient, 0);
+
+        // Warp time far into the future
+        vm.warp(block.timestamp + 365 days);
+
+        // Transfer should still work even after a long time
+        vm.prank(spender);
+        permit3.transferFrom(owner, recipient, AMOUNT, address(token));
+
+        // Check balances
+        assertEq(token.balanceOf(recipient), AMOUNT);
+
+        // Check remaining allowance
+        (uint160 amount,,) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, 0);
+    }
+
+    function test_transferFromBatchWithZeroExpirationNeverExpires() public {
+        // Setup approval with zero expiration for double the amount
+        vm.prank(owner);
+        permit3.approve(address(token), spender, AMOUNT * 2, 0);
+
+        // Reset recipient balances
+        address recipient2 = address(0x5);
+        deal(address(token), recipient, 0);
+        deal(address(token), recipient2, 0);
+
+        // Warp time far into the future
+        vm.warp(block.timestamp + 365 days);
+
+        // Create transfer batch
+        IPermit.AllowanceTransferDetails[] memory transfers = new IPermit.AllowanceTransferDetails[](2);
+        transfers[0] =
+            IPermit.AllowanceTransferDetails({ from: owner, token: address(token), to: recipient, amount: AMOUNT });
+        transfers[1] =
+            IPermit.AllowanceTransferDetails({ from: owner, token: address(token), to: recipient2, amount: AMOUNT });
+
+        // Batch transfer should still work
+        vm.prank(spender);
+        permit3.transferFrom(transfers);
+
+        // Check balances
+        assertEq(token.balanceOf(recipient), AMOUNT);
+        assertEq(token.balanceOf(recipient2), AMOUNT);
+
+        // Check remaining allowance
+        (uint160 amount,,) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, 0);
+    }
 }
