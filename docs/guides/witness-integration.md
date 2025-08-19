@@ -102,18 +102,18 @@ Create the domain and types for EIP-712 signature:
 const domain = {
     name: "Permit3",
     version: "1",
-    chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: PERMIT3_ADDRESS
 };
 
 // Define EIP-712 types for witness permit
 const types = {
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'owner', type: 'address' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'witness', type: 'bytes32' }
     ],
@@ -184,7 +184,7 @@ const signature = await signer._signTypedData(domain, types, value);
 
 ```typescript
 // Execute permit with witness
-const permitWithWitnessTx = await permit3.permitWitnessTransferFrom(
+const permitWithWitnessTx = await permit3.permitWitness(
     walletAddress,
     salt,
     deadline,
@@ -254,7 +254,7 @@ contract DexWithWitness {
         require(block.timestamp <= orderData.expiration, "Order expired");
         
         // 3. Execute permit with witness
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             salt,
             deadline,
@@ -276,16 +276,17 @@ contract DexWithWitness {
 
 ## Advanced: Using Witness with Cross-Chain Operations
 
-For cross-chain operations, you can combine witness functionality with unhinged proofs:
+For cross-chain operations, you can combine witness functionality with unbalanced proofs:
 
 ```typescript
 // Create the permit with witness for cross-chain operation
-const tx = await permit3.permitWitnessTransferFrom(
+const tx = await permit3.permitWitness(
     owner,
     salt,
     deadline,
     timestamp,
-    unhingedPermitProof, // UnhingedPermitProof structure
+    permits, // ChainPermits for current chain
+    proof,   // bytes32[] merkle proof array
     witness,
     witnessTypeString,
     signature

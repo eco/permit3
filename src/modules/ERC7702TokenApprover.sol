@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IERC7702TokenApprover } from "./interfaces/IERC7702TokenApprover.sol";
+import { IERC7702TokenApprover } from "../interfaces/IERC7702TokenApprover.sol";
 
 /**
  * @title ERC7702TokenApprover
@@ -26,6 +26,9 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
     constructor(
         address permit3
     ) {
+        if (permit3 == address(0)) {
+            revert ZeroPermit3();
+        }
         PERMIT3 = permit3;
     }
 
@@ -38,13 +41,15 @@ contract ERC7702TokenApprover is IERC7702TokenApprover {
     function approve(
         address[] calldata tokens
     ) external {
-        if (tokens.length == 0) {
+        uint256 tokensLength = tokens.length;
+        if (tokensLength == 0) {
             revert NoTokensProvided();
         }
 
-        uint256 length = tokens.length;
-
-        for (uint256 i = 0; i < length; ++i) {
+        for (uint256 i = 0; i < tokensLength; ++i) {
+            if (tokens[i] == address(0)) {
+                revert ZeroToken();
+            }
             // Set infinite allowance (type(uint256).max) regardless of current allowance
             IERC20(tokens[i]).forceApprove(PERMIT3, type(uint256).max);
         }

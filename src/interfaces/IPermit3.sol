@@ -6,7 +6,7 @@ import { IPermit } from "./IPermit.sol";
 
 /**
  * @title IPermit3
- * @notice Interface for the Permit3 cross-chain token approval and transfer system using UnhingedProofs
+ * @notice Interface for the Permit3 cross-chain token approval and transfer system using UnbalancedProofs
  */
 interface IPermit3 is IPermit, INonceManager {
     /**
@@ -52,18 +52,8 @@ interface IPermit3 is IPermit, INonceManager {
      * @param permits Array of permit operations for this chain
      */
     struct ChainPermits {
-        uint256 chainId;
+        uint64 chainId;
         AllowanceOrTransfer[] permits;
-    }
-
-    /**
-     * @notice Proof format using Unhinged Merkle Tree structure for cross-chain operations
-     * @param permits Permit operations for the current chain
-     * @param unhingedProof Unhinged Merkle Tree proof structure
-     */
-    struct UnhingedPermitProof {
-        ChainPermits permits;
-        UnhingedProof unhingedProof;
     }
 
     /**
@@ -74,11 +64,11 @@ interface IPermit3 is IPermit, INonceManager {
 
     /**
      * @notice Hashes chain permits data for cross-chain operations
-     * @param permits Chain-specific permit data
+     * @param chainPermits Chain-specific permit data
      * @return bytes32 Combined hash of all permit parameters
      */
     function hashChainPermits(
-        ChainPermits memory permits
+        ChainPermits memory chainPermits
     ) external pure returns (bytes32);
 
     /**
@@ -96,7 +86,7 @@ interface IPermit3 is IPermit, INonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param chain Chain-specific permit data
+     * @param permits Array of permit operations to execute
      * @param signature EIP-712 signature authorizing the permits
      */
     function permit(
@@ -104,17 +94,18 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        ChainPermits memory chain,
+        AllowanceOrTransfer[] calldata permits,
         bytes calldata signature
     ) external;
 
     /**
-     * @notice Process permit for multi-chain token approvals using Unhinged Merkle Tree
+     * @notice Process permit for multi-chain token approvals using Merkle Tree
      * @param owner Token owner address
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unhinged Merkle Tree
+     * @param permits Permit operations for the current chain
+     * @param proof Merkle proof array for verification
      * @param signature EIP-712 signature authorizing the batch
      */
     function permit(
@@ -122,7 +113,8 @@ interface IPermit3 is IPermit, INonceManager {
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external;
 
@@ -132,17 +124,17 @@ interface IPermit3 is IPermit, INonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param chain Chain-specific permit data
+     * @param permits Array of permit operations to execute
      * @param witness Additional data to include in signature verification
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing the permits
      */
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        ChainPermits memory chain,
+        AllowanceOrTransfer[] calldata permits,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -154,17 +146,19 @@ interface IPermit3 is IPermit, INonceManager {
      * @param salt Unique salt for replay protection
      * @param deadline Signature expiration timestamp
      * @param timestamp Timestamp of the permit
-     * @param proof Cross-chain proof data using Unhinged Merkle Tree
+     * @param permits Permit operations for the current chain
+     * @param proof Merkle proof array for verification
      * @param witness Additional data to include in signature verification
      * @param witnessTypeString EIP-712 type definition for witness data
      * @param signature EIP-712 signature authorizing the batch
      */
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
         uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata proof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature

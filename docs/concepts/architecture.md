@@ -99,19 +99,28 @@ struct AllowanceOrTransfer {
 
 ```solidity
 struct ChainPermits {
-    uint256 chainId;             // Target chain ID
+    uint64 chainId;              // Target chain ID (uint64 for gas optimization)
     AllowanceOrTransfer[] permits; // Operations for this chain
 }
 ```
 
-### Permit3Proof Structure
+### Cross-Chain Permit Parameters
+
+In the implementation, cross-chain operations use separate parameters:
 
 ```solidity
-struct Permit3Proof {
-    bytes32 preHash;          // Hash of previous chain operations
-    ChainPermits permits;     // Permit operations for the current chain
-    bytes32[] followingHashes; // Hashes of subsequent chain operations
-}
+function permit(
+    address owner,
+    bytes32 salt,
+    uint48 deadline,
+    uint48 timestamp,
+    ChainPermits calldata permits,    // Permit operations for the current chain
+    bytes32[] calldata proof,         // Standard merkle proof using OpenZeppelin's MerkleProof
+    bytes calldata signature
+) external;
+
+// Uses OpenZeppelin's MerkleProof.processProof() with bytes32[] arrays
+// Each element represents a sibling hash needed for proof verification
 ```
 
 <a id="core-operations"></a>
@@ -168,13 +177,10 @@ Permit3 uses non-sequential nonces with salt parameters:
 
 ```solidity
 function _useNonce(address owner, bytes32 salt) internal {
-    uint256 wordPos = uint256(salt) / 256;
-    uint256 bitPos = uint256(salt) % 256;
-    uint256 bit = 1 << bitPos;
-    
-    noncesBitmap[owner][wordPos] |= bit;
-    
-    emit NonceUsed(owner, salt);
+    if (usedNonces[owner][salt] != NONCE_NOT_USED) {
+        revert NonceAlreadyUsed(owner, salt);
+    }
+    usedNonces[owner][salt] = NONCE_USED;
 }
 ```
 
@@ -216,38 +222,43 @@ Witness functionality extends the standard permit flow:
 <a id="cross-chain-mechanism"></a>
 ## Cross-Chain Mechanism
 
-Permit3 enables cross-chain operations through hash chaining:
+Permit3 enables cross-chain operations through Unbalanced Merkle Trees:
 
-1. Hash permits for each chain individually
-2. Chain these hashes together in a specific order
-3. Sign the combined hash
-4. Process the portion relevant to the current chain
+1. Hash permits for each chain individually 
+2. Build an Unbalanced Merkle Tree from all chain hashes (two-part structure)
+3. Sign the Unbalanced root
+4. Generate Unbalanced proofs for each chain  
+5. Process the portion relevant to the current chain
 
-This approach:
-- Requires only one signature for multiple chains
-- Ensures operations on each chain are consistent
-- Validates chain ID to prevent cross-chain replay attacks
-- Supports witness data across chains
+This approach leverages the two-part design:
+- **Bottom Part**: Efficient membership proofs within individual chains
+- **Top Part**: Unbalanced upper structure that minimizes calldata for chains with high gas costs
+- **Verification**: Merkle tree verification for security and compatibility
+- **Benefits**: One signature for multiple chains with gas optimization potential
+- **Security**: Chain ID validation prevents cross-chain replay attacks
+- **Extensibility**: Supports witness data across chains with future optimization opportunities
 
-### UnhingedMerkleTree Example
+### Unbalanced Merkle tree Example
 
 ```solidity
-// Build unhinged root from permit hashes
-bytes32 unhingedRoot = proof.preHash;
-unhingedRoot = UnhingedMerkleTree.hashLink(unhingedRoot, permit3.hashChainPermits(proof.permits));
+// Calculate the leaf hash for this chain's permits  
+bytes32 leaf = permit3.hashChainPermits(proof.permits);
 
-for (uint256 i = 0; i < proof.followingHashes.length; i++) {
-    unhingedRoot = UnhingedMerkleTree.hashLink(unhingedRoot, proof.followingHashes[i]);
-}
+// Verify the Unbalanced Merkle Tree proof using OpenZeppelin's MerkleProof
+// (traverses both balanced subtrees and unbalanced upper structure)
+bool valid = MerkleProof.processProof(
+    proof.proof,
+    leaf
+) == merkleRoot;
 
-// Verify signature against combined hash
+// Verify signature against Unbalanced root
 bytes32 signedHash = keccak256(abi.encode(
     SIGNED_PERMIT3_TYPEHASH, 
     owner, 
     salt, 
     deadline, 
     timestamp, 
-    unbalancedPermitsRoot
+    merkleRoot  // The hybrid structure root
 ));
 ```
 
@@ -303,8 +314,8 @@ Permit3 implements several gas optimization strategies:
 
 4. **Cross-Chain Efficiency**:
    - Execute only relevant operations on each chain
-   - Single signature for multiple chains
-   - Optimized hash chaining
+   - Single signature for multiple chains leveraging two-part structure
+   - Optimized Unbalanced tree structure with gas optimization potential
 
 <a id="integration-with-external-systems"></a>
 ## Integration with External Systems

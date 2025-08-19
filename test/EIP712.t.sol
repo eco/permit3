@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { EIP712 } from "../src/lib/EIP712.sol";
 import { Test } from "forge-std/Test.sol";
+
+import { EIP712 } from "../src/lib/EIP712.sol";
 
 // Test contract for EIP712 functionality
 contract EIP712TestContract is EIP712 {
@@ -269,7 +270,7 @@ contract EIP712Test is Test {
             )
         );
 
-        assertEq(domainSep, expectedDomainSeparator, "Domain separator should match expected value");
+        assertEq(expectedDomainSeparator, domainSep, "Domain separator should match expected value");
     }
 }
 

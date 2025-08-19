@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../../src/Permit3.sol";
-import "../../src/interfaces/IPermit3.sol";
-import "../../src/interfaces/IUnhingedMerkleTree.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { Test, Vm } from "forge-std/Test.sol";
+
+import "../../src/Permit3.sol";
+import "../../src/interfaces/IPermit3.sol";
 
 /**
  * @title MockToken
@@ -75,11 +75,11 @@ library Permit3TestUtils {
      * @param chainId The chain ID
      * @return The hash of the chain permits with empty permits array
      */
-    function hashEmptyChainPermits(Permit3 permit3, uint256 chainId) internal pure returns (bytes32) {
+    function hashEmptyChainPermits(Permit3 permit3, uint64 chainId) internal pure returns (bytes32) {
         IPermit3.AllowanceOrTransfer[] memory emptyPermits = new IPermit3.AllowanceOrTransfer[](0);
-        IPermit3.ChainPermits memory permits = IPermit3.ChainPermits({ chainId: chainId, permits: emptyPermits });
+        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: chainId, permits: emptyPermits });
 
-        return hashChainPermits(permit3, permits);
+        return hashChainPermits(permit3, chainPermits);
     }
 
     /**
@@ -102,7 +102,7 @@ library Permit3TestUtils {
             amountDelta: amount
         });
 
-        return IPermit3.ChainPermits({ chainId: block.chainid, permits: permits });
+        return IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
     }
 
     /**

@@ -11,7 +11,7 @@ This section provides in-depth explanations of the core concepts behind Permit3.
 | [🏛️ Architecture](./architecture.md) | Overview of the Permit3 system architecture and components |
 | [🧩 Witness Functionality](./witness-functionality.md) | Detailed explanation of witness functionality and its use cases |
 | [🌉 Cross-Chain Operations](./cross-chain-operations.md) | How Permit3 enables operations across multiple blockchains |
-| [🌲 Unhinged Merkle Trees](./unhinged-merkle-tree.md) | Understanding the cryptographic structure enabling efficient cross-chain proofs |
+| [🌲 Unbalanced Merkle Trees](./unbalanced-merkle-tree.md) | Understanding the cryptographic structure enabling efficient cross-chain proofs |
 | [🔢 Nonce Management](./nonce-management.md) | Permit3's approach to nonce handling for replay protection |
 | [🔁 Allowance System](./allowance-system.md) | Understanding the flexible allowance system in Permit3 |
 
@@ -33,11 +33,11 @@ Permit3 uses EIP-712 typed structured data for secure signature verification, pr
 
 ### 🌐 Cross-Chain Operations
 
-Permit3 enables operations across multiple blockchains with a single signature through hash chaining and Unhinged Merkle Trees.
+Permit3 enables operations across multiple blockchains with a single signature through hash chaining and Unbalanced Merkle Trees.
 
-### 🌲 Unhinged Merkle Trees
+### 🌲 Unbalanced Merkle Trees
 
-Unhinged Merkle Trees combine balanced subtrees with sequential hash chaining to provide efficient cross-chain proofs while minimizing gas costs.
+Unbalanced Merkle Trees combine balanced subtrees with an unbalanced upper structure to provide efficient cross-chain proofs while minimizing gas costs.
 
 ### 🧩 Witness Functionality
 

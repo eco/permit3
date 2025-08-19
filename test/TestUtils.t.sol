@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { Test } from "forge-std/Test.sol";
+
 import { Permit3 } from "../src/Permit3.sol";
 import { IPermit3 } from "../src/interfaces/IPermit3.sol";
 import { MockToken, Permit3TestUtils } from "./utils/TestUtils.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { Test } from "forge-std/Test.sol";
 
 /**
  * @title TestUtilsTest
@@ -95,7 +96,8 @@ contract TestUtilsTest is Test {
             amountDelta: 500
         });
 
-        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: block.chainid, permits: permits });
+        IPermit3.ChainPermits memory chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
 
         // Hash using utility
         bytes32 hash = Permit3TestUtils.hashChainPermits(permit3, chainPermits);
@@ -120,7 +122,7 @@ contract TestUtilsTest is Test {
 
     function test_hashEmptyChainPermits() public view {
         // Test hashEmptyChainPermits function
-        uint256 chainId = block.chainid;
+        uint64 chainId = uint64(block.chainid);
         bytes32 emptyHash = Permit3TestUtils.hashEmptyChainPermits(permit3, chainId);
 
         // Create empty permits manually
@@ -142,7 +144,7 @@ contract TestUtilsTest is Test {
             Permit3TestUtils.createTransferPermit(testToken, testRecipient, testAmount);
 
         // Verify the permit structure
-        assertEq(transferPermit.chainId, block.chainid);
+        assertEq(transferPermit.chainId, uint64(block.chainid));
         assertEq(transferPermit.permits.length, 1);
         assertEq(transferPermit.permits[0].modeOrExpiration, 0); // Transfer mode
         assertEq(transferPermit.permits[0].token, testToken);

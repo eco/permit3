@@ -18,6 +18,8 @@ abstract contract EIP712 is IERC5267 {
     bytes32 private constant TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
+    /// @dev Chain ID used for cross-chain compatibility in Permit3
+    /// @dev Value of 1 enables signatures to work across all chains
     uint256 private constant CROSS_CHAIN_ID = 1;
 
     // Cache the domain separator as an immutable value, but also store the chain id that it corresponds to, in order to
@@ -58,7 +60,13 @@ abstract contract EIP712 is IERC5267 {
     }
 
     /**
-     * @dev Returns the domain separator for the current chain.
+     * @dev Returns the domain separator for the current chain
+     * @return The EIP-712 domain separator hash
+     * @notice This function returns the cached domain separator if the contract
+     *         address hasn't changed (no proxy implementation changes).
+     *         Otherwise, it rebuilds the domain separator to ensure correctness.
+     * @notice The domain separator is used in EIP-712 typed data signing to prevent
+     *         signature replay attacks across different domains.
      */
     function _domainSeparatorV4() internal view returns (bytes32) {
         if (address(this) == _cachedThis) {
@@ -68,6 +76,18 @@ abstract contract EIP712 is IERC5267 {
         }
     }
 
+    /**
+     * @dev Builds the EIP-712 domain separator from current contract state
+     * @return The freshly computed domain separator hash
+     * @notice Computes keccak256 of the encoded domain struct containing:
+     *         - TYPE_HASH: The EIP-712 domain type hash
+     *         - _hashedName: The hashed name of the signing domain
+     *         - _hashedVersion: The hashed version of the signing domain
+     *         - CROSS_CHAIN_ID: Constant chain ID (1) for cross-chain compatibility
+     *         - address(this): The verifying contract address
+     * @notice This uses CROSS_CHAIN_ID=1 instead of block.chainid to enable
+     *         cross-chain signature compatibility in the Permit3 system
+     */
     function _buildDomainSeparator() private view returns (bytes32) {
         return keccak256(abi.encode(TYPE_HASH, _hashedName, _hashedVersion, CROSS_CHAIN_ID, address(this)));
     }
@@ -110,22 +130,23 @@ abstract contract EIP712 is IERC5267 {
             uint256[] memory extensions
         )
     {
+        /// @dev Fields byte encodes what fields are present in the domain separator
+        /// @dev 0x0f = 0b01111 indicates: name (bit 0), version (bit 1), chainId (bit 2), verifyingContract (bit 3)
+        bytes1 EIP712_FIELDS = hex"0f";
+
         return (
-            hex"0f", // 01111
-            _EIP712Name(),
-            _EIP712Version(),
-            CROSS_CHAIN_ID,
-            address(this),
-            bytes32(0),
-            new uint256[](0)
+            EIP712_FIELDS, _EIP712Name(), _EIP712Version(), CROSS_CHAIN_ID, address(this), bytes32(0), new uint256[](0)
         );
     }
 
     /**
-     * @dev The name parameter for the EIP712 domain.
-     *
-     * NOTE: By default this function reads _name which is an immutable value.
-     * It only reads from storage if necessary (in case the value is too large to fit in a ShortString).
+     * @dev Returns the name parameter for the EIP712 domain
+     * @return The name string used in the EIP-712 domain separator
+     * @notice This function efficiently retrieves the domain name by:
+     *         1. First attempting to read from the immutable ShortString _name
+     *         2. Falling back to storage _nameFallback if the name is too long
+     * @notice ShortStrings optimization stores strings up to 31 bytes inline,
+     *         avoiding storage reads for most use cases
      */
     // solhint-disable-next-line func-name-mixedcase
     function _EIP712Name() internal view returns (string memory) {
@@ -133,10 +154,13 @@ abstract contract EIP712 is IERC5267 {
     }
 
     /**
-     * @dev The version parameter for the EIP712 domain.
-     *
-     * NOTE: By default this function reads _version which is an immutable value.
-     * It only reads from storage if necessary (in case the value is too large to fit in a ShortString).
+     * @dev Returns the version parameter for the EIP712 domain
+     * @return The version string used in the EIP-712 domain separator
+     * @notice This function efficiently retrieves the domain version by:
+     *         1. First attempting to read from the immutable ShortString _version
+     *         2. Falling back to storage _versionFallback if the version is too long
+     * @notice ShortStrings optimization stores strings up to 31 bytes inline,
+     *         avoiding storage reads for most use cases
      */
     // solhint-disable-next-line func-name-mixedcase
     function _EIP712Version() internal view returns (string memory) {

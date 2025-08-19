@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {ERC7702TokenApprover} from "../src/ERC7702TokenApprover.sol";
+import {ERC7702TokenApprover} from "../src/modules/ERC7702TokenApprover.sol";
 import {CommonBase} from "forge-std/Base.sol";
 import {Script} from "forge-std/Script.sol";
 import {StdChains} from "forge-std/StdChains.sol";
@@ -29,6 +29,12 @@ contract DeployApprover is Script {
         vm.stopBroadcast();
     }
 
+    /**
+     * @notice Deploy a contract using CREATE2 factory
+     * @param initCode The bytecode of the contract to deploy
+     * @param salt Unique salt for deterministic address generation
+     * @return The address of the deployed contract
+     */
     function deploy(bytes memory initCode, bytes32 salt) public returns (address) {
         bytes4 selector = bytes4(keccak256("deploy(bytes,bytes32)"));
         bytes memory args = abi.encode(initCode, salt);

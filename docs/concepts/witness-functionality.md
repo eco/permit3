@@ -30,7 +30,7 @@ The signature is constructed using a dynamic type string that combines the stand
 ```solidity
 // Standard type hash stub (provided by Permit3)
 string constant PERMIT_WITNESS_TYPEHASH_STUB = 
-    "PermitWitnessTransferFrom(ChainPermits permitted,address spender,bytes32 salt,uint256 deadline,uint48 timestamp,";
+    "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,";
 
 // Custom witness type (provided by your application)
 string witnessTypeString = "bytes32 witnessData)";
@@ -159,21 +159,21 @@ Construct the permit with witness data and sign it:
 const domain = {
     name: 'Permit3',
     version: '1',
-    chainId: chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: permit3Address
 };
 
 const types = {
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'witnessData', type: 'bytes32' }
     ],
     ChainPermits: [
-        { name: 'chainId', type: 'uint256' },
+        { name: 'chainId', type: 'uint64' },
         { name: 'permits', type: 'AllowanceOrTransfer[]' }
     ],
     AllowanceOrTransfer: [
@@ -186,7 +186,7 @@ const types = {
         { name: 'orderId', type: 'uint256' },
         { name: 'minReturnAmount', type: 'uint256' },
         { name: 'maxSlippage', type: 'uint256' },
-        { name: 'deadline', type: 'uint256' }
+        { name: 'deadline', type: 'uint48' }
     ]
 };
 
@@ -204,15 +204,15 @@ const signature = await signer._signTypedData(domain, types, value);
 
 ### 5. Call the Permit3 Contract
 
-Finally, call the `permitWitnessTransferFrom` function with the witness data and signature:
+Finally, call the `permitWitness` function with the witness data and signature:
 
 ```solidity
-permit3.permitWitnessTransferFrom(
+permit3.permitWitness(
     owner,
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    permits,
     witness,
     witnessTypeString,
     signature
@@ -221,13 +221,57 @@ permit3.permitWitnessTransferFrom(
 
 ## Cross-Chain Witness Operations
 
-Permit3 supports witness functionality across multiple chains using the same principles as standard cross-chain operations:
+Permit3 supports witness functionality across multiple chains using the same principles as standard cross-chain operations, but with enhanced capabilities for conditional execution:
 
-1. Chain permit hashes from multiple chains together
-2. Include the witness data in the signature verification
-3. Verify and process operations on each chain independently
+### How Cross-Chain Witnesses Work
 
-This enables complex cross-chain operations with additional security and context provided by the witness data.
+1. **Unified Witness Data**: The same witness data can be included in operations across multiple chains
+2. **Chain-Specific Context**: Each chain can interpret witness data differently based on local conditions
+3. **Conditional Execution**: Witness data can encode conditions that must be met on each chain
+
+### Cross-Chain Witness Use Cases
+
+1. **Cross-Chain Trade Parameters**:
+   ```solidity
+   // Witness contains trade limits valid across all chains
+   bytes32 witness = keccak256(abi.encode(
+       globalMinPrice,      // Minimum acceptable price on any chain
+       globalMaxSlippage,   // Maximum slippage across all operations
+       executionDeadline    // Must complete on all chains by this time
+   ));
+   ```
+
+2. **Chain-Dependent Conditions**:
+   ```solidity
+   // Witness encodes different conditions per chain
+   bytes32 witness = keccak256(abi.encode(
+       ethRequiredLiquidity,    // Minimum liquidity on Ethereum
+       arbRequiredVolume,       // Minimum volume on Arbitrum
+       optRequiredTVL          // Minimum TVL on Optimism
+   ));
+   ```
+
+3. **Cross-Chain Arbitrage Context**:
+   ```solidity
+   // Witness proves price discrepancy between chains
+   bytes32 witness = keccak256(abi.encode(
+       sourceChainPrice,
+       targetChainPrice,
+       profitThreshold,
+       maxExecutionTime
+   ));
+   ```
+
+### Implementation Pattern
+
+When implementing cross-chain witness operations:
+
+1. **Generate Unified Witness**: Create witness data that's meaningful across all target chains
+2. **Include in Merkle Tree**: The witness is part of the signed unbalanced root
+3. **Verify on Each Chain**: Each chain independently verifies the witness against local state
+4. **Execute Conditionally**: Operations proceed only if witness conditions are satisfied
+
+This enables sophisticated cross-chain strategies while maintaining security and flexibility.
 
 ## Security Considerations
 
@@ -267,7 +311,7 @@ contract OrderMatcher {
         bytes32 salt,
         uint256 deadline,
         uint48 timestamp,
-        IPermit3.ChainPermits memory chainPermits,
+        IPermit3.AllowanceOrTransfer[] calldata permits,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -287,12 +331,12 @@ contract OrderMatcher {
         require(block.timestamp <= order.expiration, "Order expired");
         
         // 2. Process the permit with witness
-        permit3.permitWitnessTransferFrom(
+        permit3.permitWitness(
             owner,
             salt,
             deadline,
             timestamp,
-            chainPermits,
+            permits,
             witness,
             witnessTypeString,
             signature
@@ -314,4 +358,4 @@ The ability to include arbitrary data in EIP-712 signatures opens up new possibi
 
 | ⬅️ Previous | 🏠 Section | ➡️ Next |
 |:-----------|:----------:|------------:|
-| [Unhinged Merkle Tree](/docs/concepts/unhinged-merkle-tree.md) | [Concepts](/docs/concepts/README.md) | [Allowance System](/docs/concepts/allowance-system.md) |
+| [Unbalanced Merkle Tree](/docs/concepts/unbalanced-merkle-tree.md) | [Concepts](/docs/concepts/README.md) | [Allowance System](/docs/concepts/allowance-system.md) |

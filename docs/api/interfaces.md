@@ -5,7 +5,7 @@
 
 This document provides a comprehensive reference of all interfaces in the Permit3 system.
 
-###### Navigation: [IPermit3](#ipermit3) | [IPermit](#ipermit) | [INonceManager](#inoncemanager) | [IUnhingedMerkleTree](#iunhingedmerkletree) | [Inheritance Diagram](#interface-inheritance-diagram) | [Implementation Contracts](#implementation-contracts)
+###### Navigation: [IPermit3](#ipermit3) | [IPermit](#ipermit) | [INonceManager](#inoncemanager) | [Merkle Tree Methodology](#merkle-tree-methodology) | [Inheritance Diagram](#interface-inheritance-diagram) | [Implementation Contracts](#implementation-contracts)
 
 <a id="ipermit3"></a>
 ## 📄 IPermit3
@@ -16,7 +16,7 @@ The main interface for Permit3, combining IPermit and INonceManager functionalit
 interface IPermit3 is IPermit, INonceManager {
     // Core structs and definitions
     struct ChainPermits {
-        uint256 chainId;
+        uint64 chainId;
         AllowanceOrTransfer[] permits;
     }
     
@@ -27,10 +27,9 @@ interface IPermit3 is IPermit, INonceManager {
         uint160 amountDelta;
     }
     
-    struct UnhingedPermitProof {
-        ChainPermits permits;
-        IUnhingedMerkleTree.UnhingedProof unhingedProof;
-    }
+    // Note: In the implementation, cross-chain operations use separate parameters:
+    // - ChainPermits calldata permits: Permit operations for the current chain
+    // - bytes32[] calldata proof: Merkle proof array for verification
     
     enum PermitType {
         Transfer,
@@ -43,18 +42,19 @@ interface IPermit3 is IPermit, INonceManager {
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
-        ChainPermits calldata chain,
+        AllowanceOrTransfer[] calldata permits,
         bytes calldata signature
     ) external;
     
     function permit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata unhingedPermitProof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes calldata signature
     ) external;
     
@@ -64,23 +64,24 @@ interface IPermit3 is IPermit, INonceManager {
     ) external;
     
     // Witness functions
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
-        ChainPermits calldata permits,
+        AllowanceOrTransfer[] calldata permits,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
     ) external;
     
-    function permitWitnessTransferFrom(
+    function permitWitness(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
-        UnhingedPermitProof calldata unhingedPermitProof,
+        ChainPermits calldata permits,
+        bytes32[] calldata proof,
         bytes32 witness,
         string calldata witnessTypeString,
         bytes calldata signature
@@ -91,12 +92,10 @@ interface IPermit3 is IPermit, INonceManager {
         external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
         
     // Hash functions
-    function hashChainPermits(ChainPermits memory permits) external pure returns (bytes32);
+    function hashChainPermits(ChainPermits memory chainPermits) external pure returns (bytes32);
     
     // Type hash functions
-    function PERMIT_TRANSFER_FROM_TYPEHASH() external pure returns (bytes32);
-    function PERMIT_BATCH_TRANSFER_FROM_TYPEHASH() external pure returns (bytes32);
-    function PERMIT_UNHINGED_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
+    function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
 }
 ```
 
@@ -128,16 +127,6 @@ interface IPermit {
         uint48 expiration
     ) external;
     
-    function permit(
-        address owner,
-        address token,
-        address spender,
-        uint160 amount,
-        uint48 expiration,
-        uint48 nonce,
-        bytes calldata signature
-    ) external;
-    
     // Transfer functions
     function transferFrom(
         address from,
@@ -161,52 +150,62 @@ interface IPermit {
 Interface for managing nonces (salts) to prevent replay attacks.
 
 ```solidity
-interface INonceManager {
+interface INonceManager is IPermit {
     // Core structs
     struct NoncesToInvalidate {
+        uint64 chainId;
         bytes32[] salts;
     }
     
+    // Note: Cross-chain nonce invalidation uses separate parameters:
+    // - NoncesToInvalidate calldata invalidations: Current chain invalidation data
+    // - bytes32[] calldata proof: Merkle proof array for verification
+    
+    // Core functions
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+    function isNonceUsed(address owner, bytes32 salt) external view returns (bool);
+    
     // Nonce operations
     function invalidateNonces(bytes32[] calldata salts) external;
-    function isNonceUsed(address owner, bytes32 salt) external view returns (bool);
+    
+    function invalidateNonces(
+        address owner,
+        uint48 deadline,
+        bytes32[] calldata salts,
+        bytes calldata signature
+    ) external;
+    
+    function invalidateNonces(
+        address owner,
+        uint48 deadline,
+        NoncesToInvalidate memory invalidations,
+        bytes32[] memory proof,
+        bytes calldata signature
+    ) external;
+    
+    // Hash functions
+    function hashNoncesToInvalidate(
+        NoncesToInvalidate memory invalidations
+    ) external pure returns (bytes32);
 }
 ```
 
-<a id="iunhingedmerkletree"></a>
-## 🌲 IUnhingedMerkleTree
+<a id="merkle-tree-methodology"></a>
+## 🌲 Unbalanced Merkle Tree Methodology
 
-Interface for the UnhingedMerkleTree library providing cross-chain proof functionality.
+The Unbalanced Merkle tree methodology uses OpenZeppelin's MerkleProof library for verification.
 
 ```solidity
-library UnhingedMerkleTree {
-    // Core structs
-    struct UnhingedProof {
-        bytes32[] nodes;
-        bytes32 counts;
-    }
-    
-    // Key functions
-    function verify(
-        bytes32 leaf,
-        UnhingedProof calldata proof,
-        bytes32 unhingedRoot
-    ) external pure returns (bool);
-    
-    function hashLink(
-        bytes32 current,
-        bytes32 next
-    ) external pure returns (bytes32);
-    
-    function createOptimizedProof(
-        bytes32 preHash,
-        bytes32[] calldata subtreeProof,
-        bytes32[] calldata followingHashes
-    ) external pure returns (UnhingedProof memory);
-    
-    function extractCounts(
-        bytes32 counts
-    ) external pure returns (uint120 subtreeProofCount, uint120 followingHashesCount, bool hasPreHash);
+// Uses OpenZeppelin's MerkleProof.processProof() directly
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
+// Standard merkle proof verification
+function verify(
+    bytes32[] calldata proof,
+    bytes32 root,
+    bytes32 leaf
+) internal pure returns (bool) {
+    return MerkleProof.processProof(proof, leaf) == root;
 }
 ```
 
@@ -223,7 +222,7 @@ library UnhingedMerkleTree {
           │
           │
 ┌─────────▼───────┐     ┌─────────────────────┐
-│ IPermit         │     │ IUnhingedMerkleTree │
+│ IPermit         │     │ MerkleProof (OZ)    │
 ├─────────────────┤     ├─────────────────────┤
 │ approve         │     │ verify              │
 │ permit          │     │ hashLink            │
@@ -251,6 +250,6 @@ The main contracts implementing these interfaces are:
 - 📄 **Permit3.sol**: Implements IPermit3, providing the complete functionality
 - 🔢 **NonceManager.sol**: Implements INonceManager for replay protection
 - 📃 **PermitBase.sol**: Implements IPermit for compatibility with contracts that are already using Permit2 for transfers
-- 🌲 **UnhingedMerkleTree.sol**: Library implementing IUnhingedMerkleTree functionality
+- 🌲 **OpenZeppelin MerkleProof**: Standard library used for Unbalanced Merkle tree methodology
 
 These interfaces provide a flexible and extensible foundation for the Permit3 system, allowing for future upgrades and extensions while maintaining compatibility with existing systems.

@@ -62,7 +62,7 @@ ERC20(token).approve(PERMIT3_ADDRESS, type(uint256).max);
 const domain = {
     name: 'Permit3',
     version: '1',
-    chainId: chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: permit3Address
 };
 
@@ -74,7 +74,7 @@ const permit = {
 };
 
 const chainPermits = {
-    chainId: chainId,
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     permits: [permit]
 };
 
@@ -87,15 +87,15 @@ const permitData = {
 };
 
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ],
     ChainPermits: [
-        { name: 'chainId', type: 'uint256' },
+        { name: 'chainId', type: 'uint64' },
         { name: 'permits', type: 'AllowanceOrTransfer[]' }
     ],
     AllowanceOrTransfer: [
@@ -114,7 +114,7 @@ const value = {
     salt: permitData.salt,
     deadline: permitData.deadline,
     timestamp: permitData.timestamp,
-    unhingedRoot: permitsHash
+    merkleRoot: permitsHash
 };
 
 const signature = await signer._signTypedData(domain, types, value);
@@ -127,7 +127,7 @@ const signature = await signer._signTypedData(domain, types, value);
 function executePermit(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
     IPermit3.ChainPermits calldata chainPermits,
     bytes calldata signature
@@ -178,11 +178,11 @@ const witnessTypeString = "OrderData data)OrderData(uint256 orderId,uint256 pric
 // Add witness types
 const types = {
     // ... previous types
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'data', type: 'OrderData' }
     ],
@@ -212,7 +212,7 @@ const witnessSignature = await signer._signTypedData(domain, types, witnessValue
 function executeWitnessPermit(
     address owner,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
     IPermit3.ChainPermits calldata chainPermits,
     bytes32 witness,
@@ -230,7 +230,7 @@ function executeWitnessPermit(
     require(witness == expectedWitness, "Invalid witness data");
     
     // Execute permit with witness
-    permit3.permitWitnessTransferFrom(
+    permit3.permitWitness(
         owner,
         salt,
         deadline,
@@ -273,32 +273,53 @@ const optPermits = {
 };
 ```
 
-### 2. Generate and Chain Hashes
+### 2. Generate Merkle Tree
 
 ```javascript
-// Generate root for each chain's permits
-const ethRoot = permit3.hashChainPermits(ethPermits);
-const arbRoot = permit3.hashChainPermits(arbPermits);
-const optRoot = permit3.hashChainPermits(optPermits);
+// Generate leaf hash for each chain's permits
+const ethLeaf = permit3.hashChainPermits(ethPermits);
+const arbLeaf = permit3.hashChainPermits(arbPermits);
+const optLeaf = permit3.hashChainPermits(optPermits);
 
-// Create the unhinged root using utility functions from UnhingedMerkleTree library
-const unhingedRoot = UnhingedMerkleTree.hashLink(UnhingedMerkleTree.hashLink(ethRoot, arbRoot), optRoot);
+// Build merkle tree from all leaves
+const leaves = [ethLeaf, arbLeaf, optLeaf];
+
+// Simple merkle root calculation (use a library in production)
+function buildMerkleRoot(leaves) {
+    if (leaves.length === 1) return leaves[0];
+    
+    const pairs = [];
+    for (let i = 0; i < leaves.length; i += 2) {
+        const left = leaves[i];
+        const right = leaves[i + 1] || leaves[i];
+        const [first, second] = left < right ? [left, right] : [right, left];
+        pairs.push(keccak256(encode(['bytes32', 'bytes32'], [first, second])));
+    }
+    return buildMerkleRoot(pairs);
+}
+
+const merkleRoot = buildMerkleRoot(leaves);
 ```
 
 ### 3. Sign and Execute on Each Chain
 
 ```javascript
-// Sign the combined hash
-const signature = signPermit3(owner, salt, deadline, timestamp, unhingedRoot);
+// Sign the merkle root
+const signature = signPermit3(owner, salt, deadline, timestamp, merkleRoot);
+
+// Generate merkle proofs (use a library in production)
+function generateMerkleProof(leaves, targetIndex) {
+    // Returns array of sibling hashes
+    // In this example with 3 leaves, proofs would be:
+    // ethProof: [arbLeaf, hash(optLeaf, optLeaf)]
+    // arbProof: [ethLeaf, hash(optLeaf, optLeaf)]
+    // optProof: [optLeaf, hash(ethLeaf, arbLeaf)]
+}
 
 // On Ethereum
 const ethProof = {
     permits: ethPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethRoot, // The current chain's root
-        [], // Subtree proof nodes (empty for the first chain)
-        [arbRoot, optRoot] // Following hashes (roots of other chains)
-    )
+    proof: generateMerkleProof(leaves, 0) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
@@ -306,11 +327,7 @@ permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
 // On Arbitrum
 const arbProof = {
     permits: arbPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethRoot, // Pre-hash (root of Ethereum chain)
-        [], // Subtree proof nodes
-        [optRoot] // Following hashes (root of Optimism chain)
-    )
+    proof: generateMerkleProof(leaves, 1) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
@@ -318,11 +335,7 @@ permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
 // On Optimism
 const optProof = {
     permits: optPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        UnhingedMerkleTree.hashLink(ethRoot, arbRoot), // Pre-hash (combined hash of Ethereum and Arbitrum)
-        [], // Subtree proof nodes
-        [] // No following hashes for the last chain
-    )
+    proof: generateMerkleProof(leaves, 2) // Direct array
 };
 
 permit3.permit(owner, salt, deadline, timestamp, optProof, signature);

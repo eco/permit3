@@ -22,7 +22,7 @@ const DEX_ADDRESS = "0xDEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1"; // Example DEX
 // Create Permit3 interface
 const permit3 = new ethers.Contract(
     PERMIT3_ADDRESS,
-    ["function permit(address owner, bytes32 salt, uint256 deadline, uint48 timestamp, tuple(uint256 chainId, tuple(uint48 modeOrExpiration, address token, address account, uint160 amountDelta)[] permits) chain, bytes signature) external"],
+    ["function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, tuple(uint64 chainId, tuple(uint48 modeOrExpiration, address token, address account, uint160 amountDelta)[] permits) chain, bytes signature) external"],
     wallet
 );
 
@@ -55,12 +55,12 @@ const domain = {
 };
 
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ],
     ChainPermits: [
         { name: 'chainId', type: 'uint64' },
@@ -83,7 +83,7 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unhingedRoot: permitsHash
+    merkleRoot: permitsHash
 };
 
 // Sign the message
@@ -247,30 +247,34 @@ const arbitrumPermits = {
     }]
 };
 
-// Generate hashes and create unhinged root
+// Generate hashes and build merkle tree
+const { MerkleTree } = require('merkletreejs');
+const keccak256 = require('keccak256');
+
 const ethHash = await permit3.hashChainPermits(ethereumPermits);
 const arbHash = await permit3.hashChainPermits(arbitrumPermits);
-const unhingedRoot = UnhingedMerkleTree.hashLink(ethHash, arbHash);
 
-// Sign with unhinged root
+// Build merkle tree with ordered leaves
+const leaves = [ethHash, arbHash];
+const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
+
+// Sign with unbalanced root
 const value = {
     owner: wallet.address,
     salt,
     deadline,
     timestamp,
-    unhingedRoot
+    merkleRoot
 };
 
 const signature = await wallet._signTypedData(domain, types, value);
 
-// On Ethereum chain
+// Generate proofs for each chain
+// On Ethereum chain (index 0)
 const ethereumProof = {
     permits: ethereumPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethers.constants.HashZero, // No preHash for first chain
-        [],
-        [arbHash] // Following hash
-    )
+    proof: merkleTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
 };
 
 // Execute on Ethereum
@@ -283,14 +287,10 @@ const ethTx = await ethereumPermit3.permit(
     signature
 );
 
-// On Arbitrum chain
+// On Arbitrum chain (index 1)
 const arbitrumProof = {
     permits: arbitrumPermits,
-    unhingedProof: UnhingedMerkleTree.createOptimizedProof(
-        ethHash, // preHash is Ethereum hash
-        [],
-        [] // No following hashes
-    )
+    proof: merkleTree.getProof(arbHash).map(p => '0x' + p.data.toString('hex'))
 };
 
 // Execute on Arbitrum
@@ -360,7 +360,7 @@ async function emergencyLockdown(tokenAddresses) {
         salt,
         deadline,
         timestamp,
-        unhingedRoot: permitsHash
+        merkleRoot: permitsHash
     };
     
     const signature = await wallet._signTypedData(domain, types, value);

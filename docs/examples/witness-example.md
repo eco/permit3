@@ -86,9 +86,9 @@ function executeOrder(
     Order memory order,
     address maker,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
-    IPermit3.ChainPermits memory chainPermits,
+    IPermit3.AllowanceOrTransfer[] calldata permits,
     bytes32 witness,
     bytes calldata signature
 ) external {
@@ -118,19 +118,19 @@ function executeOrder(
     require(maker == order.maker, "Invalid maker");
     
     // 6. Verify transfer details
-    require(chainPermits.permits.length == 1, "Invalid permit count");
-    require(chainPermits.permits[0].token == order.tokenIn, "Invalid token");
-    require(chainPermits.permits[0].account == address(this), "Invalid recipient");
-    require(chainPermits.permits[0].amountDelta == order.amountIn, "Invalid amount");
-    require(chainPermits.permits[0].modeOrExpiration == 0, "Invalid mode");
+    require(permits.length == 1, "Invalid permit count");
+    require(permits[0].token == order.tokenIn, "Invalid token");
+    require(permits[0].account == address(this), "Invalid recipient");
+    require(permits[0].amountDelta == order.amountIn, "Invalid amount");
+    require(permits[0].modeOrExpiration == 0, "Invalid mode");
     
     // 7. Execute permit with witness
-    permit3.permitWitnessTransferFrom(
+    permit3.permitWitness(
         maker,
         salt,
         deadline,
         timestamp,
-        chainPermits,
+        permits,
         witness,
         getWitnessTypeString(),
         signature
@@ -197,7 +197,7 @@ async function createAndSignOrder(
 ) {
     // 1. Create permit data
     const chainPermits = {
-        chainId: await signer.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // Transfer mode
             token: order.tokenIn,
@@ -232,22 +232,22 @@ async function createAndSignOrder(
     const domain = {
         name: 'Permit3',
         version: '1',
-        chainId: await signer.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         verifyingContract: permit3Address
     };
     
     // 5. Define types
     const types = {
-        PermitWitnessTransferFrom: [
+        PermitWitness: [
             { name: 'permitted', type: 'ChainPermits' },
             { name: 'spender', type: 'address' },
             { name: 'salt', type: 'bytes32' },
-            { name: 'deadline', type: 'uint256' },
+            { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
             { name: 'order', type: 'Order' }
         ],
         ChainPermits: [
-            { name: 'chainId', type: 'uint256' },
+            { name: 'chainId', type: 'uint64' },
             { name: 'permits', type: 'AllowanceOrTransfer[]' }
         ],
         AllowanceOrTransfer: [
@@ -414,9 +414,9 @@ function executeMultiSigOrder(
     bytes memory approverSignature,
     address maker,
     bytes32 salt,
-    uint256 deadline,
+    uint48 deadline,
     uint48 timestamp,
-    IPermit3.ChainPermits memory chainPermits,
+    IPermit3.AllowanceOrTransfer[] calldata permits,
     bytes32 witness,
     bytes calldata makerSignature
 ) external {
@@ -458,19 +458,19 @@ function executeMultiSigOrder(
     require(maker == order.maker, "Invalid maker");
     
     // 7. Verify transfer details
-    require(chainPermits.permits.length == 1, "Invalid permit count");
-    require(chainPermits.permits[0].token == order.tokenIn, "Invalid token");
-    require(chainPermits.permits[0].account == address(this), "Invalid recipient");
-    require(chainPermits.permits[0].amountDelta == order.amountIn, "Invalid amount");
-    require(chainPermits.permits[0].modeOrExpiration == 0, "Invalid mode");
+    require(permits.length == 1, "Invalid permit count");
+    require(permits[0].token == order.tokenIn, "Invalid token");
+    require(permits[0].account == address(this), "Invalid recipient");
+    require(permits[0].amountDelta == order.amountIn, "Invalid amount");
+    require(permits[0].modeOrExpiration == 0, "Invalid mode");
     
     // 8. Execute permit with witness (includes maker signature verification)
-    permit3.permitWitnessTransferFrom(
+    permit3.permitWitness(
         maker,
         salt,
         deadline,
         timestamp,
-        chainPermits,
+        permits,
         witness,
         getMultiSigWitnessTypeString(),
         makerSignature
@@ -592,7 +592,7 @@ async function createAndSignMultiSigOrder(
     
     // 2. Create permit data
     const chainPermits = {
-        chainId: await makerSigner.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // Transfer mode
             token: order.tokenIn,
@@ -631,22 +631,22 @@ async function createAndSignMultiSigOrder(
     const domain = {
         name: 'Permit3',
         version: '1',
-        chainId: await makerSigner.getChainId(),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         verifyingContract: permit3Address
     };
     
     // 6. Define types
     const types = {
-        PermitWitnessTransferFrom: [
+        PermitWitness: [
             { name: 'permitted', type: 'ChainPermits' },
             { name: 'spender', type: 'address' },
             { name: 'salt', type: 'bytes32' },
-            { name: 'deadline', type: 'uint256' },
+            { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
             { name: 'data', type: 'MultiSigData' }
         ],
         ChainPermits: [
-            { name: 'chainId', type: 'uint256' },
+            { name: 'chainId', type: 'uint64' },
             { name: 'permits', type: 'AllowanceOrTransfer[]' }
         ],
         AllowanceOrTransfer: [

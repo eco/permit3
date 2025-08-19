@@ -35,12 +35,12 @@ Type definitions describe the structure of the data being signed:
 ```javascript
 const types = {
     // Primary type for standard permits
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ],
     
     // Supporting types for permit data
@@ -68,7 +68,7 @@ const value = {
     salt: "0x456...",               // Random bytes32 for replay protection
     deadline: 1714732800,           // Unix timestamp when signature expires
     timestamp: 1714646400,          // Current Unix timestamp
-    unhingedRoot: "0x789..."        // Hash of permit data
+    merkleRoot: "0x789..."        // Hash of permit data
 };
 ```
 
@@ -138,25 +138,25 @@ const value = {
     salt,
     deadline,
     timestamp,
-    unhingedRoot: permitsHash // For standard permit, this is just the permits hash
+    merkleRoot: permitsHash // For standard permit, this is just the permits hash
 };
 
 // Create EIP-712 domain
 const domain = {
     name: "Permit3",
     version: "1",
-    chainId: await signer.getChainId(),
+    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
     verifyingContract: PERMIT3_ADDRESS
 };
 
 // Define types for standard permit
 const types = {
-    SignedPermit3: [
+    Permit3: [
         { name: 'owner', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'unhingedRoot', type: 'bytes32' }
+        { name: 'merkleRoot', type: 'bytes32' }
     ]
 };
 ```
@@ -178,7 +178,7 @@ const signature = await signer._signTypedData(domain, types, value);
 //         ],
 //         ...types
 //     },
-//     primaryType: 'SignedPermit3',
+//     primaryType: 'Permit3',
 //     domain,
 //     message: value
 // });
@@ -267,12 +267,12 @@ const witnessTypeString = "OrderData data)OrderData(uint256 orderId,uint256 pric
 ```javascript
 // Types for witness permit
 const witnessTypes = {
-    PermitWitnessTransferFrom: [
+    PermitWitness: [
         { name: 'permitted', type: 'ChainPermits' },
         { name: 'owner', type: 'address' },
         { name: 'spender', type: 'address' },
         { name: 'salt', type: 'bytes32' },
-        { name: 'deadline', type: 'uint256' },
+        { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'witness', type: 'bytes32' }
     ],
@@ -311,7 +311,7 @@ const witnessSignature = await signer._signTypedData(domain, witnessTypes, witne
 
 ```javascript
 // Execute the witness permit
-const tx = await permit3.permitWitnessTransferFrom(
+const tx = await permit3.permitWitness(
     witnessValue.owner,
     witnessValue.salt,
     witnessValue.deadline,
@@ -345,28 +345,28 @@ const arbitrumPermits = {
 };
 ```
 
-### Step 2: Calculate Hashes and Create Unhinged Root
+### Step 2: Calculate Hashes and Create Unbalanced Root
 
 ```javascript
 // Calculate hashes for each chain
 const ethereumHash = await ethereumPermit3.hashChainPermits(ethereumPermits);
 const arbitrumHash = await arbitrumPermit3.hashChainPermits(arbitrumPermits);
 
-// Create the unhinged root
-const unhingedRoot = ethers.utils.keccak256(
+// Create the unbalanced root
+const merkleRoot = ethers.utils.keccak256(
     ethers.utils.defaultAbiCoder.encode(
         ['bytes32', 'bytes32'],
         [ethereumHash, arbitrumHash]
     )
 );
 
-// Create signature value with unhinged root
+// Create signature value with unbalanced root
 const value = {
     owner: await signer.getAddress(),
     salt,
     deadline,
     timestamp,
-    unhingedRoot
+    merkleRoot
 };
 ```
 
@@ -401,18 +401,18 @@ async function verifyPermitSignature(
     const domain = {
         name: "Permit3",
         version: "1",
-        chainId: await provider.getNetwork().then(n => n.chainId),
+        chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         verifyingContract: PERMIT3_ADDRESS
     };
     
     // Create the types
     const types = {
-        SignedPermit3: [
+        Permit3: [
             { name: 'owner', type: 'address' },
             { name: 'salt', type: 'bytes32' },
-            { name: 'deadline', type: 'uint256' },
+            { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
-            { name: 'unhingedRoot', type: 'bytes32' }
+            { name: 'merkleRoot', type: 'bytes32' }
         ]
     };
     
@@ -422,7 +422,7 @@ async function verifyPermitSignature(
         salt,
         deadline,
         timestamp,
-        unhingedRoot: permitsHash
+        merkleRoot: permitsHash
     };
     
     // Calculate the digest

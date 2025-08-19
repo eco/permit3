@@ -183,7 +183,7 @@ Locking is implemented by setting a special value in the allowance mapping and c
 
 ```solidity
 // Pseudocode for lock check
-if (allowances[owner][token][account].timestamp == type(uint48).max) {
+if (allowances[owner][token][account].expiration == LOCKED_ALLOWANCE) {
     revert AllowanceLocked();
 }
 ```
@@ -214,7 +214,7 @@ The priority of operations is:
 The allowance system integrates with EIP-712 for secure signature-based approvals:
 
 ```solidity
-// Simplified typehash for AllowanceOrTransfer
+// Typehash for AllowanceOrTransfer
 bytes32 constant ALLOWANCE_TRANSFER_TYPEHASH = keccak256(
     "AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
 );

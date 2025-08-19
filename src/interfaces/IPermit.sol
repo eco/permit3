@@ -16,14 +16,65 @@ interface IPermit {
 
     /**
      * @dev Thrown when attempting to transfer more tokens than allowed
-     * @param amount The amount that was attempted to be transferred
+     * @param requestedAmount The amount that was attempted to be transferred
+     * @param availableAmount The actual amount available in the allowance
      */
-    error InsufficientAllowance(uint256 amount);
+    error InsufficientAllowance(uint256 requestedAmount, uint256 availableAmount);
 
     /**
      * @notice Thrown when an allowance on a token was locked.
+     * @param owner The owner of the locked allowance
+     * @param token The token with the locked allowance
+     * @param spender The spender whose allowance is locked
      */
-    error AllowanceLocked();
+    error AllowanceLocked(address owner, address token, address spender);
+
+    /**
+     * @notice Thrown when an empty array is provided where it's not allowed
+     */
+    error EmptyArray();
+
+    /**
+     * @notice Thrown when the owner address is zero
+     */
+    error ZeroOwner();
+
+    /**
+     * @notice Thrown when the token address is zero
+     */
+    error ZeroToken();
+
+    /**
+     * @notice Thrown when the spender address is zero
+     */
+    error ZeroSpender();
+
+    /**
+     * @notice Thrown when the from address is zero
+     */
+    error ZeroFrom();
+
+    /**
+     * @notice Thrown when the to address is zero
+     */
+    error ZeroTo();
+
+    /**
+     * @notice Thrown when the account address is zero
+     */
+    error ZeroAccount();
+
+    /**
+     * @dev Thrown when an invalid amount is provided
+     * @param amount The invalid amount
+     */
+    error InvalidAmount(uint160 amount);
+
+    /**
+     * @dev Thrown when an invalid expiration timestamp is provided
+     * @param expiration The invalid expiration timestamp
+     */
+    error InvalidExpiration(uint48 expiration);
 
     /**
      * @dev Represents a token and spender pair for batch operations
