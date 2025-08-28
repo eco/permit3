@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 
 import { IPermit } from "../src/interfaces/IPermit.sol";
 import { IPermit3 } from "../src/interfaces/IPermit3.sol";
+import { INonceManager } from "../src/interfaces/INonceManager.sol";
 import { MockToken } from "./utils/TestUtils.sol";
 
 import { Permit3 } from "../src/Permit3.sol";
@@ -38,7 +39,7 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
-        vm.expectRevert(IPermit.ZeroOwner.selector);
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
         permit3.permit(address(0), bytes32(0), uint48(block.timestamp + 1), uint48(block.timestamp), permits, "");
     }
 
@@ -51,7 +52,7 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
-        vm.expectRevert(IPermit.ZeroOwner.selector);
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
         permit3.permitWitness(
             address(0),
             bytes32(0),
@@ -166,7 +167,7 @@ contract ZeroAddressValidationTest is Test {
         bytes32[] memory salts = new bytes32[](1);
         salts[0] = bytes32(uint256(1));
 
-        vm.expectRevert(IPermit.ZeroOwner.selector);
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
         permit3.invalidateNonces(address(0), uint48(block.timestamp + 100), salts, "");
     }
 }
