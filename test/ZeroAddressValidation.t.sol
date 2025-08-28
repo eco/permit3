@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import { INonceManager } from "../src/interfaces/INonceManager.sol";
 import { IPermit } from "../src/interfaces/IPermit.sol";
 import { IPermit3 } from "../src/interfaces/IPermit3.sol";
-import { INonceManager } from "../src/interfaces/INonceManager.sol";
 import { MockToken } from "./utils/TestUtils.sol";
 
 import { Permit3 } from "../src/Permit3.sol";
