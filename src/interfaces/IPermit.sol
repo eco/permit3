@@ -35,11 +35,6 @@ interface IPermit {
     error EmptyArray();
 
     /**
-     * @notice Thrown when the owner address is zero
-     */
-    error ZeroOwner();
-
-    /**
      * @notice Thrown when the token address is zero
      */
     error ZeroToken();
