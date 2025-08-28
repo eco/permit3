@@ -22,16 +22,16 @@ abstract contract NonceManager is INonceManager, EIP712 {
     using SignatureChecker for address;
 
     /// @dev Constant representing an unused nonce
-    uint256 private constant NONCE_NOT_USED = 0;
+    bool private constant NONCE_NOT_USED = false;
 
     /// @dev Constant representing a used nonce
-    uint256 private constant NONCE_USED = 1;
+    bool private constant NONCE_USED = true;
 
     /**
      * @notice Maps owner address to their used nonces
      * @dev Non-sequential nonces allow parallel operations without conflicts
      */
-    mapping(address => mapping(bytes32 => uint256)) internal usedNonces;
+    mapping(address => mapping(bytes32 => bool)) internal usedNonces;
 
     /**
      * @notice EIP-712 typehash for nonce invalidation
@@ -68,7 +68,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @return True if nonce has been used, false otherwise
      */
     function isNonceUsed(address owner, bytes32 salt) external view returns (bool) {
-        return usedNonces[owner][salt] == NONCE_USED;
+        return usedNonces[owner][salt];
     }
 
     /**
@@ -185,7 +185,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      *         can only be used once per salt value
      */
     function _useNonce(address owner, bytes32 salt) internal {
-        if (usedNonces[owner][salt] != NONCE_NOT_USED) {
+        if (usedNonces[owner][salt]) {
             revert NonceAlreadyUsed(owner, salt);
         }
         usedNonces[owner][salt] = NONCE_USED;
