@@ -216,17 +216,13 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
         bytes32 digest = _hashTypedDataV4(structHash);
 
-        // For signatures <= 65 bytes (supporting ERC-2098 compact signatures),
-        // try ECDSA recovery first before falling back to ERC-1271
-        uint256 signatureLength = signature.length;
-        if (signatureLength == 64 || signatureLength == 65) {
-            if (digest.recover(signature) == owner) {
-                return;
-            }
+        // For signatures == 65 bytes ECDSA first then falling back to ERC-1271
+        // We don't check for code length as EIP-7702 EOAs can have code
+        if (signature.length == 65 && digest.recover(signature) == owner) {
+            return;
         }
 
-        // For longer signatures or when ECDSA failed with a contract/EIP-7702 EOA,
-        // use ERC-1271 validation
+        // For longer signatures or when ECDSA failed use ERC-1271 validation
         if (owner.code.length == 0 || !owner.isValidERC1271SignatureNow(digest, signature)) {
             revert InvalidSignature(owner);
         }
