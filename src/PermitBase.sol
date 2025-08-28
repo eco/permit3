@@ -89,16 +89,6 @@ contract PermitBase is IPermit {
      * @param amount Transfer amount
      */
     function transferFrom(address from, address to, uint160 amount, address token) public {
-        if (from == address(0)) {
-            revert ZeroFrom();
-        }
-        if (token == address(0)) {
-            revert ZeroToken();
-        }
-        if (to == address(0)) {
-            revert ZeroTo();
-        }
-
         Allowance memory allowed = allowances[from][token][msg.sender];
 
         if (allowed.expiration == LOCKED_ALLOWANCE) {
