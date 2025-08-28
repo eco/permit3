@@ -81,21 +81,21 @@ contract ZeroAddressValidationTest is Test {
 
     function test_transferFrom_RejectsZeroFrom() public {
         vm.startPrank(bob);
-        vm.expectRevert(IPermit.ZeroFrom.selector);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, 100, 0));
         permit3.transferFrom(address(0), alice, 100, address(token));
         vm.stopPrank();
     }
 
     function test_transferFrom_RejectsZeroToken() public {
         vm.startPrank(bob);
-        vm.expectRevert(IPermit.ZeroToken.selector);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, 100, 0));
         permit3.transferFrom(alice, bob, 100, address(0));
         vm.stopPrank();
     }
 
     function test_transferFrom_RejectsZeroTo() public {
         vm.startPrank(bob);
-        vm.expectRevert(IPermit.ZeroTo.selector);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, 100, 0));
         permit3.transferFrom(alice, address(0), 100, address(token));
         vm.stopPrank();
     }

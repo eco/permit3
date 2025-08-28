@@ -45,16 +45,6 @@ interface IPermit {
     error ZeroSpender();
 
     /**
-     * @notice Thrown when the from address is zero
-     */
-    error ZeroFrom();
-
-    /**
-     * @notice Thrown when the to address is zero
-     */
-    error ZeroTo();
-
-    /**
      * @notice Thrown when the account address is zero
      */
     error ZeroAccount();

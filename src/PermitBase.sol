@@ -186,16 +186,6 @@ contract PermitBase is IPermit {
      *         and will revert if the transfer fails for any reason
      */
     function _transferFrom(address from, address to, uint160 amount, address token) internal {
-        if (from == address(0)) {
-            revert ZeroFrom();
-        }
-        if (token == address(0)) {
-            revert ZeroToken();
-        }
-        if (to == address(0)) {
-            revert ZeroTo();
-        }
-
         IERC20(token).safeTransferFrom(from, to, amount);
     }
 }
