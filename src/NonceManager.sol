@@ -97,9 +97,6 @@ abstract contract NonceManager is INonceManager, EIP712 {
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
-        if (salts.length == 0) {
-            revert EmptyArray();
-        }
 
         NoncesToInvalidate memory invalidations = NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
@@ -108,7 +105,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
         _verifySignature(owner, signedHash, signature);
 
-        _processNonceInvalidation(owner, invalidations.salts);
+        _processNonceInvalidation(owner, salts);
     }
 
     /**
