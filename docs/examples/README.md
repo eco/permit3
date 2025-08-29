@@ -15,6 +15,7 @@ This section provides practical examples of implementing and using Permit3.
 | [🔗 ERC-7702 Example](./erc7702-example.md) | Batch token approvals with Account Abstraction |
 | [🧩 Witness Example](./witness-example.md) | Implementing witness functionality in a decentralized exchange |
 | [🌉 Cross-Chain Example](./cross-chain-example.md) | Working with permits across multiple chains |
+| [🎨 Multi-Token Example](./multi-token-example.md) | NFT marketplace supporting multiple token standards |
 | [🔄 Allowance Management Example](./allowance-management-example.md) | Managing token allowances with different modes |
 | [🛡️ Security Example](./security-example.md) | Implementing secure permit operations |
 | [🔌 Integration Example](./integration-example.md) | Integrating Permit3 into existing systems |

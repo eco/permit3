@@ -15,6 +15,8 @@ This section provides step-by-step guides for common Permit3 use cases.
 | [🚀 Quick Start](./quick-start.md) | Quick introduction to integrating Permit3 |
 | [🔗 ERC-7702 Integration](./erc7702-integration.md) | Batch token approvals with Account Abstraction |
 | [🧩 Witness Integration](./witness-integration.md) | How to implement witness functionality |
+| [🎨 Multi-Token Integration](./multi-token-integration.md) | NFT and semi-fungible token support implementation |
+| [🎨 Multi-Token Signed Permits](./multi-token-signed-permits.md) | Using NFTs and ERC1155 with signed permit functions and encoding |
 | [🌉 Cross-Chain Permits](./cross-chain-permit.md) | Working with permits across multiple chains |
 | [✍️ Signature Creation](./signature-creation.md) | Creating and signing permit operations |
 | [🛡️ Security Best Practices](./security-best-practices.md) | Best practices for secure Permit3 usage |

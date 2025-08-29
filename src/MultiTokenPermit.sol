@@ -116,19 +116,19 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param to Transfer recipient address
      * @param token ERC1155 contract address
      * @param tokenId The specific ERC1155 token ID
-     * @param amount Number of tokens to transfer (must not exceed uint128)
+     * @param amount Number of tokens to transfer
      */
-    function transferFrom(address from, address to, address token, uint256 tokenId, uint128 amount) public override {
+    function transferFrom(address from, address to, address token, uint256 tokenId, uint160 amount) public override {
         // Create unique encoded identifier for this specific token ID
         // Uses keccak256(token || tokenId) truncated to address for deterministic mapping
         address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
 
         // First, try to update allowance for the specific token ID
-        (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, uint160(amount));
+        (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, amount);
 
         if (revertDataPerId.length > 0) {
             // Fallback: try collection-wide allowance if per-token-id allowance fails
-            (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, uint160(amount));
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, amount);
             if (revertDataWildcard.length > 0) {
                 // Priority error handling: show collection-wide error for insufficient allowance,
                 // otherwise show the more specific per-token error
@@ -178,11 +178,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
         for (uint256 i = 0; i < transfersLength; i++) {
             transferFrom(
-                transfers[i].from,
-                transfers[i].to,
-                transfers[i].token,
-                transfers[i].tokenId,
-                uint128(transfers[i].amount)
+                transfers[i].from, transfers[i].to, transfers[i].token, transfers[i].tokenId, transfers[i].amount
             );
         }
     }
@@ -205,7 +201,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
         // Execute batch by processing each token ID individually to leverage dual-allowance logic
         for (uint256 i = 0; i < tokenIdsLength; i++) {
-            transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenIds[i], uint128(transfer.amounts[i]));
+            transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenIds[i], transfer.amounts[i]);
         }
     }
 
@@ -233,8 +229,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
                 // ERC721: Use tokenId field, amount should be 1 (but not enforced)
                 transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId);
             } else if (typeTransfer.tokenType == TokenStandard.ERC1155) {
-                // ERC1155: Use both tokenId and amount, but amount must fit in uint128
-                transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId, uint128(transfer.amount));
+                // ERC1155: Use both tokenId and amount
+                transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId, transfer.amount);
             }
         }
     }

@@ -417,7 +417,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Set allowances for multiple tokens
         uint256[] memory tokenIds = new uint256[](3);
-        uint256[] memory amounts = new uint256[](3);
+        uint160[] memory amounts = new uint160[](3);
 
         for (uint256 i = 0; i < 3; i++) {
             tokenIds[i] = i + 1;
@@ -451,7 +451,7 @@ contract MultiTokenPermitTest is TestBase {
 
     function test_batchTransferFrom_emptyArray() public {
         uint256[] memory tokenIds = new uint256[](0);
-        uint256[] memory amounts = new uint256[](0);
+        uint160[] memory amounts = new uint160[](0);
 
         IMultiTokenPermit.ERC1155BatchTransferDetails memory batchTransfer = IMultiTokenPermit
             .ERC1155BatchTransferDetails({
@@ -469,7 +469,7 @@ contract MultiTokenPermitTest is TestBase {
 
     function test_batchTransferFrom_mismatchedArrays() public {
         uint256[] memory tokenIds = new uint256[](3);
-        uint256[] memory amounts = new uint256[](2); // Mismatched length
+        uint160[] memory amounts = new uint160[](2); // Mismatched length
 
         IMultiTokenPermit.ERC1155BatchTransferDetails memory batchTransfer = IMultiTokenPermit
             .ERC1155BatchTransferDetails({

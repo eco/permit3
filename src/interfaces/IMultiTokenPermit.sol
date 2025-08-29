@@ -67,7 +67,7 @@ interface IMultiTokenPermit {
         address from;
         address to;
         uint256[] tokenIds;
-        uint256[] amounts;
+        uint160[] amounts;
         address token;
     }
 
@@ -126,7 +126,7 @@ interface IMultiTokenPermit {
      * @param tokenId The ERC1155 token ID
      * @param amount Transfer amount
      */
-    function transferFrom(address from, address to, address token, uint256 tokenId, uint128 amount) external;
+    function transferFrom(address from, address to, address token, uint256 tokenId, uint160 amount) external;
 
     /**
      * @notice Execute approved ERC721 batch transfer
