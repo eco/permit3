@@ -7,6 +7,13 @@ pragma solidity ^0.8.0;
  * @dev Extends the existing permit system to handle NFTs and semi-fungible tokens
  */
 interface IMultiTokenPermit {
+
+    /**
+     * @notice Error thrown when array lengths don't match in batch operations
+     * @dev Used when tokenIds.length != amounts.length in ERC1155 batch transfers
+     */
+    error InvalidArrayLength();
+
     /**
      * @notice Enum representing different token standards
      * @param ERC20 Standard fungible tokens with divisible amounts
@@ -66,9 +73,9 @@ interface IMultiTokenPermit {
     }
 
     /**
-     * @notice Multi-token transfer instruction
+     * @notice Multi-token transfer instruction with explicit token type
      * @param tokenType The type of token (ERC20, ERC721, or ERC1155)
-     * @param transferDetails The transfer details
+     * @param transfer The unified transfer details struct
      */
     struct TokenTypeTransfer {
         TokenStandard tokenType;

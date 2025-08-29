@@ -1,22 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IMultiTokenPermit } from "../interfaces/IMultiTokenPermit.sol";
-
 /**
- * @title TokenType
- * @notice Token type definitions and errors for multi-token support
+ * @notice Error thrown when token data is invalid for the specified token standard
+ * @param tokenStandard The token standard being used
+ * @param tokenData The invalid token data that caused the error
  */
+error InvalidTokenData(TokenStandard tokenStandard, bytes tokenData);
 
 /**
- * @notice Error thrown when invalid token data is provided
- * @param tokenType The token type that had invalid data
- * @param data The invalid data that was provided
- */
-error InvalidTokenData(IMultiTokenPermit.TokenStandard tokenType, bytes data);
-
-/**
- * @notice Error thrown when array lengths don't match
- * @dev Fixed typo from original IvalidArrayLength
+ * @notice Error thrown when array lengths don't match in batch operations
  */
 error InvalidArrayLength();
+
+/**
+ * @notice Enum representing different token standards
+ * @param ERC20 Standard fungible tokens with divisible amounts
+ * @param ERC721 Non-fungible tokens with unique token IDs
+ * @param ERC1155 Semi-fungible tokens with both ID and amount
+ */
+enum TokenStandard {
+    ERC20,
+    ERC721,
+    ERC1155
+}

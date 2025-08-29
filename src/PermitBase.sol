@@ -79,11 +79,11 @@ contract PermitBase is IPermit {
 
     /**
      * @notice Execute approved token transfer
-     * @dev Checks allowance and expiration before transfer
-     * @param from Token owner
-     * @param token ERC20 token address
-     * @param to Transfer recipient
-     * @param amount Transfer amount
+     * @dev Checks allowance and expiration before transfer using _updateAllowance helper
+     * @param from Token owner address
+     * @param to Transfer recipient address
+     * @param amount Transfer amount (max 2^160-1)
+     * @param token ERC20 token contract address
      */
     function transferFrom(address from, address to, uint160 amount, address token) public {
         (, bytes memory revertData) = _updateAllowance(from, token, msg.sender, amount);
@@ -143,8 +143,9 @@ contract PermitBase is IPermit {
     }
 
     /**
-     * @dev Internal function to revert with custom error data
-     * @param revertData The encoded error data to revert with
+     * @dev Internal helper function to revert with custom error data
+     * @dev Uses inline assembly to revert with the exact error from revertData
+     * @param revertData The ABI-encoded error data to revert with
      */
     function _revert(
         bytes memory revertData
@@ -156,12 +157,14 @@ contract PermitBase is IPermit {
 
     /**
      * @notice Updates allowance after checking validity and sufficiency
+     * @dev Internal helper that validates lock status, expiration, and sufficient balance
+     * @dev Returns error data instead of reverting to allow fallback mechanisms
      * @param from Token owner address
-     * @param token Token address
-     * @param spender Spender address
+     * @param token Token contract address (or encoded token ID for NFTs)
+     * @param spender Approved spender address
      * @param amount Amount to deduct from allowance
-     * @return allowed Updated allowance struct
-     * @return revertData Encoded error data if validation fails, empty otherwise
+     * @return allowed Updated allowance struct after deduction
+     * @return revertData Encoded error data if validation fails, empty bytes if successful
      */
     function _updateAllowance(
         address from,
@@ -205,17 +208,14 @@ contract PermitBase is IPermit {
     }
 
     /**
-     * @dev Execute token transfer with safety checks using SafeERC20
+     * @dev Execute ERC20 token transfer with safety checks using SafeERC20
+     * @dev Uses SafeERC20.safeTransferFrom to handle non-standard token implementations
      * @param from Token sender address that must have approved this contract
-     * @param token ERC20 token contract address to transfer
-     * @param to Token recipient address that will receive the tokens
+     * @param to Token recipient address that will receive the tokens  
      * @param amount Transfer amount in token units (max uint160)
-     * @notice This function uses SafeERC20.safeTransferFrom to handle tokens that:
-     *         - Don't return a boolean value
-     *         - Return false on failure instead of reverting
-     *         - Have other non-standard transfer implementations
-     * @notice The function assumes the caller has already verified allowances
-     *         and will revert if the transfer fails for any reason
+     * @param token ERC20 token contract address to transfer
+     * @notice This function handles tokens that don't return boolean values or return false on failure
+     * @notice Assumes the caller has already verified allowances and will revert on transfer failure
      */
     function _transferFrom(address from, address to, uint160 amount, address token) internal {
         IERC20(token).safeTransferFrom(from, to, amount);
