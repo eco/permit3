@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { IPermit } from "./interfaces/IPermit.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IPermit } from "./interfaces/IPermit.sol";
 
 /**
  * @title PermitBase
@@ -45,7 +45,6 @@ contract PermitBase is IPermit {
         Allowance memory allowed = allowances[user][token][spender];
         return (allowed.amount, allowed.expiration, allowed.timestamp);
     }
-
 
     /**
      * @notice Direct allowance approval without signature
@@ -211,7 +210,7 @@ contract PermitBase is IPermit {
      * @dev Execute ERC20 token transfer with safety checks using SafeERC20
      * @dev Uses SafeERC20.safeTransferFrom to handle non-standard token implementations
      * @param from Token sender address that must have approved this contract
-     * @param to Token recipient address that will receive the tokens  
+     * @param to Token recipient address that will receive the tokens
      * @param amount Transfer amount in token units (max uint160)
      * @param token ERC20 token contract address to transfer
      * @notice This function handles tokens that don't return boolean values or return false on failure
@@ -220,5 +219,4 @@ contract PermitBase is IPermit {
     function _transferFrom(address from, address to, uint160 amount, address token) internal {
         IERC20(token).safeTransferFrom(from, to, amount);
     }
-
 }

@@ -7,7 +7,6 @@ pragma solidity ^0.8.0;
  * @dev Extends the existing permit system to handle NFTs and semi-fungible tokens
  */
 interface IMultiTokenPermit {
-
     /**
      * @notice Error thrown when array lengths don't match in batch operations
      * @dev Used when tokenIds.length != amounts.length in ERC1155 batch transfers
@@ -87,43 +86,69 @@ interface IMultiTokenPermit {
      * @param owner Token owner
      * @param token Token contract address
      * @param spender Approved spender
-     * @param tokenId Token ID (0 for ERC20)
-     * @return approved Whether spender is approved
-     * @return amount Approved amount (relevant for ERC1155)
-     * @return expiration Timestamp when approval expires
+     * @param tokenId Token ID (0 for ERC20, specific ID for NFT/ERC1155, type(uint256).max for collection-wide
+     * wildcard)
+     * @return amount Approved amount (max uint160 for unlimited)
+     * @return expiration Timestamp when approval expires (0 for no expiration)
      * @return timestamp Timestamp when approval was set
      */
-    function multiTokenAllowance(
+    function allowance(
         address owner,
         address token,
         address spender,
         uint256 tokenId
-    ) external view returns (bool approved, uint128 amount, uint48 expiration, uint48 timestamp);
+    ) external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
+
+    /**
+     * @notice Approve a spender for a specific token or collection
+     * @param token Token contract address
+     * @param spender Address to approve
+     * @param tokenId Token ID (0 for ERC20, specific ID for NFT/ERC1155, type(uint256).max for collection wildcard)
+     * @param amount Amount to approve (ignored for ERC721, used for ERC20/ERC1155)
+     * @param expiration Timestamp when approval expires (0 for no expiration)
+     */
+    function approve(address token, address spender, uint256 tokenId, uint160 amount, uint48 expiration) external;
 
     /**
      * @notice Execute approved ERC721 token transfer
      * @param from Token owner
      * @param to Transfer recipient
-     * @param tokenId The NFT token ID
      * @param token ERC721 token address
+     * @param tokenId The NFT token ID
      */
-    function transferFromERC721(address from, address to, uint256 tokenId, address token) external;
+    function transferFrom(address from, address to, address token, uint256 tokenId) external;
 
     /**
      * @notice Execute approved ERC1155 token transfer
      * @param from Token owner
      * @param to Transfer recipient
+     * @param token ERC1155 token address
      * @param tokenId The ERC1155 token ID
      * @param amount Transfer amount
-     * @param token ERC1155 token address
      */
-    function transferFromERC1155(address from, address to, uint256 tokenId, uint128 amount, address token) external;
+    function transferFrom(address from, address to, address token, uint256 tokenId, uint128 amount) external;
 
     /**
-     * @notice Execute approved ERC1155 batch transfer
+     * @notice Execute approved ERC721 batch transfer
+     * @param transfers Array of ERC721 transfer instructions
+     */
+    function transferFrom(
+        ERC721TransferDetails[] calldata transfers
+    ) external;
+
+    /**
+     * @notice Execute approved ERC1155 batch transfer with multiple token types
+     * @param transfers Array of multi-token transfer instructions
+     */
+    function transferFrom(
+        MultiTokenTransfer[] calldata transfers
+    ) external;
+
+    /**
+     * @notice Execute approved ERC1155 batch transfer for multiple token IDs
      * @param transfer Batch transfer details for multiple token IDs
      */
-    function batchTransferFromERC1155(
+    function batchTransferFrom(
         ERC1155BatchTransferDetails calldata transfer
     ) external;
 

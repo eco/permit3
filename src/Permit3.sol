@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import { IPermit3 } from "./interfaces/IPermit3.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-import { NonceManager } from "./NonceManager.sol";
 import { MultiTokenPermit } from "./MultiTokenPermit.sol";
+import { NonceManager } from "./NonceManager.sol";
 
 /**
  * @title Permit3

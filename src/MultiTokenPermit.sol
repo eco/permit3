@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
+import { IMultiTokenPermit } from "./interfaces/IMultiTokenPermit.sol";
 
 import { PermitBase } from "./PermitBase.sol";
-import { IMultiTokenPermit } from "./interfaces/IMultiTokenPermit.sol";
-import { InvalidTokenData, InvalidArrayLength } from "./lib/TokenType.sol";
 
 /**
  * @title MultiTokenPermit
@@ -19,46 +19,61 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param owner Token owner
      * @param token Token contract address
      * @param spender Approved spender
-     * @param tokenId Token ID (0 for ERC20)
-     * @return approved Whether spender is approved
-     * @return amount Approved amount (relevant for ERC1155)
-     * @return expiration Timestamp when approval expires
+     * @param tokenId Token ID (0 for ERC20, type(uint256).max for collection-wide wildcard)
+     * @return amount Approved amount (max uint160 for unlimited)
+     * @return expiration Timestamp when approval expires (0 for no expiration)
      * @return timestamp Timestamp when approval was set
      */
-    function multiTokenAllowance(
+    function allowance(
         address owner,
         address token,
         address spender,
         uint256 tokenId
-    ) external view override returns (bool approved, uint128 amount, uint48 expiration, uint48 timestamp) {
-        if (tokenId == 0) {
-            // For ERC20 tokens, use the standard allowance
+    ) external view override returns (uint160 amount, uint48 expiration, uint48 timestamp) {
+        if (tokenId == 0 || tokenId == type(uint256).max) {
+            // For ERC20 tokens or collection-wide wildcard, use the standard allowance
             Allowance memory allowed = allowances[owner][token][spender];
-            return (
-                allowed.amount > 0,
-                uint128(allowed.amount > type(uint128).max ? type(uint128).max : allowed.amount),
-                allowed.expiration,
-                allowed.timestamp
-            );
+            return (allowed.amount, allowed.expiration, allowed.timestamp);
         } else {
-            // For ERC721/ERC1155, create unique identifier by hashing token address + tokenId
-            // This creates a deterministic address-like identifier for the specific token ID
+            // For specific ERC721/ERC1155 token IDs, create unique identifier by hashing
             address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
             Allowance memory allowed = allowances[owner][encodedId][spender];
-            
-            // Fallback mechanism: if no specific token ID allowance exists, use collection-wide allowance
-            // This enables both per-token-id and wildcard (entire collection) approval patterns
-            if (allowed.amount == 0) {
-                allowed = allowances[owner][token][spender];
-            }
-            
-            return (
-                allowed.amount > 0,
-                uint128(allowed.amount > type(uint128).max ? type(uint128).max : allowed.amount),
-                allowed.expiration,
-                allowed.timestamp
-            );
+
+            return (allowed.amount, allowed.expiration, allowed.timestamp);
         }
+    }
+
+    /**
+     * @notice Approve a spender for a specific token or collection
+     * @param token Token contract address
+     * @param spender Address to approve
+     * @param tokenId Token ID (0 for ERC20, specific ID for NFT, type(uint256).max for collection wildcard)
+     * @param amount Amount to approve (ignored for ERC721, used for ERC20/ERC1155)
+     * @param expiration Timestamp when approval expires (0 for no expiration)
+     */
+    function approve(
+        address token,
+        address spender,
+        uint256 tokenId,
+        uint160 amount,
+        uint48 expiration
+    ) external override {
+        address tokenKey;
+
+        if (tokenId == 0 || tokenId == type(uint256).max) {
+            // ERC20 or collection-wide wildcard
+            tokenKey = token;
+        } else {
+            // Specific token ID - encode it as an address
+            tokenKey = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
+        }
+
+        // Update the allowance
+        allowances[msg.sender][tokenKey][spender] =
+            Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
+
+        // Emit standard approval event from IPermit interface
+        emit Approval(msg.sender, tokenKey, spender, amount, expiration);
     }
 
     /**
@@ -66,24 +81,20 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Uses the dual-allowance system: tries per-token allowance first, falls back to collection-wide
      * @param from Token owner address
      * @param to Transfer recipient address
-     * @param tokenId The unique NFT token ID
      * @param token ERC721 contract address
+     * @param tokenId The unique NFT token ID
      */
-    function transferFromERC721(address from, address to, uint256 tokenId, address token) public override {
+    function transferFrom(address from, address to, address token, uint256 tokenId) public override {
         // Create unique encoded identifier for this specific token ID
         // Uses keccak256(token || tokenId) truncated to address for deterministic mapping
         address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
 
         // First, try to update allowance for the specific token ID
-        (, bytes memory revertDataPerId) = _updateAllowance(
-            from, encodedId, msg.sender, 1
-        );
+        (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, 1);
 
         if (revertDataPerId.length > 0) {
             // Fallback: try collection-wide allowance if per-token-id allowance fails
-            (, bytes memory revertDataWildcard) = _updateAllowance(
-                from, token, msg.sender, 1
-            );
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, 1);
             if (revertDataWildcard.length > 0) {
                 // Priority error handling: show collection-wide error for insufficient allowance,
                 // otherwise show the more specific per-token error
@@ -103,31 +114,21 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Uses the dual-allowance system: tries per-token allowance first, falls back to collection-wide
      * @param from Token owner address
      * @param to Transfer recipient address
+     * @param token ERC1155 contract address
      * @param tokenId The specific ERC1155 token ID
      * @param amount Number of tokens to transfer (must not exceed uint128)
-     * @param token ERC1155 contract address
      */
-    function transferFromERC1155(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint128 amount,
-        address token
-    ) public override {
+    function transferFrom(address from, address to, address token, uint256 tokenId, uint128 amount) public override {
         // Create unique encoded identifier for this specific token ID
         // Uses keccak256(token || tokenId) truncated to address for deterministic mapping
         address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
-        
+
         // First, try to update allowance for the specific token ID
-        (, bytes memory revertDataPerId) = _updateAllowance(
-            from, encodedId, msg.sender, uint160(amount)
-        );
-        
+        (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, uint160(amount));
+
         if (revertDataPerId.length > 0) {
             // Fallback: try collection-wide allowance if per-token-id allowance fails
-            (, bytes memory revertDataWildcard) = _updateAllowance(
-                from, token, msg.sender, uint160(amount)
-            );
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, uint160(amount));
             if (revertDataWildcard.length > 0) {
                 // Priority error handling: show collection-wide error for insufficient allowance,
                 // otherwise show the more specific per-token error
@@ -139,7 +140,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
                 }
             }
         }
-        
+
         // Execute the ERC1155 transfer
         IERC1155(token).safeTransferFrom(from, to, tokenId, amount, "");
     }
@@ -149,35 +150,39 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Each transfer uses the dual-allowance system independently
      * @param transfers Array of ERC721 transfer instructions
      */
-    function transferFromERC721(
+    function transferFrom(
         ERC721TransferDetails[] calldata transfers
-    ) external {
+    ) external override {
         uint256 transfersLength = transfers.length;
         if (transfersLength == 0) {
             revert EmptyArray();
         }
 
         for (uint256 i = 0; i < transfersLength; i++) {
-            transferFromERC721(transfers[i].from, transfers[i].to, transfers[i].tokenId, transfers[i].token);
+            transferFrom(transfers[i].from, transfers[i].to, transfers[i].token, transfers[i].tokenId);
         }
     }
 
     /**
      * @notice Execute multiple approved ERC1155 transfers in a single transaction
      * @dev Each transfer uses the dual-allowance system independently
-     * @param transfers Array of ERC1155 transfer instructions
+     * @param transfers Array of multi-token transfer instructions
      */
-    function transferFromERC1155(
+    function transferFrom(
         MultiTokenTransfer[] calldata transfers
-    ) external {
+    ) external override {
         uint256 transfersLength = transfers.length;
         if (transfersLength == 0) {
             revert EmptyArray();
         }
 
         for (uint256 i = 0; i < transfersLength; i++) {
-            transferFromERC1155(
-                transfers[i].from, transfers[i].to, transfers[i].tokenId, uint128(transfers[i].amount), transfers[i].token
+            transferFrom(
+                transfers[i].from,
+                transfers[i].to,
+                transfers[i].token,
+                transfers[i].tokenId,
+                uint128(transfers[i].amount)
             );
         }
     }
@@ -187,7 +192,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Processes each token ID individually through the dual-allowance system
      * @param transfer Batch transfer details containing arrays of token IDs and amounts
      */
-    function batchTransferFromERC1155(
+    function batchTransferFrom(
         ERC1155BatchTransferDetails calldata transfer
     ) external override {
         uint256 tokenIdsLength = transfer.tokenIds.length;
@@ -200,13 +205,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
         // Execute batch by processing each token ID individually to leverage dual-allowance logic
         for (uint256 i = 0; i < tokenIdsLength; i++) {
-            transferFromERC1155(
-                transfer.from,
-                transfer.to,
-                transfer.tokenIds[i],
-                uint128(transfer.amounts[i]),
-                transfer.token
-            );
+            transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenIds[i], uint128(transfer.amounts[i]));
         }
     }
 
@@ -226,25 +225,16 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         for (uint256 i = 0; i < transfersLength; i++) {
             TokenTypeTransfer calldata typeTransfer = transfers[i];
             MultiTokenTransfer calldata transfer = typeTransfer.transfer;
-            
+
             if (typeTransfer.tokenType == TokenStandard.ERC20) {
                 // ERC20: Use amount field, tokenId is ignored
-                transferFrom(transfer.from, transfer.to, transfer.amount, transfer.token);
+                PermitBase.transferFrom(transfer.from, transfer.to, transfer.amount, transfer.token);
             } else if (typeTransfer.tokenType == TokenStandard.ERC721) {
                 // ERC721: Use tokenId field, amount should be 1 (but not enforced)
-                transferFromERC721(transfer.from, transfer.to, transfer.tokenId, transfer.token);
+                transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId);
             } else if (typeTransfer.tokenType == TokenStandard.ERC1155) {
                 // ERC1155: Use both tokenId and amount, but amount must fit in uint128
-                if (transfer.amount > type(uint128).max) {
-                    revert InvalidTokenData(TokenStandard.ERC1155, abi.encode(transfer.tokenId, transfer.amount));
-                }
-                transferFromERC1155(
-                    transfer.from,
-                    transfer.to,
-                    transfer.tokenId,
-                    uint128(transfer.amount),
-                    transfer.token
-                );
+                transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId, uint128(transfer.amount));
             }
         }
     }
