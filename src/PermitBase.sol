@@ -3,19 +3,14 @@ pragma solidity ^0.8.0;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-
-import { IMultiTokenPermit } from "./interfaces/IMultiTokenPermit.sol";
 import { IPermit } from "./interfaces/IPermit.sol";
-import { TokenType } from "./lib/TokenType.sol";
 
 /**
  * @title PermitBase
  * @notice Base implementation for token approvals and transfers
  * @dev Core functionality for managing token permissions
  */
-contract PermitBase is IPermit, IMultiTokenPermit {
+contract PermitBase is IPermit {
     using SafeERC20 for IERC20;
 
     /// @dev Special value representing a locked allowance that cannot be used
@@ -50,6 +45,7 @@ contract PermitBase is IPermit, IMultiTokenPermit {
         Allowance memory allowed = allowances[user][token][spender];
         return (allowed.amount, allowed.expiration, allowed.timestamp);
     }
+
 
     /**
      * @notice Direct allowance approval without signature
@@ -177,18 +173,18 @@ contract PermitBase is IPermit, IMultiTokenPermit {
 
         if (allowed.expiration == LOCKED_ALLOWANCE) {
             revertData = abi.encodeWithSelector(AllowanceLocked.selector, from, token, spender);
-            return;
+            return (allowed, revertData);
         }
 
         if (allowed.expiration != 0 && block.timestamp > allowed.expiration) {
             revertData = abi.encodeWithSelector(AllowanceExpired.selector, allowed.expiration);
-            return;
+            return (allowed, revertData);
         }
 
         if (allowed.amount != MAX_ALLOWANCE) {
             if (allowed.amount < amount) {
                 revertData = abi.encodeWithSelector(InsufficientAllowance.selector, amount, allowed.amount);
-                return;
+                return (allowed, revertData);
             }
             /**
              * @dev SAFETY: This unchecked block is safe from underflow because:
@@ -225,173 +221,4 @@ contract PermitBase is IPermit, IMultiTokenPermit {
         IERC20(token).safeTransferFrom(from, to, amount);
     }
 
-    // ========== MULTI-TOKEN FUNCTIONS ==========
-
-    /**
-     * @notice Execute approved ERC721 token transfer
-     * @param from Token owner
-     * @param to Transfer recipient
-     * @param tokenId The NFT token ID
-     * @param token ERC721 token address
-     */
-    function transferFromERC721(address from, address to, uint256 tokenId, address token) public override {
-        address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
-
-        // First, try to update allowance for the specific token ID
-        (, bytes memory revertDataPerId) = _updateAllowance(
-            from, encodedId, msg.sender, 1
-        );
-
-        if (revertDataPerId.length > 0) {
-            // If that fails, fall back to the wildcard token address
-            (, bytes memory revertDataWildcard) = _updateAllowance(
-                from, encodedId, msg.sender, 1
-            );
-            if (revertDataWildcard.length > 0) {
-                // TODO if revertDataPerId.selector == InsufficientAllowance.selector, we should revert with revertDataWildcard
-                _revert(revertDataPerId);
-            }
-        }
-        IERC721(token).safeTransferFrom(from, to, tokenId);
-    }
-
-    /**
-     * @notice Execute approved ERC1155 token transfer
-     * @param from Token owner
-     * @param to Transfer recipient
-     * @param tokenId The ERC1155 token ID
-     * @param amount Transfer amount
-     * @param token ERC1155 token address
-     */
-    function transferFromERC1155(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint128 amount,
-        address token
-    ) public override {
-        // Create a unique identifier for this specific token ID
-        address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
-        
-        // First, try to update allowance for the specific token ID
-        (, bytes memory revertDataPerId) = _updateAllowance(
-            from, encodedId, msg.sender, uint160(amount)
-        );
-        
-        if (revertDataPerId.length > 0) {
-            // If that fails, fall back to the collection-wide token address allowance
-            (, bytes memory revertDataWildcard) = _updateAllowance(
-                from, token, msg.sender, uint160(amount)
-            );
-            if (revertDataWildcard.length > 0) {
-                // TODO if revertDataPerId.selector == InsufficientAllowance.selector, we should revert with revertDataWildcard
-                _revert(revertDataPerId);
-            }
-        }
-        
-        // Execute the ERC1155 transfer
-        IERC1155(token).safeTransferFrom(from, to, tokenId, amount, "");
-    }
-
-    /**
-     * @notice Execute multiple approved ERC721 transfers
-     * @param transfers Array of ERC721 transfer instructions
-     */
-    function transferFromERC721(
-        ERC721TransferDetails[] calldata transfers
-    ) external override {
-        uint256 transfersLength = transfers.length;
-        if (transfersLength == 0) {
-            revert EmptyArray();
-        }
-
-        for (uint256 i = 0; i < transfersLength; i++) {
-            transferFromERC721(transfers[i].from, transfers[i].to, transfers[i].tokenId, transfers[i].token);
-        }
-    }
-
-    /**
-     * @notice Execute multiple approved ERC1155 transfers
-     * @param transfers Array of ERC1155 transfer instructions
-     */
-    function transferFromERC1155(
-        MultiTokenTransfer[] calldata transfers
-    ) external override {
-        uint256 transfersLength = transfers.length;
-        if (transfersLength == 0) {
-            revert EmptyArray();
-        }
-
-        for (uint256 i = 0; i < transfersLength; i++) {
-            transferFromERC1155(
-                transfers[i].from, transfers[i].to, transfers[i].tokenId, transfers[i].amount, transfers[i].token
-            );
-        }
-    }
-
-    /**
-     * @notice Execute approved ERC1155 batch transfer
-     * @param transfer Batch transfer details for multiple token IDs
-     */
-    function batchTransferFromERC1155(
-        ERC1155BatchTransferDetails calldata transfer
-    ) external override {
-        uint256 tokenIdsLength = transfer.tokenIds.length;
-        if (tokenIdsLength == 0) {
-            revert EmptyArray();
-        }
-        if (tokenIdsLength != transfer.amounts.length) {
-            revert IvalidArrayLength();
-        }
-
-        // Execute batch transfer using individual transfers to leverage allowance logic
-        for (uint256 i = 0; i < tokenIdsLength; i++) {
-            transferFromERC1155(
-                transfer.from,
-                transfer.to,
-                transfer.tokenIds[i],
-                uint128(transfer.amounts[i]),
-                transfer.token
-            );
-        }
-    }
-
-    /**
-     * @notice Execute multiple token transfers of any type in a single transaction
-     * @dev Routes each transfer to the appropriate function based on token type
-     * @param transfers Array of multi-token transfer instructions
-     */
-    function batchTransferFrom(
-        TokenTypeTransfer[] calldata transfers
-    ) external override {
-        uint256 transfersLength = transfers.length;
-        if (transfersLength == 0) {
-            revert EmptyArray();
-        }
-
-        for (uint256 i = 0; i < transfersLength; i++) {
-            TokenTypeTransfer calldata typeTransfer = transfers[i];
-            MultiTokenTransfer calldata transfer = typeTransfer.transfer;
-            
-            if (typeTransfer.tokenType == TokenStandard.ERC20) {
-                // For ERC20, ignore tokenId and use amount
-                transferFrom(transfer.from, transfer.to, transfer.amount, transfer.token);
-            } else if (typeTransfer.tokenType == TokenStandard.ERC721) {
-                // For ERC721, use tokenId and ignore amount (should be 1)
-                transferFromERC721(transfer.from, transfer.to, transfer.tokenId, transfer.token);
-            } else if (typeTransfer.tokenType == TokenStandard.ERC1155) {
-                // For ERC1155, use both tokenId and amount
-                if (transfer.amount > type(uint128).max) {
-                    revert InvalidTokenData(TokenStandard.ERC1155, abi.encode(transfer.tokenId, transfer.amount));
-                }
-                transferFromERC1155(
-                    transfer.from,
-                    transfer.to,
-                    transfer.tokenId,
-                    uint128(transfer.amount),
-                    transfer.token
-                );
-            }
-        }
-    }
 }

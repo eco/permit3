@@ -5,7 +5,7 @@ import { IPermit3 } from "./interfaces/IPermit3.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import { NonceManager } from "./NonceManager.sol";
-import { PermitBase } from "./PermitBase.sol";
+import { MultiTokenPermit } from "./MultiTokenPermit.sol";
 
 /**
  * @title Permit3
@@ -18,7 +18,7 @@ import { PermitBase } from "./PermitBase.sol";
  * 5. EIP-712 Typed Signatures: Enhanced security through structured data signing
  * 6. Merkle Proofs: Optimized proof structure for cross-chain verification
  */
-contract Permit3 is IPermit3, PermitBase, NonceManager {
+contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
     /**
      * @dev EIP-712 typehash for bundled chain permits
      * Includes nested SpendTransferPermit struct for structured token permissions
