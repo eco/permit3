@@ -171,7 +171,7 @@ contract PermitBase is IPermit {
         address spender,
         uint160 amount
     ) internal returns (Allowance memory allowed, bytes memory revertData) {
-        allowed = allowances[from][token][spender];
+        allowance = allowances[from][token][spender];
 
         if (allowed.expiration == LOCKED_ALLOWANCE) {
             revertData = abi.encodeWithSelector(AllowanceLocked.selector, from, token, spender);
