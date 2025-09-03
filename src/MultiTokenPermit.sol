@@ -15,11 +15,27 @@ import { PermitBase } from "./PermitBase.sol";
  */
 abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
     /**
+     * @dev Internal helper to get the storage key for a token/tokenId pair
+     * @param token Token contract address
+     * @param tokenId Token ID (0 for ERC20, specific ID for NFT, type(uint256).max for collection-wide)
+     * @return Storage key address for allowance mapping
+     */
+    function _getTokenKey(address token, uint256 tokenId) internal pure returns (address) {
+        if (tokenId == type(uint256).max) {
+            // ERC20 or collection-wide approval
+            return token;
+        } else {
+            // Specific token ID - encode it as an address by hashing
+            return address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
+        }
+    }
+
+    /**
      * @notice Query multi-token allowance for a specific token ID
      * @param owner Token owner
      * @param token Token contract address
      * @param spender Approved spender
-     * @param tokenId Token ID (0 for ERC20, type(uint256).max for collection-wide wildcard)
+     * @param tokenId Token ID (0 for ERC20, type(uint256).max for NFT collection-wide approval allowing any token in collection)
      * @return amount Approved amount (max uint160 for unlimited)
      * @return expiration Timestamp when approval expires (0 for no expiration)
      * @return timestamp Timestamp when approval was set
@@ -30,24 +46,16 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         address spender,
         uint256 tokenId
     ) external view override returns (uint160 amount, uint48 expiration, uint48 timestamp) {
-        if (tokenId == 0 || tokenId == type(uint256).max) {
-            // For ERC20 tokens or collection-wide wildcard, use the standard allowance
-            Allowance memory allowed = allowances[owner][token][spender];
-            return (allowed.amount, allowed.expiration, allowed.timestamp);
-        } else {
-            // For specific ERC721/ERC1155 token IDs, create unique identifier by hashing
-            address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
-            Allowance memory allowed = allowances[owner][encodedId][spender];
-
-            return (allowed.amount, allowed.expiration, allowed.timestamp);
-        }
+        address tokenKey = _getTokenKey(token, tokenId);
+        Allowance memory allowed = allowances[owner][tokenKey][spender];
+        return (allowed.amount, allowed.expiration, allowed.timestamp);
     }
 
     /**
      * @notice Approve a spender for a specific token or collection
      * @param token Token contract address
      * @param spender Address to approve
-     * @param tokenId Token ID (0 for ERC20, specific ID for NFT, type(uint256).max for collection wildcard)
+     * @param tokenId Token ID (0 for ERC20, specific ID for NFT, type(uint256).max for NFT collection-wide approval)
      * @param amount Amount to approve (ignored for ERC721, used for ERC20/ERC1155)
      * @param expiration Timestamp when approval expires (0 for no expiration)
      */
@@ -58,15 +66,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         uint160 amount,
         uint48 expiration
     ) external override {
-        address tokenKey;
-
-        if (tokenId == 0 || tokenId == type(uint256).max) {
-            // ERC20 or collection-wide wildcard
-            tokenKey = token;
-        } else {
-            // Specific token ID - encode it as an address
-            tokenKey = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
-        }
+        address tokenKey = _getTokenKey(token, tokenId);
 
         // Update the allowance
         allowances[msg.sender][tokenKey][spender] =
@@ -78,22 +78,24 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
     /**
      * @notice Execute approved ERC721 token transfer
-     * @dev Uses the dual-allowance system: tries per-token allowance first, falls back to collection-wide
+     * @dev Uses a dual-allowance system: first checks for specific token ID approval, 
+     *      then falls back to collection-wide approval (set with tokenId = type(uint256).max).
+     *      This allows users to either approve individual NFTs or entire collections.
      * @param from Token owner address
      * @param to Transfer recipient address
      * @param token ERC721 contract address
-     * @param tokenId The unique NFT token ID
+     * @param tokenId The unique NFT token ID to transfer
      */
     function transferFrom(address from, address to, address token, uint256 tokenId) public override {
-        // Create unique encoded identifier for this specific token ID
-        // Uses keccak256(token || tokenId) truncated to address for deterministic mapping
-        address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
+        // Get the encoded identifier for this specific token ID
+        address encodedId = _getTokenKey(token, tokenId);
 
         // First, try to update allowance for the specific token ID
         (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, 1);
 
         if (revertDataPerId.length > 0) {
-            // Fallback: try collection-wide allowance if per-token-id allowance fails
+            // Fallback: if no specific token approval exists, check for collection-wide approval
+            // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
             (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, 1);
             if (revertDataWildcard.length > 0) {
                 // Priority error handling: show collection-wide error for insufficient allowance,
@@ -111,23 +113,25 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
     /**
      * @notice Execute approved ERC1155 token transfer
-     * @dev Uses the dual-allowance system: tries per-token allowance first, falls back to collection-wide
+     * @dev Uses a dual-allowance system: first checks for specific token ID approval, 
+     *      then falls back to collection-wide approval (set with tokenId = type(uint256).max).
+     *      This allows users to either approve individual token types or entire collections.
      * @param from Token owner address
      * @param to Transfer recipient address
      * @param token ERC1155 contract address
-     * @param tokenId The specific ERC1155 token ID
+     * @param tokenId The specific ERC1155 token ID to transfer
      * @param amount Number of tokens to transfer
      */
     function transferFrom(address from, address to, address token, uint256 tokenId, uint160 amount) public override {
-        // Create unique encoded identifier for this specific token ID
-        // Uses keccak256(token || tokenId) truncated to address for deterministic mapping
-        address encodedId = address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
+        // Get the encoded identifier for this specific token ID
+        address encodedId = _getTokenKey(token, tokenId);
 
         // First, try to update allowance for the specific token ID
         (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, amount);
 
         if (revertDataPerId.length > 0) {
-            // Fallback: try collection-wide allowance if per-token-id allowance fails
+            // Fallback: if no specific token approval exists, check for collection-wide approval
+            // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
             (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, amount);
             if (revertDataWildcard.length > 0) {
                 // Priority error handling: show collection-wide error for insufficient allowance,
@@ -207,8 +211,10 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
     /**
      * @notice Execute multiple token transfers of any type in a single transaction
-     * @dev Routes each transfer to the appropriate function based on token type
-     * @param transfers Array of multi-token transfer instructions
+     * @dev Routes each transfer to the appropriate function based on explicit token type.
+     *      Note: This function uses explicit TokenStandard enum instead of tokenId conventions
+     *      (tokenId=0 for ERC20) to provide unambiguous routing for mixed-type batches.
+     * @param transfers Array of multi-token transfer instructions with explicit token types
      */
     function batchTransferFrom(
         TokenTypeTransfer[] calldata transfers
