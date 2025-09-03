@@ -183,27 +183,29 @@ contract PermitBase is IPermit {
             return (allowed, revertData);
         }
 
-        if (allowed.amount != MAX_ALLOWANCE) {
-            if (allowed.amount < amount) {
-                revertData = abi.encodeWithSelector(InsufficientAllowance.selector, amount, allowed.amount);
-                return (allowed, revertData);
-            }
-            /**
-             * @dev SAFETY: This unchecked block is safe from underflow because:
-             * 1. The require statement immediately above guarantees that allowed.amount >= amount
-             * 2. When subtracting amount from allowed.amount, the result will always be >= 0
-             * 3. Both allowed.amount and amount are uint160 types, ensuring type consistency
-             * 4. The subtraction can never underflow since we've verified the allowance is sufficient
-             *
-             * This optimization saves gas by avoiding redundant underflow checks that Solidity
-             * would normally perform, since we've already validated the operation will succeed.
-             */
-            unchecked {
-                allowed.amount -= amount;
-            }
-
-            allowances[from][token][spender] = allowed;
+        if (allowed.amount == MAX_ALLOWANCE) {
+          return (allowed, revertData);
         }
+
+        if (allowed.amount < amount) {
+            revertData = abi.encodeWithSelector(InsufficientAllowance.selector, amount, allowed.amount);
+            return (allowed, revertData);
+        }
+        /**
+          * @dev SAFETY: This unchecked block is safe from underflow because:
+          * 1. The require statement immediately above guarantees that allowed.amount >= amount
+          * 2. When subtracting amount from allowed.amount, the result will always be >= 0
+          * 3. Both allowed.amount and amount are uint160 types, ensuring type consistency
+          * 4. The subtraction can never underflow since we've verified the allowance is sufficient
+          *
+          * This optimization saves gas by avoiding redundant underflow checks that Solidity
+          * would normally perform, since we've already validated the operation will succeed.
+          */
+        unchecked {
+            allowed.amount -= amount;
+        }
+
+        allowances[from][token][spender] = allowed;
     }
 
     /**
