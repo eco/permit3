@@ -23,9 +23,9 @@ contract PermitBase is IPermit {
 
     /**
      * @dev Core data structure for tracking token permissions
-     * Maps: owner => token => spender => {amount, expiration, timestamp}
+     * Maps: owner => tokenAddress32 => spender => {amount, expiration, timestamp}
      */
-    mapping(address => mapping(address => mapping(address => Allowance))) internal allowances;
+    mapping(address => mapping(bytes32 => mapping(address => Allowance))) internal allowances;
 
     /**
      * @notice Query current token allowance
@@ -42,7 +42,8 @@ contract PermitBase is IPermit {
         address token,
         address spender
     ) external view returns (uint160 amount, uint48 expiration, uint48 timestamp) {
-        Allowance memory allowed = allowances[user][token][spender];
+        bytes32 tokenKey = bytes32(uint256(uint160(token)));
+        Allowance memory allowed = allowances[user][tokenKey][spender];
         return (allowed.amount, allowed.expiration, allowed.timestamp);
     }
 
@@ -56,7 +57,8 @@ contract PermitBase is IPermit {
      */
     function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
         // Prevent overriding locked allowances
-        if (allowances[msg.sender][token][spender].expiration == LOCKED_ALLOWANCE) {
+        bytes32 tokenKey = bytes32(uint256(uint160(token)));
+        if (allowances[msg.sender][tokenKey][spender].expiration == LOCKED_ALLOWANCE) {
             revert AllowanceLocked(msg.sender, token, spender);
         }
 
@@ -70,7 +72,7 @@ contract PermitBase is IPermit {
             revert InvalidExpiration(expiration);
         }
 
-        allowances[msg.sender][token][spender] =
+        allowances[msg.sender][tokenKey][spender] =
             Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
 
         emit Approval(msg.sender, token, spender, amount, expiration);
@@ -85,7 +87,8 @@ contract PermitBase is IPermit {
      * @param token ERC20 token contract address
      */
     function transferFrom(address from, address to, uint160 amount, address token) public {
-        (, bytes memory revertData) = _updateAllowance(from, token, msg.sender, amount);
+        bytes32 tokenKey = bytes32(uint256(uint160(token)));
+        (, bytes memory revertData) = _updateAllowance(from, tokenKey, msg.sender, amount);
         if (revertData.length > 0) {
             _revert(revertData);
         }
@@ -134,7 +137,8 @@ contract PermitBase is IPermit {
                 revert ZeroSpender();
             }
 
-            allowances[msg.sender][token][spender] =
+            bytes32 tokenKey = bytes32(uint256(uint160(token)));
+            allowances[msg.sender][tokenKey][spender] =
                 Allowance({ amount: 0, expiration: LOCKED_ALLOWANCE, timestamp: uint48(block.timestamp) });
 
             emit Lockdown(msg.sender, token, spender);
@@ -159,7 +163,7 @@ contract PermitBase is IPermit {
      * @dev Internal helper that validates lock status, expiration, and sufficient balance
      * @dev Returns error data instead of reverting to allow fallback mechanisms
      * @param from Token owner address
-     * @param token Token contract address (or encoded token ID for NFTs)
+     * @param tokenKey Bytes32 token key for allowance mapping
      * @param spender Approved spender address
      * @param amount Amount to deduct from allowance
      * @return allowed Updated allowance struct after deduction
@@ -167,14 +171,15 @@ contract PermitBase is IPermit {
      */
     function _updateAllowance(
         address from,
-        address token,
+        bytes32 tokenKey,
         address spender,
         uint160 amount
     ) internal returns (Allowance memory allowed, bytes memory revertData) {
-        allowance = allowances[from][token][spender];
+        allowed = allowances[from][tokenKey][spender];
 
         if (allowed.expiration == LOCKED_ALLOWANCE) {
-            revertData = abi.encodeWithSelector(AllowanceLocked.selector, from, token, spender);
+            // Note: We pass address(0) as token since we only have the tokenKey
+            revertData = abi.encodeWithSelector(AllowanceLocked.selector, from, address(0), spender);
             return (allowed, revertData);
         }
 
@@ -205,7 +210,7 @@ contract PermitBase is IPermit {
             allowed.amount -= amount;
         }
 
-        allowances[from][token][spender] = allowed;
+        allowances[from][tokenKey][spender] = allowed;
     }
 
     /**

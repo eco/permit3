@@ -31,7 +31,9 @@ interface IPermit3 is IPermit, INonceManager {
      *        = 2: Lock allowance mode
      *        = 3: UnLock allowance mode
      *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
-     * @param token Address of the ERC20 token
+     * @param tokenKey Encoded token identifier (bytes32):
+     *        - For ERC20: bytes32(uint256(uint160(address)))
+     *        - For ERC721/ERC1155: keccak256(abi.encodePacked(token, tokenId))
      * @param account Transfer recipient (for mode 0) or approved spender (for allowance)
      * @param amountDelta Allowance change or transfer amount:
      *        - For transfer mode: Amount to transfer
@@ -41,7 +43,7 @@ interface IPermit3 is IPermit, INonceManager {
      */
     struct AllowanceOrTransfer {
         uint48 modeOrExpiration;
-        address token;
+        bytes32 tokenKey;
         address account;
         uint160 amountDelta;
     }

@@ -18,15 +18,15 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Internal helper to get the storage key for a token/tokenId pair
      * @param token Token contract address
      * @param tokenId Token ID (0 for ERC20, specific ID for NFT, type(uint256).max for collection-wide)
-     * @return Storage key address for allowance mapping
+     * @return Storage key for allowance mapping
      */
-    function _getTokenKey(address token, uint256 tokenId) internal pure returns (address) {
+    function _getTokenKey(address token, uint256 tokenId) internal pure returns (bytes32) {
         if (tokenId == type(uint256).max) {
-            // ERC20 or collection-wide approval
-            return token;
+            // ERC20 or collection-wide approval - convert address to bytes32
+            return bytes32(uint256(uint160(token)));
         } else {
-            // Specific token ID - encode it as an address by hashing
-            return address(uint160(uint256(keccak256(abi.encodePacked(token, tokenId)))));
+            // Specific token ID - hash token and tokenId together
+            return keccak256(abi.encodePacked(token, tokenId));
         }
     }
 
@@ -46,7 +46,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         address spender,
         uint256 tokenId
     ) external view override returns (uint160 amount, uint48 expiration, uint48 timestamp) {
-        address tokenKey = _getTokenKey(token, tokenId);
+        bytes32 tokenKey = _getTokenKey(token, tokenId);
         Allowance memory allowed = allowances[owner][tokenKey][spender];
         return (allowed.amount, allowed.expiration, allowed.timestamp);
     }
@@ -66,14 +66,14 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         uint160 amount,
         uint48 expiration
     ) external override {
-        address tokenKey = _getTokenKey(token, tokenId);
+        bytes32 tokenKey = _getTokenKey(token, tokenId);
 
         // Update the allowance
         allowances[msg.sender][tokenKey][spender] =
             Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
 
-        // Emit standard approval event from IPermit interface
-        emit Approval(msg.sender, tokenKey, spender, amount, expiration);
+        // Emit standard approval event from IPermit interface - emit original token address
+        emit Approval(msg.sender, token, spender, amount, expiration);
     }
 
     /**
@@ -88,7 +88,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      */
     function transferFrom(address from, address to, address token, uint256 tokenId) public override {
         // Get the encoded identifier for this specific token ID
-        address encodedId = _getTokenKey(token, tokenId);
+        bytes32 encodedId = _getTokenKey(token, tokenId);
 
         // First, try to update allowance for the specific token ID
         (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, 1);
@@ -96,7 +96,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         if (revertDataPerId.length > 0) {
             // Fallback: if no specific token approval exists, check for collection-wide approval
             // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
-            (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, 1);
+            bytes32 collectionKey = bytes32(uint256(uint160(token)));
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, 1);
             if (revertDataWildcard.length > 0) {
                 // Priority error handling: show collection-wide error for insufficient allowance,
                 // otherwise show the more specific per-token error
@@ -124,7 +125,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      */
     function transferFrom(address from, address to, address token, uint256 tokenId, uint160 amount) public override {
         // Get the encoded identifier for this specific token ID
-        address encodedId = _getTokenKey(token, tokenId);
+        bytes32 encodedId = _getTokenKey(token, tokenId);
 
         // First, try to update allowance for the specific token ID
         (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, amount);
@@ -132,7 +133,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         if (revertDataPerId.length > 0) {
             // Fallback: if no specific token approval exists, check for collection-wide approval
             // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
-            (, bytes memory revertDataWildcard) = _updateAllowance(from, token, msg.sender, amount);
+            bytes32 collectionKey = bytes32(uint256(uint160(token)));
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, amount);
             if (revertDataWildcard.length > 0) {
                 // Priority error handling: show collection-wide error for insufficient allowance,
                 // otherwise show the more specific per-token error

@@ -93,7 +93,7 @@ contract Permit3Test is TestBase {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0, // Transfer mode
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT
         });
@@ -117,7 +117,7 @@ contract Permit3Test is TestBase {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: EXPIRATION, // Setting expiration (allowance mode)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender, // Approve spender
             amountDelta: AMOUNT
         });
@@ -148,7 +148,7 @@ contract Permit3Test is TestBase {
         // Approve spender
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: EXPIRATION, // Setting expiration (allowance mode)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: AMOUNT
         });
@@ -156,7 +156,7 @@ contract Permit3Test is TestBase {
         // Transfer tokens
         permits[1] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0, // Transfer mode
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT / 2
         });

@@ -34,7 +34,7 @@ contract ZeroAddressValidationTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(100),
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: bob,
             amountDelta: 100
         });
@@ -47,7 +47,7 @@ contract ZeroAddressValidationTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(100),
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: bob,
             amountDelta: 100
         });
@@ -124,7 +124,7 @@ contract ZeroAddressValidationTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(100),
-            token: address(0),
+            tokenKey: bytes32(0),
             account: bob,
             amountDelta: 100
         });
@@ -139,7 +139,7 @@ contract ZeroAddressValidationTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(100),
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: address(0),
             amountDelta: 100
         });
