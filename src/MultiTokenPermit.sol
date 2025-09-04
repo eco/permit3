@@ -35,7 +35,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param owner Token owner
      * @param token Token contract address
      * @param spender Approved spender
-     * @param tokenId Token ID (0 for ERC20, type(uint256).max for NFT collection-wide approval allowing any token in collection)
+     * @param tokenId Token ID (0 for ERC20, type(uint256).max for NFT collection-wide approval allowing any token in
+     * collection)
      * @return amount Approved amount (max uint160 for unlimited)
      * @return expiration Timestamp when approval expires (0 for no expiration)
      * @return timestamp Timestamp when approval was set
@@ -78,7 +79,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
     /**
      * @notice Execute approved ERC721 token transfer
-     * @dev Uses a dual-allowance system: first checks for specific token ID approval, 
+     * @dev Uses a dual-allowance system: first checks for specific token ID approval,
      *      then falls back to collection-wide approval (set with tokenId = type(uint256).max).
      *      This allows users to either approve individual NFTs or entire collections.
      * @param from Token owner address
@@ -114,7 +115,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
     /**
      * @notice Execute approved ERC1155 token transfer
-     * @dev Uses a dual-allowance system: first checks for specific token ID approval, 
+     * @dev Uses a dual-allowance system: first checks for specific token ID approval,
      *      then falls back to collection-wide approval (set with tokenId = type(uint256).max).
      *      This allows users to either approve individual token types or entire collections.
      * @param from Token owner address
