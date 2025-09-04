@@ -371,7 +371,9 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
             _processIncreaseOrUpdate(allowed, p, timestamp);
         }
 
-        emit Permit(owner, address(uint160(uint256(p.tokenKey))), p.account, allowed.amount, allowed.expiration, timestamp);
+        emit Permit(
+            owner, address(uint160(uint256(p.tokenKey))), p.account, allowed.amount, allowed.expiration, timestamp
+        );
         allowances[owner][p.tokenKey][p.account] = allowed;
     }
 
