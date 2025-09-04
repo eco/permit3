@@ -212,7 +212,7 @@ contract MultiTokenPermitTest is TestBase {
         assertGt(timestamp, 0);
     }
 
-    function test_allowance_noAllowance() public {
+    function test_allowance_noAllowance() public view {
         // Query allowance when none exists
         (uint160 amount, uint48 exp, uint48 timestamp) =
             permit3.allowance(nftOwner, address(nftToken), spenderAddress, TOKEN_ID_1);
