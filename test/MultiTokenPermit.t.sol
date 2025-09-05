@@ -724,32 +724,33 @@ contract MultiTokenPermitTest is TestBase {
         // Zero expiration should be allowed (means never expires)
         vm.prank(nftOwner);
         permit3.approve(address(nftToken), spenderAddress, TOKEN_ID_1, 1, 0);
-        
+
         // For NFT with tokenId, use the 4-parameter allowance function
-        (uint160 amount, uint48 expiration,) = permit3.allowance(nftOwner, address(nftToken), spenderAddress, TOKEN_ID_1);
+        (uint160 amount, uint48 expiration,) =
+            permit3.allowance(nftOwner, address(nftToken), spenderAddress, TOKEN_ID_1);
         assertEq(amount, 1);
         assertEq(expiration, 0);
     }
 
     function test_approve_revertsLockedAllowance_perToken() public {
         uint48 expiration = uint48(block.timestamp + 3600);
-        
+
         // First set a per-token allowance
         vm.prank(nftOwner);
         permit3.approve(address(nftToken), spenderAddress, TOKEN_ID_1, 1, expiration);
-        
+
         // Lock the specific token allowance using encoded tokenKey
         bytes32 tokenKey = keccak256(abi.encodePacked(address(nftToken), TOKEN_ID_1));
         // Note: lockdown uses token address, but we need to lock specific tokenKey
         // This requires using the internal allowances mapping directly or a different approach
-        
+
         // Actually, let's test collection-wide lockdown affecting per-token
         IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
         pairs[0] = IPermit.TokenSpenderPair({ token: address(nftToken), spender: spenderAddress });
-        
+
         vm.prank(nftOwner);
         permit3.lockdown(pairs);
-        
+
         // Check if collection-wide lock prevents per-token approve
         // This depends on implementation - may need to verify actual behavior
         vm.prank(nftOwner);
@@ -762,11 +763,15 @@ contract MultiTokenPermitTest is TestBase {
         // Test validation for collection-wide approval with zero spender
         vm.prank(nftOwner);
         vm.expectRevert(IPermit.ZeroSpender.selector);
-        permit3.approve(address(nftToken), address(0), type(uint256).max, type(uint160).max, uint48(block.timestamp + 3600));
-        
+        permit3.approve(
+            address(nftToken), address(0), type(uint256).max, type(uint160).max, uint48(block.timestamp + 3600)
+        );
+
         // Test with zero token
         vm.prank(nftOwner);
         vm.expectRevert(IPermit.ZeroToken.selector);
-        permit3.approve(address(0), spenderAddress, type(uint256).max, type(uint160).max, uint48(block.timestamp + 3600));
+        permit3.approve(
+            address(0), spenderAddress, type(uint256).max, type(uint160).max, uint48(block.timestamp + 3600)
+        );
     }
 }

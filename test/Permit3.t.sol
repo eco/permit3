@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../src/interfaces/IPermit3.sol";
 import "../src/interfaces/IMultiTokenPermit.sol";
+import "../src/interfaces/IPermit3.sol";
 import "./utils/TestBase.sol";
 
 /**
@@ -312,14 +312,14 @@ contract Permit3Test is TestBase {
     function test_permit_emitsPermitMultiTokenEventForNFT() public {
         // Create a permit for NFT with specific tokenId
         bytes32 tokenKey = keccak256(abi.encodePacked(address(token), uint256(1)));
-        
+
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: EXPIRATION,
             tokenKey: tokenKey, // Hash for NFT+tokenId
             account: spender,
             amountDelta: 1 // NFT amount
-        });
+         });
 
         IPermit3.ChainPermits memory chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
