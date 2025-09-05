@@ -138,7 +138,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0,
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT
         });
@@ -178,7 +178,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0,
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT
         });
@@ -249,7 +249,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0,
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT
         });
@@ -298,7 +298,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0,
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT
         });
@@ -376,7 +376,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 2 days), // New expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Zero amount delta
          });
@@ -421,7 +421,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 2 days), // New expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 1000 // Additional amount (should be ignored)
          });
@@ -495,7 +495,7 @@ contract Permit3EdgeTest is Test {
         olderInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         olderInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 3 days), // Tries to set longer expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 5000 // Higher amount
          });
@@ -507,7 +507,7 @@ contract Permit3EdgeTest is Test {
         newerInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         newerInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 2 days), // Shorter expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 3000 // Lower amount
          });
@@ -621,7 +621,7 @@ contract Permit3EdgeTest is Test {
         lockInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         lockInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Lock), // Lock mode (2)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Not used for lock
          });
@@ -670,7 +670,7 @@ contract Permit3EdgeTest is Test {
         decreaseInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         decreaseInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Decrease), // Decrease mode (1)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 100 // Value to decrease by
          });
@@ -722,7 +722,7 @@ contract Permit3EdgeTest is Test {
         lockInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         lockInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Lock), // Lock mode (2)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Not used for lock
          });
@@ -772,7 +772,7 @@ contract Permit3EdgeTest is Test {
         unlockInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         unlockInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Unlock), // Unlock mode (3)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 3000 // New amount after unlock
          });
@@ -830,7 +830,7 @@ contract Permit3EdgeTest is Test {
         lockInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         lockInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Lock), // Lock mode (2)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Not used for lock
          });
@@ -874,7 +874,7 @@ contract Permit3EdgeTest is Test {
         unlockInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         unlockInputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Unlock), // Unlock mode (3)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 3000 // New amount after unlock
          });
@@ -941,7 +941,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Decrease), // Decrease mode (1)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: type(uint160).max // Try to decrease by MAX_ALLOWANCE
          });
@@ -985,7 +985,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Decrease), // Decrease mode (1)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: type(uint160).max // Decrease by MAX_ALLOWANCE
          });
@@ -1032,7 +1032,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 2 days), // Expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: type(uint160).max // Set to MAX_ALLOWANCE
          });
@@ -1076,7 +1076,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Decrease), // Decrease mode (1)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 500 // Decrease by 500 (from 1000)
          });
@@ -1134,7 +1134,7 @@ contract Permit3EdgeTest is Test {
         // 1. Transfer
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Transfer), // Transfer (0)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: 100 // Transfer 100
          });
@@ -1142,7 +1142,7 @@ contract Permit3EdgeTest is Test {
         // 2. Decrease
         inputs.permits[1] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Decrease), // Decrease (1)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 50 // Decrease by 50
          });
@@ -1150,7 +1150,7 @@ contract Permit3EdgeTest is Test {
         // 3. Increase allowance with expiration
         inputs.permits[2] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 3 days), // Expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 200 // Increase by 200
          });
@@ -1202,7 +1202,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Transfer), // Transfer
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT
         });
@@ -1244,7 +1244,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Decrease),
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: type(uint160).max
         });
@@ -1295,7 +1295,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(IPermit3.PermitType.Unlock),
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: AMOUNT
         });
@@ -1338,7 +1338,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: EXPIRATION + 100, // Increase mode (greater than 3)
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Zero delta
          });
@@ -1383,7 +1383,7 @@ contract Permit3EdgeTest is Test {
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 2 days),
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 500
         });
@@ -1428,7 +1428,7 @@ contract Permit3EdgeTest is Test {
         // First permit with shorter expiration
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: uint48(block.timestamp + 2 days), // Shorter expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 500
         });
@@ -1436,7 +1436,7 @@ contract Permit3EdgeTest is Test {
         // Second permit with longer expiration (maximum)
         inputs.permits[1] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: type(uint48).max, // Maximum expiration
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 500
         });

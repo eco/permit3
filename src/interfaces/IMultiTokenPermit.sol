@@ -14,6 +14,25 @@ interface IMultiTokenPermit {
     error InvalidArrayLength();
 
     /**
+     * @notice Emitted when a multi-token permit is executed for NFTs with specific token IDs
+     * @dev Used when tokenKey is a hash of token address and token ID
+     * @param owner Token owner address
+     * @param tokenKey Token identifier hash (keccak256(token, tokenId))
+     * @param spender Spender address
+     * @param amount Approved amount
+     * @param expiration Expiration timestamp
+     * @param timestamp Permit execution timestamp
+     */
+    event PermitMultiToken(
+        address indexed owner,
+        bytes32 indexed tokenKey,
+        address indexed spender,
+        uint160 amount,
+        uint48 expiration,
+        uint48 timestamp
+    );
+
+    /**
      * @notice Enum representing different token standards
      * @param ERC20 Standard fungible tokens with divisible amounts
      * @param ERC721 Non-fungible tokens with unique token IDs
