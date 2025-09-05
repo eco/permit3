@@ -120,8 +120,8 @@ contract MultiTokenPermitTest is TestBase {
         vm.prank(owner);
         permit3.approve(address(token), spenderAddress, allowanceAmount, expiration);
 
-        // Query allowance with tokenId = 0 (ERC20)
-        (uint160 amount, uint48 exp, uint48 timestamp) = permit3.allowance(owner, address(token), spenderAddress, 0);
+        // Query allowance for ERC20 (no tokenId parameter)
+        (uint160 amount, uint48 exp, uint48 timestamp) = permit3.allowance(owner, address(token), spenderAddress);
 
         assertTrue(amount > 0);
         assertEq(amount, allowanceAmount);
