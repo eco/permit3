@@ -69,6 +69,9 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
     ) external override {
         bytes32 tokenKey = _getTokenKey(token, tokenId);
 
+        // Use the same validation as PermitBase
+        _validateApproval(msg.sender, tokenKey, token, spender, expiration);
+
         // Update the allowance
         allowances[msg.sender][tokenKey][spender] =
             Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });

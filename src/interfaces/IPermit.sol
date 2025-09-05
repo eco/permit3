@@ -24,10 +24,10 @@ interface IPermit {
     /**
      * @notice Thrown when an allowance on a token was locked.
      * @param owner The owner of the locked allowance
-     * @param token The token with the locked allowance
+     * @param tokenKey The token key identifier with the locked allowance
      * @param spender The spender whose allowance is locked
      */
-    error AllowanceLocked(address owner, address token, address spender);
+    error AllowanceLocked(address owner, bytes32 tokenKey, address spender);
 
     /**
      * @notice Thrown when an empty array is provided where it's not allowed

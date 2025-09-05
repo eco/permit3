@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../src/interfaces/IPermit3.sol";
+import "../src/interfaces/IMultiTokenPermit.sol";
 import "./utils/TestBase.sol";
 
 /**
@@ -277,5 +278,83 @@ contract Permit3Test is TestBase {
         );
         vm.prank(owner);
         permit3.permit(owner, SALT, expiredDeadline, timestamp, chainPermits, nodes, signature);
+    }
+
+    // ============================================
+    // Event Emission Tests for Signed Permits
+    // ============================================
+
+    function test_permit_emitsPermitEventForERC20() public {
+        // Create a permit for ERC20 allowance
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+        permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: EXPIRATION,
+            tokenKey: bytes32(uint256(uint160(address(token)))), // Clean address for ERC20
+            account: spender,
+            amountDelta: AMOUNT
+        });
+
+        IPermit3.ChainPermits memory chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+        uint48 timestamp = uint48(block.timestamp);
+        bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
+
+        // Expect the regular Permit event for ERC20 (clean address)
+        vm.expectEmit(true, true, true, true);
+        emit IPermit.Permit(owner, address(token), spender, AMOUNT, EXPIRATION, timestamp);
+
+        // Execute permit
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+    }
+
+    function test_permit_emitsPermitMultiTokenEventForNFT() public {
+        // Create a permit for NFT with specific tokenId
+        bytes32 tokenKey = keccak256(abi.encodePacked(address(token), uint256(1)));
+        
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+        permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: EXPIRATION,
+            tokenKey: tokenKey, // Hash for NFT+tokenId
+            account: spender,
+            amountDelta: 1 // NFT amount
+        });
+
+        IPermit3.ChainPermits memory chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+        uint48 timestamp = uint48(block.timestamp);
+        bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
+
+        // Expect the PermitMultiToken event for NFT (hashed tokenKey)
+        vm.expectEmit(true, true, true, true);
+        emit IMultiTokenPermit.PermitMultiToken(owner, tokenKey, spender, 1, EXPIRATION, timestamp);
+
+        // Execute permit
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+    }
+
+    function test_permit_revertsZeroTokenKey() public {
+        // Create a permit with zero tokenKey
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+        permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: EXPIRATION,
+            tokenKey: bytes32(0), // Zero tokenKey
+            account: spender,
+            amountDelta: AMOUNT
+        });
+
+        IPermit3.ChainPermits memory chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+        uint48 timestamp = uint48(block.timestamp);
+        bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
+
+        // Should revert with ZeroToken
+        vm.expectRevert(IPermit.ZeroToken.selector);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
     }
 }

@@ -350,7 +350,11 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      * @param p The permit operation to process
      */
     function _processAllowanceOperation(address owner, uint48 timestamp, AllowanceOrTransfer memory p) private {
-        // Note: We can't validate if tokenKey is zero since bytes32(0) could be valid
+        // Validate tokenKey is not zero
+        if (p.tokenKey == bytes32(0)) {
+            revert ZeroToken();
+        }
+
         if (p.account == address(0)) {
             revert ZeroAccount();
         }
@@ -371,9 +375,18 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
             _processIncreaseOrUpdate(allowed, p, timestamp);
         }
 
-        emit Permit(
-            owner, address(uint160(uint256(p.tokenKey))), p.account, allowed.amount, allowed.expiration, timestamp
-        );
+        // Check if tokenKey represents a clean address (upper 96 bits are zero)
+        // If yes, emit the regular Permit event from IPermit, otherwise emit the multi-token PermitMultiToken event
+        if (uint256(p.tokenKey) >> 160 == 0) {
+            // It's a clean address, emit regular Permit event for ERC20/collection-wide
+            emit Permit(
+                owner, address(uint160(uint256(p.tokenKey))), p.account, allowed.amount, allowed.expiration, timestamp
+            );
+        } else {
+            // It's a hash (NFT with tokenId), emit multi-token PermitMultiToken event with tokenKey
+            emit PermitMultiToken(owner, p.tokenKey, p.account, allowed.amount, allowed.expiration, timestamp);
+        }
+
         allowances[owner][p.tokenKey][p.account] = allowed;
     }
 
@@ -397,11 +410,11 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
                 // Only allow unlock if timestamp is newer than lock timestamp
                 if (timestamp <= allowed.timestamp) {
                     // Decode address from tokenKey for error message
-                    revert AllowanceLocked(owner, address(uint160(uint256(p.tokenKey))), p.account);
+                    revert AllowanceLocked(owner, p.tokenKey, p.account);
                 }
             } else {
                 // For all other operations, reject if allowance is locked
-                revert AllowanceLocked(owner, address(uint160(uint256(p.tokenKey))), p.account);
+                revert AllowanceLocked(owner, p.tokenKey, p.account);
             }
         }
     }

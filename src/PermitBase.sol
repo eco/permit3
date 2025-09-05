@@ -48,20 +48,26 @@ contract PermitBase is IPermit {
     }
 
     /**
-     * @notice Direct allowance approval without signature
-     * @dev Alternative to permit() for simple approvals
-     * @param token ERC20 token address
-     * @param spender Address to approve
-     * @param amount Approval amount
-     * @param expiration Optional expiration timestamp
+     * @notice Internal function to validate approval parameters and check for locked allowances
+     * @param owner Token owner address
+     * @param tokenKey Token identifier key
+     * @param token Token contract address
+     * @param spender Spender address
+     * @param expiration Expiration timestamp
      */
-    function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
-        // Prevent overriding locked allowances
-        bytes32 tokenKey = bytes32(uint256(uint160(token)));
-        if (allowances[msg.sender][tokenKey][spender].expiration == LOCKED_ALLOWANCE) {
-            revert AllowanceLocked(msg.sender, token, spender);
+    function _validateApproval(
+        address owner,
+        bytes32 tokenKey,
+        address token,
+        address spender,
+        uint48 expiration
+    ) internal view {
+        // Check if allowance is locked
+        if (allowances[owner][tokenKey][spender].expiration == LOCKED_ALLOWANCE) {
+            revert AllowanceLocked(owner, tokenKey, spender);
         }
 
+        // Validate parameters
         if (token == address(0)) {
             revert ZeroToken();
         }
@@ -71,6 +77,19 @@ contract PermitBase is IPermit {
         if (expiration != 0 && expiration <= block.timestamp) {
             revert InvalidExpiration(expiration);
         }
+    }
+
+    /**
+     * @notice Direct allowance approval without signature
+     * @dev Alternative to permit() for simple approvals
+     * @param token ERC20 token address
+     * @param spender Address to approve
+     * @param amount Approval amount
+     * @param expiration Optional expiration timestamp
+     */
+    function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
+        bytes32 tokenKey = bytes32(uint256(uint160(token)));
+        _validateApproval(msg.sender, tokenKey, token, spender, expiration);
 
         allowances[msg.sender][tokenKey][spender] =
             Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
@@ -178,8 +197,7 @@ contract PermitBase is IPermit {
         allowed = allowances[from][tokenKey][spender];
 
         if (allowed.expiration == LOCKED_ALLOWANCE) {
-            // Note: We pass address(0) as token since we only have the tokenKey
-            revertData = abi.encodeWithSelector(AllowanceLocked.selector, from, address(0), spender);
+            revertData = abi.encodeWithSelector(AllowanceLocked.selector, from, tokenKey, spender);
             return (allowed, revertData);
         }
 
