@@ -84,14 +84,14 @@ contract TestUtilsTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](2);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0, // Transfer
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: 1000
         });
 
         permits[1] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 1, // Decrease
-            token: address(0xABC),
+            tokenKey: bytes32(uint256(uint160(address(0xABC)))),
             account: spender,
             amountDelta: 500
         });
@@ -107,7 +107,7 @@ contract TestUtilsTest is Test {
 
         for (uint256 i = 0; i < permits.length; i++) {
             permitHashes[i] = keccak256(
-                abi.encode(permits[i].modeOrExpiration, permits[i].token, permits[i].account, permits[i].amountDelta)
+                abi.encode(permits[i].modeOrExpiration, permits[i].tokenKey, permits[i].account, permits[i].amountDelta)
             );
         }
 
@@ -147,7 +147,7 @@ contract TestUtilsTest is Test {
         assertEq(transferPermit.chainId, uint64(block.chainid));
         assertEq(transferPermit.permits.length, 1);
         assertEq(transferPermit.permits[0].modeOrExpiration, 0); // Transfer mode
-        assertEq(transferPermit.permits[0].token, testToken);
+        assertEq(transferPermit.permits[0].tokenKey, bytes32(uint256(uint160(testToken))));
         assertEq(transferPermit.permits[0].account, testRecipient);
         assertEq(transferPermit.permits[0].amountDelta, testAmount);
     }

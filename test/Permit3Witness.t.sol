@@ -294,7 +294,7 @@ contract Permit3WitnessTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0, // Immediate transfer
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT
         });
@@ -306,7 +306,7 @@ contract Permit3WitnessTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0, // Immediate transfer
-            token: address(0), // Doesn't matter for this test
+            tokenKey: bytes32(0), // Doesn't matter for this test
             account: address(0),
             amountDelta: AMOUNT
         });
@@ -321,7 +321,7 @@ contract Permit3WitnessTest is Test {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: EXPIRATION, // Set expiration for allowance
-            token: address(token),
+            tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: AMOUNT
         });
@@ -422,7 +422,7 @@ contract Permit3WitnessTest is Test {
             permitHashes[i] = keccak256(
                 abi.encode(
                     chainPermits.permits[i].modeOrExpiration,
-                    chainPermits.permits[i].token,
+                    chainPermits.permits[i].tokenKey,
                     chainPermits.permits[i].account,
                     chainPermits.permits[i].amountDelta
                 )
@@ -432,7 +432,7 @@ contract Permit3WitnessTest is Test {
         return keccak256(
             abi.encode(
                 keccak256(
-                    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
+                    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)"
                 ),
                 chainPermits.chainId,
                 keccak256(abi.encodePacked(permitHashes))

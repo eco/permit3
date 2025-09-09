@@ -190,6 +190,114 @@ interface INonceManager is IPermit {
 }
 ```
 
+<a id="imultitokenpermit"></a>
+## 🎨 IMultiTokenPermit
+
+Interface for multi-token support including NFTs (ERC721) and semi-fungible tokens (ERC1155).
+
+```solidity
+interface IMultiTokenPermit {
+    // Errors
+    error InvalidArrayLength();
+    
+    // Token type enum
+    enum TokenStandard {
+        ERC20,   // Standard fungible tokens
+        ERC721,  // Non-fungible tokens (NFTs)
+        ERC1155  // Semi-fungible tokens
+    }
+    
+    // Data structures
+    struct MultiTokenTransfer {
+        address from;
+        address to;
+        address token;
+        uint256 tokenId;    // 0 for ERC20, specific ID for NFT/ERC1155
+        uint160 amount;     // 1 for ERC721, variable for others
+    }
+    
+    struct ERC721TransferDetails {
+        address from;
+        address to;
+        uint256 tokenId;
+        address token;
+    }
+    
+    struct ERC1155BatchTransferDetails {
+        address from;
+        address to;
+        uint256[] tokenIds;
+        uint256[] amounts;
+        address token;
+    }
+    
+    struct TokenTypeTransfer {
+        TokenStandard tokenType;
+        MultiTokenTransfer transfer;
+    }
+    
+    // Functions
+    
+    // Query multi-token allowance
+    function allowance(
+        address owner,
+        address token,
+        address spender,
+        uint256 tokenId  // 0 for ERC20, type(uint256).max for collection wildcard
+    ) external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
+    
+    // Approve tokens with ID support
+    function approve(
+        address token,
+        address spender,
+        uint256 tokenId,  // 0 for ERC20, specific ID or max for wildcard
+        uint160 amount,   // Ignored for ERC721
+        uint48 expiration
+    ) external;
+    
+    // ERC721 transfer
+    function transferFrom(
+        address from,
+        address to,
+        address token,
+        uint256 tokenId
+    ) external;
+    
+    // ERC1155 transfer
+    function transferFrom(
+        address from,
+        address to,
+        address token,
+        uint256 tokenId,
+        uint160 amount
+    ) external;
+    
+    // Batch operations
+    function transferFrom(
+        ERC721TransferDetails[] calldata transfers
+    ) external;
+    
+    function transferFrom(
+        MultiTokenTransfer[] calldata transfers
+    ) external;
+    
+    function batchTransferFrom(
+        ERC1155BatchTransferDetails calldata transfer
+    ) external;
+    
+    function batchTransferFrom(
+        TokenTypeTransfer[] calldata transfers
+    ) external;
+}
+```
+
+### Key Features
+
+- **Dual-Allowance System**: Check per-token allowance first, fall back to collection-wide
+- **TokenId Encoding**: Encodes tokenId as address using `keccak256(token || tokenId)`
+- **Batch Operations**: Efficient multi-token transfers in single transaction
+- **Token Type Support**: Unified interface for ERC20, ERC721, and ERC1155
+
 <a id="merkle-tree-methodology"></a>
 ## 🌲 Unbalanced Merkle Tree Methodology
 
@@ -237,7 +345,17 @@ function verify(
 │ permitWitness   │
 │ allowance       │
 │ TYPEHASH funcs  │
-└─────────────────┘
+└────────┬────────┘
+         │
+         │
+┌────────▼──────────┐
+│ IMultiTokenPermit │
+├───────────────────┤
+│ ERC721 support    │
+│ ERC1155 support   │
+│ Batch operations  │
+│ Dual-allowance    │
+└───────────────────┘
 ```
 
 This diagram shows the inheritance relationship between interfaces in the Permit3 system.

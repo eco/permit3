@@ -9,6 +9,7 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
 ## ✨ Key Features
 
 - 🌉 **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
+- 🎨 **Multi-Token Support**: Unified interface for ERC20, ERC721 NFTs, and ERC1155 semi-fungible tokens
 - 🔐 **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
 - 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
 - 🌲 **Unbalanced Merkle Trees**: Hybrid two-part structure for cross-chain proofs:
@@ -28,6 +29,11 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
   - 🎯 **"Unbalanced"**: Deliberate deviation from balanced trees at top level
   - 💡 **Security**: Uses merkle tree verification for compatibility
 - 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
+- 🖼️ **NFT & Semi-Fungible Token Features**:
+    - 🎯 Dual-allowance system (per-token and collection-wide)
+    - 🔐 TokenId encoding for signed permits
+    - 📦 Batch operations for multiple token types
+    - 🎮 ERC1155 gaming asset support
 - 🔄 **Flexible Allowance Management**:
     - ⬆️ Increase/decrease allowances asynchronously
     - ⏱️ Time-bound permissions with automatic expiration
@@ -51,10 +57,10 @@ Comprehensive documentation is available in the [docs](./docs) directory:
 | Section | Description | Quick Links |
 |---------|-------------|-------------|
 | [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#getting-started) |
-| [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unbalanced-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
-| [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [ERC-7702](./docs/guides/erc7702-integration.md) · [Witness Integration](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
+| [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Multi-Token](./docs/concepts/multi-token-support.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unbalanced-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
+| [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [Multi-Token](./docs/guides/multi-token-integration.md) · [NFT Permits](./docs/guides/multi-token-signed-permits.md) · [ERC-7702](./docs/guides/erc7702-integration.md) · [Witness](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
 | [📋 API Reference](./docs/api/README.md) | Technical specifications | [Full API](./docs/api/api-reference.md) · [Data Structures](./docs/api/data-structures.md) · [Interfaces](./docs/api/interfaces.md) · [Events](./docs/api/events.md) · [Error Codes](./docs/api/error-codes.md) |
-| [💻 Examples](./docs/examples/README.md) | Code samples | [ERC-7702](./docs/examples/erc7702-example.md) · [Witness](./docs/examples/witness-example.md) · [Cross-Chain](./docs/examples/cross-chain-example.md) · [Allowance](./docs/examples/allowance-management-example.md) · [Security](./docs/examples/security-example.md) · [Integration](./docs/examples/integration-example.md) |
+| [💻 Examples](./docs/examples/README.md) | Code samples | [Multi-Token](./docs/examples/multi-token-example.md) · [ERC-7702](./docs/examples/erc7702-example.md) · [Witness](./docs/examples/witness-example.md) · [Cross-Chain](./docs/examples/cross-chain-example.md) · [Allowance](./docs/examples/allowance-management-example.md) · [Security](./docs/examples/security-example.md) · [Integration](./docs/examples/integration-example.md) |
 
 ## 🔄 Permit2 Compatibility
 
@@ -110,6 +116,61 @@ AllowanceOrTransfer[] memory operations = [
 ];
 
 permit3.permit(operations); // No signature needed, no chainId needed!
+```
+
+## 🎨 Multi-Token Support (NFTs & ERC1155)
+
+Permit3 extends beyond ERC20 tokens to support NFTs and semi-fungible tokens through the `MultiTokenPermit` contract:
+
+### 🔑 Key Features
+
+- **Dual-Allowance System**: Check per-token allowance first, then collection-wide
+- **TokenId Encoding**: For signed permits, encode tokenId into address field
+- **Batch Operations**: Transfer multiple token types in single transaction
+
+### 📝 NFT/ERC1155 with Signed Permits
+
+⚠️ **Important**: The `AllowanceOrTransfer` struct doesn't have a tokenId field, so NFTs and ERC1155 tokens require special encoding:
+
+```javascript
+// Encode tokenId for use in signed permits
+function encodeTokenId(tokenContract, tokenId) {
+    return address(uint160(uint256(
+        keccak256(abi.encodePacked(tokenContract, tokenId))
+    )));
+}
+
+// Use in AllowanceOrTransfer for NFT
+const permit = {
+    modeOrExpiration: expiration,
+    token: encodeTokenId(nftContract, tokenId), // Encoded address
+    account: spender,
+    amountDelta: 1  // Always 1 for NFTs
+};
+
+// For ERC1155 with variable amounts
+const erc1155Permit = {
+    modeOrExpiration: expiration,
+    token: encodeTokenId(erc1155Contract, tokenId),
+    account: spender,
+    amountDelta: amount  // Variable for ERC1155
+};
+```
+
+### 🎮 Direct Multi-Token Functions
+
+For direct transfers without signatures, use specialized functions:
+
+```solidity
+// NFT transfer
+permit3.transferFrom(from, to, nftContract, tokenId);
+
+// ERC1155 transfer  
+permit3.transferFrom(from, to, erc1155Contract, tokenId, amount);
+
+// Batch mixed tokens
+TokenTypeTransfer[] memory transfers = [...];
+permit3.batchTransferFrom(transfers);
 ```
 
 ## 💡 Core Concepts

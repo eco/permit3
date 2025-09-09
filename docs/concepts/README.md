@@ -14,6 +14,7 @@ This section provides in-depth explanations of the core concepts behind Permit3.
 | [🌲 Unbalanced Merkle Trees](./unbalanced-merkle-tree.md) | Understanding the cryptographic structure enabling efficient cross-chain proofs |
 | [🔢 Nonce Management](./nonce-management.md) | Permit3's approach to nonce handling for replay protection |
 | [🔁 Allowance System](./allowance-system.md) | Understanding the flexible allowance system in Permit3 |
+| [🎨 Multi-Token Support](./multi-token-support.md) | NFT and semi-fungible token support with dual-allowance system |
 
 ## 🧱 Core Components
 

@@ -47,6 +47,68 @@ The limitations of existing token approval systems across multiple blockchains c
 
 > **Note:** This EIP uses an "Unbalanced Merkle tree" methodology for cross-chain operations, which strategically unbalances the tree structure to minimize gas costs by creating smaller proof sizes for expensive chains. High-cost chains are placed closer to the root, reducing their verification gas consumption.
 
+### Multi-Token Support Extension
+
+Permit3 extends beyond ERC20 tokens to provide unified permission management for multiple token standards:
+
+#### Supported Token Standards
+
+```solidity
+enum TokenStandard {
+    ERC20,   // Standard fungible tokens
+    ERC721,  // Non-fungible tokens (NFTs)
+    ERC1155  // Semi-fungible tokens
+}
+```
+
+#### Dual-Allowance System for NFTs
+
+The protocol implements a dual-allowance system that checks permissions in order:
+1. **Per-Token Allowance**: Specific permission for individual token IDs
+2. **Collection-Wide Allowance**: Blanket permission for entire collections
+
+This enables both granular control and efficient bulk operations.
+
+#### TokenId Encoding Mechanism
+
+To efficiently manage permissions for millions of potential token IDs, Permit3 uses deterministic encoding:
+
+```solidity
+// Encode token + tokenId as unique address identifier
+address encodedId = address(uint160(uint256(
+    keccak256(abi.encodePacked(token, tokenId))
+)));
+```
+
+This creates a unique "virtual address" for each token ID that reuses the existing allowance storage system.
+
+#### Multi-Token Batch Operations
+
+Permit3 supports efficient batch operations for multiple token types:
+
+```solidity
+struct MultiTokenTransfer {
+    address from;
+    address to;
+    address token;
+    uint256 tokenId;    // 0 for ERC20, specific ID for NFT/ERC1155
+    uint160 amount;     // 1 for ERC721, variable for others
+}
+
+struct TokenTypeTransfer {
+    TokenStandard tokenType;
+    MultiTokenTransfer transfer;
+}
+
+// Execute mixed token transfers in single transaction
+function batchTransferFrom(TokenTypeTransfer[] calldata transfers) external;
+```
+
+This enables complex operations like:
+- NFT marketplace purchases with ERC20 payments
+- Gaming item trades involving multiple ERC1155 tokens
+- Portfolio rebalancing across fungible and non-fungible assets
+
 ### Core Data Structures
 
 Permit3 builds on these fundamental data structures:

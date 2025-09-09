@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 import { IPermit3 } from "./interfaces/IPermit3.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
+import { MultiTokenPermit } from "./MultiTokenPermit.sol";
 import { NonceManager } from "./NonceManager.sol";
-import { PermitBase } from "./PermitBase.sol";
 
 /**
  * @title Permit3
@@ -18,14 +18,14 @@ import { PermitBase } from "./PermitBase.sol";
  * 5. EIP-712 Typed Signatures: Enhanced security through structured data signing
  * 6. Merkle Proofs: Optimized proof structure for cross-chain verification
  */
-contract Permit3 is IPermit3, PermitBase, NonceManager {
+contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
     /**
      * @dev EIP-712 typehash for bundled chain permits
      * Includes nested SpendTransferPermit struct for structured token permissions
      * Used in cross-chain signature verification
      */
     bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
-        "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
+        "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)"
     );
 
     /**
@@ -60,7 +60,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
             permitHashes[i] = keccak256(
                 abi.encode(
                     chainPermits.permits[i].modeOrExpiration,
-                    chainPermits.permits[i].token,
+                    chainPermits.permits[i].tokenKey,
                     chainPermits.permits[i].account,
                     chainPermits.permits[i].amountDelta
                 )
@@ -136,14 +136,15 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
     }
 
     /**
-     * @notice Process token approvals across multiple chains using Merkle Tree
+     * @notice Process token approvals across multiple chains using Merkle Tree verification
+     * @dev Verifies the current chain's permits are part of a larger cross-chain batch
      * @param owner Token owner authorizing the operations
-     * @param salt Unique salt for replay protection
-     * @param deadline Signature expiration timestamp
-     * @param timestamp Timestamp of the permit
-     * @param permits Permit operations for the current chain
-     * @param proof Merkle proof array for verification
-     * @param signature EIP-712 signature covering the entire cross-chain batch
+     * @param salt Unique salt for replay protection and nonce management
+     * @param deadline Signature expiration timestamp for security
+     * @param timestamp Block timestamp when the permit was created
+     * @param permits Chain-specific permit operations to execute on current chain
+     * @param proof Merkle proof array proving permits belong to the signed batch
+     * @param signature EIP-712 signature covering the entire cross-chain batch via merkle root
      */
     function permit(
         address owner,
@@ -247,15 +248,16 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
     /**
      * @notice Process permit with additional witness data for cross-chain operations
-     * @param owner Token owner address
-     * @param salt Unique salt for replay protection
-     * @param deadline Signature expiration timestamp
-     * @param timestamp Timestamp of the permit
-     * @param permits Permit operations for the current chain
-     * @param proof Merkle proof array for verification
-     * @param witness Additional data to include in signature verification
-     * @param witnessTypeString EIP-712 type definition for witness data
-     * @param signature EIP-712 signature authorizing the batch
+     * @dev Combines cross-chain merkle verification with custom witness data in signature
+     * @param owner Token owner address authorizing the operations
+     * @param salt Unique salt for replay protection and nonce management
+     * @param deadline Signature expiration timestamp for security
+     * @param timestamp Block timestamp when the permit was created
+     * @param permits Chain-specific permit operations to execute on current chain
+     * @param proof Merkle proof array proving permits belong to the signed batch
+     * @param witness Additional 32-byte data to include in signature verification
+     * @param witnessTypeString EIP-712 type definition string for the witness data structure
+     * @param signature EIP-712 signature authorizing the batch including witness data
      */
     function permitWitness(
         address owner,
@@ -314,17 +316,17 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
     /**
      * @dev Core permit processing logic that executes multiple permit operations in a single transaction
+     * @dev Internal function that handles both direct permits and signature-verified permits
      * @param owner Token owner authorizing the operations
      * @param timestamp Block timestamp for validation and allowance updates
      * @param chainPermits Bundle of permit operations to process on the current chain
-     * @notice Handles multiple types of operations based on modeOrExpiration:
-     *        = 0: Immediate transfer mode - transfers tokens directly
-     *        = 1: Decrease allowance mode - reduces existing allowance
-     *        = 2: Lock allowance mode - locks allowance to prevent usage
-     *        = 3: Unlock allowance mode - unlocks previously locked allowance
-     *        > 3: Increase allowance mode with expiration timestamp
-     * @notice The function enforces timestamp-based locking mechanisms and handles
-     *         special MAX_ALLOWANCE values for infinite approvals
+     * @notice Handles multiple types of operations based on modeOrExpiration value:
+     *         - 0: Immediate transfer mode - transfers tokens directly without approval
+     *         - 1: Decrease allowance mode - reduces existing allowance by specified amount
+     *         - 2: Lock allowance mode - sets allowance to locked state preventing usage
+     *         - 3: Unlock allowance mode - removes lock from previously locked allowance
+     *         - >3: Increase allowance mode - adds to allowance with expiration timestamp
+     * @notice Enforces timestamp-based locking and handles MAX_ALLOWANCE for infinite approvals
      */
     function _processChainPermits(address owner, uint48 timestamp, ChainPermits memory chainPermits) internal {
         uint256 permitsLength = chainPermits.permits.length;
@@ -332,7 +334,9 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
             AllowanceOrTransfer memory p = chainPermits.permits[i];
 
             if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
-                _transferFrom(owner, p.account, p.amountDelta, p.token);
+                // Extract address from tokenKey for transfer
+                address token = address(uint160(uint256(p.tokenKey)));
+                _transferFrom(owner, p.account, p.amountDelta, token);
             } else {
                 _processAllowanceOperation(owner, timestamp, p);
             }
@@ -346,14 +350,16 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
      * @param p The permit operation to process
      */
     function _processAllowanceOperation(address owner, uint48 timestamp, AllowanceOrTransfer memory p) private {
-        if (p.token == address(0)) {
+        // Validate tokenKey is not zero
+        if (p.tokenKey == bytes32(0)) {
             revert ZeroToken();
         }
+
         if (p.account == address(0)) {
             revert ZeroAccount();
         }
 
-        Allowance memory allowed = allowances[owner][p.token][p.account];
+        Allowance memory allowed = allowances[owner][p.tokenKey][p.account];
 
         // Validate lock status before processing
         _validateLockStatus(owner, p, allowed, p.modeOrExpiration, timestamp);
@@ -369,8 +375,19 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
             _processIncreaseOrUpdate(allowed, p, timestamp);
         }
 
-        emit Permit(owner, p.token, p.account, allowed.amount, allowed.expiration, timestamp);
-        allowances[owner][p.token][p.account] = allowed;
+        // Check if tokenKey represents a clean address (upper 96 bits are zero)
+        // If yes, emit the regular Permit event from IPermit, otherwise emit the multi-token PermitMultiToken event
+        if (uint256(p.tokenKey) >> 160 == 0) {
+            // It's a clean address, emit regular Permit event for ERC20/collection-wide
+            emit Permit(
+                owner, address(uint160(uint256(p.tokenKey))), p.account, allowed.amount, allowed.expiration, timestamp
+            );
+        } else {
+            // It's a hash (NFT with tokenId), emit multi-token PermitMultiToken event with tokenKey
+            emit PermitMultiToken(owner, p.tokenKey, p.account, allowed.amount, allowed.expiration, timestamp);
+        }
+
+        allowances[owner][p.tokenKey][p.account] = allowed;
     }
 
     /**
@@ -392,11 +409,12 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
             if (operationType == uint48(PermitType.Unlock)) {
                 // Only allow unlock if timestamp is newer than lock timestamp
                 if (timestamp <= allowed.timestamp) {
-                    revert AllowanceLocked(owner, p.token, p.account);
+                    // Decode address from tokenKey for error message
+                    revert AllowanceLocked(owner, p.tokenKey, p.account);
                 }
             } else {
                 // For all other operations, reject if allowance is locked
-                revert AllowanceLocked(owner, p.token, p.account);
+                revert AllowanceLocked(owner, p.tokenKey, p.account);
             }
         }
     }
@@ -496,11 +514,12 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
     /**
      * @dev Validates that a witness type string is properly formatted for EIP-712 compliance
-     * @param witnessTypeString The EIP-712 type string to validate
-     * @notice This function ensures:
-     *         - The string is not empty
-     *         - The string ends with a closing parenthesis ')'
-     * @notice Reverts with InvalidWitnessTypeString() if validation fails
+     * @dev Internal function used by both permitWitness variants
+     * @param witnessTypeString The EIP-712 type string to validate (e.g., "CustomData(uint256 value)")
+     * @notice This function ensures proper EIP-712 formatting by checking:
+     *         - The string is not empty (length > 0)
+     *         - The string ends with a closing parenthesis ')' for valid type definition
+     * @notice Reverts with InvalidWitnessTypeString() if any validation fails
      */
     function _validateWitnessTypeString(
         string calldata witnessTypeString
@@ -519,10 +538,11 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
 
     /**
      * @dev Constructs a complete witness type hash from type string and stub for EIP-712
-     * @param witnessTypeString The EIP-712 witness type string suffix to append
-     * @return The keccak256 hash of the complete type string
-     * @notice Combines PERMIT_WITNESS_TYPEHASH_STUB with the provided witnessTypeString
-     *         to form a complete EIP-712 type definition, then returns its hash
+     * @dev Internal function that builds the full EIP-712 type string before hashing
+     * @param witnessTypeString The EIP-712 witness type string suffix to append (e.g., "CustomData(uint256 value)")
+     * @return typeHash The keccak256 hash of the complete EIP-712 type string
+     * @notice Combines PERMIT_WITNESS_TYPEHASH_STUB with witnessTypeString to create the full type definition
+     * @notice Example: stub + "CustomData(uint256 value)" becomes complete EIP-712 type string
      */
     function _getWitnessTypeHash(
         string calldata witnessTypeString

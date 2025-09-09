@@ -97,7 +97,7 @@ library Permit3TestUtils {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 0, // Immediate transfer
-            token: token,
+            tokenKey: bytes32(uint256(uint160(token))),
             account: recipient,
             amountDelta: amount
         });

@@ -215,7 +215,8 @@ contract PermitBaseTest is TestBase {
 
         // Attempt transfer should fail due to locked allowance
         vm.prank(spender);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, address(token), spender));
+        bytes32 tokenKey = bytes32(uint256(uint160(address(token))));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, tokenKey, spender));
         permit3.transferFrom(owner, recipient, AMOUNT, address(token));
 
         // Verify allowance is still locked

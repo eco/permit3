@@ -36,6 +36,7 @@ This documentation will guide you through understanding and implementing Permit3
 Learn about the core concepts that power Permit3's functionality:
 
 - [**Architecture**](./concepts/architecture.md) - Overview of Permit3's contract architecture and component interaction
+- [**Multi-Token Support**](./concepts/multi-token-support.md) - Unified permission management for ERC20, ERC721 NFTs, and ERC1155 semi-fungible tokens
 - [**Witness Functionality**](./concepts/witness-functionality.md) - Understand how to attach arbitrary data to permits for enhanced verification
 - [**Cross-Chain Operations**](./concepts/cross-chain-operations.md) - Learn how Permit3 enables operations across multiple blockchains
 - [**Unbalanced Merkle Trees**](./concepts/unbalanced-merkle-tree.md) - Deep dive into the cryptographic structure for efficient cross-chain proofs
@@ -106,6 +107,7 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 
 | Feature | Description |
 |---------|-------------|
+| **Multi-Token Support** | Unified interface for ERC20, ERC721 NFTs, and ERC1155 semi-fungible tokens with dual-allowance system |
 | **Cross-Chain Operations** | Authorize token operations across multiple blockchains with a single signature |
 | **ERC-7702 Integration** | Batch approve infinite allowances with Account Abstraction for seamless UX |
 | **Witness Functionality** | Attach arbitrary data to permits for enhanced verification and complex permission patterns |
