@@ -6,7 +6,7 @@ import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
 contract DeployModule is Script {
-    address public constant CREATE2_FACTORY = 0xce0042B868300000d44A59004Da54A005ffdcf9f;
+    address public constant SINGLETON_FACTORY = 0xce0042B868300000d44A59004Da54A005ffdcf9f;
 
     // Default Permit3 address (can be overridden via env)
     address public constant DEFAULT_PERMIT3 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
