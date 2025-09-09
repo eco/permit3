@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import { INonceManager } from "../src/interfaces/INonceManager.sol";
 import { IPermit } from "../src/interfaces/IPermit.sol";
 import { IPermit3 } from "../src/interfaces/IPermit3.sol";
 import { MockToken } from "./utils/TestUtils.sol";
@@ -38,7 +39,7 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
-        vm.expectRevert(IPermit.ZeroOwner.selector);
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
         permit3.permit(address(0), bytes32(0), uint48(block.timestamp + 1), uint48(block.timestamp), permits, "");
     }
 
@@ -51,7 +52,7 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
-        vm.expectRevert(IPermit.ZeroOwner.selector);
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
         permit3.permitWitness(
             address(0),
             bytes32(0),
@@ -80,21 +81,21 @@ contract ZeroAddressValidationTest is Test {
 
     function test_transferFrom_RejectsZeroFrom() public {
         vm.startPrank(bob);
-        vm.expectRevert(IPermit.ZeroFrom.selector);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, 100, 0));
         permit3.transferFrom(address(0), alice, 100, address(token));
         vm.stopPrank();
     }
 
     function test_transferFrom_RejectsZeroToken() public {
         vm.startPrank(bob);
-        vm.expectRevert(IPermit.ZeroToken.selector);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, 100, 0));
         permit3.transferFrom(alice, bob, 100, address(0));
         vm.stopPrank();
     }
 
     function test_transferFrom_RejectsZeroTo() public {
         vm.startPrank(bob);
-        vm.expectRevert(IPermit.ZeroTo.selector);
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, 100, 0));
         permit3.transferFrom(alice, address(0), 100, address(token));
         vm.stopPrank();
     }
@@ -166,7 +167,7 @@ contract ZeroAddressValidationTest is Test {
         bytes32[] memory salts = new bytes32[](1);
         salts[0] = bytes32(uint256(1));
 
-        vm.expectRevert(IPermit.ZeroOwner.selector);
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
         permit3.invalidateNonces(address(0), uint48(block.timestamp + 100), salts, "");
     }
 }

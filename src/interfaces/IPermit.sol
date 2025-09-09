@@ -35,11 +35,6 @@ interface IPermit {
     error EmptyArray();
 
     /**
-     * @notice Thrown when the owner address is zero
-     */
-    error ZeroOwner();
-
-    /**
      * @notice Thrown when the token address is zero
      */
     error ZeroToken();
@@ -48,16 +43,6 @@ interface IPermit {
      * @notice Thrown when the spender address is zero
      */
     error ZeroSpender();
-
-    /**
-     * @notice Thrown when the from address is zero
-     */
-    error ZeroFrom();
-
-    /**
-     * @notice Thrown when the to address is zero
-     */
-    error ZeroTo();
 
     /**
      * @notice Thrown when the account address is zero
