@@ -361,6 +361,15 @@ forge script script/DeployPermit3.s.sol:DeployPermit3 \
     --broadcast
 ```
 
+### 🚀 Deployment Information
+
+Permit3 is deployed using CREATE2 for deterministic addresses across all chains:
+
+- **Salt**: `0x0000000000000000000000000000000000000000000000000000000000000001`
+- **Deployment Address**: `0xd8551321f6e45515ad3fc3e56aff40d509230ab6`
+
+This ensures the same contract address on all supported networks, enabling seamless cross-chain operations.
+
 ## 📄 License
 
 MIT License - see [LICENSE](./LICENSE)
