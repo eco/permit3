@@ -445,7 +445,7 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         Allowance memory allowed,
         AllowanceOrTransfer memory p,
         uint48 timestamp
-    ) private pure {
+    ) private view {
         // Handle amount increase if specified
         if (p.amountDelta > 0) {
             _increaseAllowanceAmount(allowed, p.amountDelta);
@@ -480,7 +480,12 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         Allowance memory allowed,
         uint48 newExpiration,
         uint48 timestamp
-    ) private pure {
+    ) private view {
+        // Prevent setting timestamps in the future
+        if (block.timestamp < timestamp) {
+            revert InvalidTimestamp(timestamp, uint48(block.timestamp));
+        }
+
         if (timestamp > allowed.timestamp) {
             allowed.expiration = newExpiration;
             allowed.timestamp = timestamp;

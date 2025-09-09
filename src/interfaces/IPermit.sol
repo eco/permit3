@@ -62,6 +62,13 @@ interface IPermit {
     error InvalidExpiration(uint48 expiration);
 
     /**
+     * @dev Thrown when a timestamp is set too far in the future
+     * @param providedTimestamp The timestamp that was provided
+     * @param currentTimestamp The current block timestamp
+     */
+    error InvalidTimestamp(uint48 providedTimestamp, uint48 currentTimestamp);
+
+    /**
      * @dev Represents a token and spender pair for batch operations
      * @param token The address of the token contract
      * @param spender The address approved to spend the token

@@ -370,7 +370,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0xf00d));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp + 100); // Newer timestamp
+        params.timestamp = uint48(block.timestamp); // Current timestamp
 
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -415,7 +415,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0xbeef));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp + 100); // Newer timestamp
+        params.timestamp = uint48(block.timestamp); // Current timestamp
 
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -488,7 +488,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory newerParams;
         newerParams.salt = bytes32(uint256(0x222));
         newerParams.deadline = uint48(block.timestamp + 1 hours);
-        newerParams.timestamp = uint48(11_000); // Newer timestamp
+        newerParams.timestamp = uint48(10_000); // Current timestamp
 
         // Create permits with different values
         PermitInputs memory olderInputs;
@@ -1026,7 +1026,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0xccc));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp + 100);
+        params.timestamp = uint48(block.timestamp);
 
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -1165,7 +1165,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0xabcdef));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp + 10);
+        params.timestamp = uint48(block.timestamp);
 
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
@@ -1372,6 +1372,50 @@ contract Permit3EdgeTest is Test {
         assertEq(expiration, EXPIRATION + 100);
     }
 
+    function test_timestampTooFarInFuture() public {
+        // Test that timestamps cannot be set too far in the future
+        // First set up an initial allowance
+        vm.prank(owner);
+        permit3.approve(address(token), spender, AMOUNT, uint48(block.timestamp + 1 days));
+
+        // Create a permit with timestamp far in the future
+        PermitInputs memory inputs;
+        inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
+        inputs.permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(block.timestamp + 2 days),
+            token: address(token),
+            account: spender,
+            amountDelta: 500
+        });
+
+        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
+
+        TestParams memory params;
+        params.salt = bytes32(uint256(0xfff));
+        params.deadline = uint48(block.timestamp + 1 hours);
+        params.timestamp = uint48(block.timestamp + 1 days); // Future timestamp
+
+        // Sign the permit
+        bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
+        bytes32 signedHash = keccak256(
+            abi.encode(
+                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+            )
+        );
+
+        bytes32 digest = _getDigest(signedHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        params.signature = abi.encodePacked(r, s, v);
+
+        // Should revert with InvalidTimestamp error
+        vm.expectRevert(
+            abi.encodeWithSelector(IPermit.InvalidTimestamp.selector, params.timestamp, uint48(block.timestamp))
+        );
+        permit3.permit(
+            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+        );
+    }
+
     function test_maxExpirationEnforcementWithSameTimestamp() public {
         // Set up initial allowance with a lower expiration
         vm.prank(owner);
@@ -1402,7 +1446,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0x999));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp + 100); // Same timestamp for both operations
+        params.timestamp = uint48(block.timestamp); // Same timestamp for both operations
 
         // Sign and execute
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
