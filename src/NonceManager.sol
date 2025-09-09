@@ -94,9 +94,6 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32[] calldata salts,
         bytes calldata signature
     ) external {
-        if (owner == address(0)) {
-            revert ZeroOwner();
-        }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
@@ -128,9 +125,6 @@ abstract contract NonceManager is INonceManager, EIP712 {
         bytes32[] calldata proof,
         bytes calldata signature
     ) external {
-        if (owner == address(0)) {
-            revert ZeroOwner();
-        }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }

@@ -106,9 +106,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         AllowanceOrTransfer[] calldata permits,
         bytes calldata signature
     ) external {
-        if (owner == address(0)) {
-            revert ZeroOwner();
-        }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
@@ -157,9 +154,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         bytes32[] calldata proof,
         bytes calldata signature
     ) external {
-        if (owner == address(0)) {
-            revert ZeroOwner();
-        }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
@@ -215,9 +209,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         string calldata witnessTypeString,
         bytes calldata signature
     ) external {
-        if (owner == address(0)) {
-            revert ZeroOwner();
-        }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
@@ -277,9 +268,6 @@ contract Permit3 is IPermit3, PermitBase, NonceManager {
         string calldata witnessTypeString,
         bytes calldata signature
     ) external {
-        if (owner == address(0)) {
-            revert ZeroOwner();
-        }
         if (block.timestamp > deadline) {
             revert SignatureExpired(deadline, uint48(block.timestamp));
         }
