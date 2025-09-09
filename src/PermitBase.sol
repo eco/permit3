@@ -67,9 +67,6 @@ contract PermitBase is IPermit {
         if (spender == address(0)) {
             revert ZeroSpender();
         }
-        if (amount == 0) {
-            revert InvalidAmount(amount);
-        }
         if (expiration != 0 && expiration <= block.timestamp) {
             revert InvalidExpiration(expiration);
         }

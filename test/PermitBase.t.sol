@@ -230,10 +230,24 @@ contract PermitBaseTest is TestBase {
         permit3.approve(address(0), spender, AMOUNT, NOW + 1000);
     }
 
-    function test_approveRevertAmountZero() public {
+    function test_approveAmountZeroRemovesAllowance() public {
+        // First set an allowance
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, 0));
+        permit3.approve(address(token), spender, AMOUNT, FUTURE_EXPIRATION);
+
+        // Verify allowance was set
+        (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, AMOUNT);
+        assertEq(expiration, FUTURE_EXPIRATION);
+
+        // Now remove the allowance by setting amount to 0
+        vm.prank(owner);
         permit3.approve(address(token), spender, 0, FUTURE_EXPIRATION);
+
+        // Verify allowance was removed
+        (amount, expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, 0);
+        assertEq(expiration, FUTURE_EXPIRATION);
     }
 
     function test_approveRevertExpirationInPast() public {
