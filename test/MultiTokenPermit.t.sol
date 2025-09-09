@@ -739,11 +739,6 @@ contract MultiTokenPermitTest is TestBase {
         vm.prank(nftOwner);
         permit3.approve(address(nftToken), spenderAddress, TOKEN_ID_1, 1, expiration);
 
-        // Lock the specific token allowance using encoded tokenKey
-        bytes32 tokenKey = keccak256(abi.encodePacked(address(nftToken), TOKEN_ID_1));
-        // Note: lockdown uses token address, but we need to lock specific tokenKey
-        // This requires using the internal allowances mapping directly or a different approach
-
         // Actually, let's test collection-wide lockdown affecting per-token
         IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
         pairs[0] = IPermit.TokenSpenderPair({ token: address(nftToken), spender: spenderAddress });
@@ -757,6 +752,18 @@ contract MultiTokenPermitTest is TestBase {
         // If lockdown only locks collection-wide, this might succeed
         // Need to verify the actual lockdown behavior for NFTs
         permit3.approve(address(nftToken), spenderAddress, TOKEN_ID_1, 1, expiration);
+
+        // Verify per-token allowance was updated
+        (uint160 amount,,) = permit3.allowance(nftOwner, address(nftToken), spenderAddress, TOKEN_ID_1);
+        assertEq(amount, 1);
+
+        // But collection-wide approval should fail due to lock
+        vm.prank(nftOwner);
+        bytes32 collectionKey = bytes32(uint256(uint160(address(nftToken))));
+        vm.expectRevert(
+            abi.encodeWithSelector(IPermit.AllowanceLocked.selector, nftOwner, collectionKey, spenderAddress)
+        );
+        permit3.approve(address(nftToken), spenderAddress, type(uint256).max, type(uint160).max, expiration);
     }
 
     function test_approve_collectionWide_validation() public {
@@ -773,5 +780,26 @@ contract MultiTokenPermitTest is TestBase {
         permit3.approve(
             address(0), spenderAddress, type(uint256).max, type(uint160).max, uint48(block.timestamp + 3600)
         );
+    }
+
+    function test_approve_revertsLockedCollectionWide() public {
+        uint48 expiration = uint48(block.timestamp + 3600);
+
+        // First set a collection-wide allowance
+        vm.prank(nftOwner);
+        permit3.approve(address(nftToken), spenderAddress, type(uint256).max, type(uint160).max, expiration);
+
+        // Lock the collection-wide allowance
+        IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
+        pairs[0] = IPermit.TokenSpenderPair({ token: address(nftToken), spender: spenderAddress });
+
+        vm.prank(nftOwner);
+        permit3.lockdown(pairs);
+
+        // Attempting to approve collection-wide again should fail
+        vm.prank(nftOwner);
+        bytes32 tokenKey = bytes32(uint256(uint160(address(nftToken))));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, nftOwner, tokenKey, spenderAddress));
+        permit3.approve(address(nftToken), spenderAddress, type(uint256).max, type(uint160).max, expiration);
     }
 }

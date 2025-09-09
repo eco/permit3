@@ -101,17 +101,15 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
             // Fallback: if no specific token approval exists, check for collection-wide approval
             // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
             bytes32 collectionKey = bytes32(uint256(uint160(token)));
-            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, 1);
-            if (revertDataWildcard.length > 0) {
-                // Priority error handling: show collection-wide error for insufficient allowance,
-                // otherwise show the more specific per-token error
-                bytes4 perIdSelector = bytes4(revertDataPerId);
-                if (perIdSelector == InsufficientAllowance.selector) {
-                    _revert(revertDataWildcard);
-                } else {
-                    _revert(revertDataPerId);
-                }
+
+            if (encodedId == collectionKey) {
+                // Special case: tokenId = max is the same wild card approval
+                _revert(revertDataPerId);
             }
+
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, 1);
+
+            _handleAllowanceError(revertDataPerId, revertDataWildcard);
         }
         IERC721(token).safeTransferFrom(from, to, tokenId);
     }
@@ -138,17 +136,15 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
             // Fallback: if no specific token approval exists, check for collection-wide approval
             // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
             bytes32 collectionKey = bytes32(uint256(uint160(token)));
-            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, amount);
-            if (revertDataWildcard.length > 0) {
-                // Priority error handling: show collection-wide error for insufficient allowance,
-                // otherwise show the more specific per-token error
-                bytes4 perIdSelector = bytes4(revertDataPerId);
-                if (perIdSelector == InsufficientAllowance.selector) {
-                    _revert(revertDataWildcard);
-                } else {
-                    _revert(revertDataPerId);
-                }
+
+            if (encodedId == collectionKey) {
+                // Special case: tokenId = max is the same wild card approval
+                _revert(revertDataPerId);
             }
+
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, amount);
+
+            _handleAllowanceError(revertDataPerId, revertDataWildcard);
         }
 
         // Execute the ERC1155 transfer
@@ -244,6 +240,28 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
                 // ERC1155: Use both tokenId and amount
                 transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId, transfer.amount);
             }
+        }
+    }
+
+    /**
+     * @dev Internal helper to handle allowance errors with priority logic
+     * @param revertDataPerId Revert data from specific token ID allowance check
+     * @param revertDataWildcard Revert data from collection-wide allowance check
+     */
+    function _handleAllowanceError(bytes memory revertDataPerId, bytes memory revertDataWildcard) internal pure {
+        if (revertDataPerId.length == 0 || revertDataWildcard.length == 0) {
+            // If any allowance succeeded, no error to handle
+            return;
+        }
+
+        bytes4 perIdSelector = bytes4(revertDataPerId);
+
+        // Priority error handling: show collection-wide error for insufficient allowance,
+        // otherwise show the more specific per-token error
+        if (perIdSelector == InsufficientAllowance.selector) {
+            _revert(revertDataWildcard);
+        } else {
+            _revert(revertDataPerId);
         }
     }
 }
