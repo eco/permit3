@@ -2,17 +2,36 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-Permit3 is a revolutionary protocol that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unbalanced Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
+Permit3 is an approval system that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unbalanced Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
 
-> **"Permit3 unlocks a one-click/signature cross-chain future."**
+## Key Features
 
-## ✨ Key Features
-
-- 🌉 **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
-- 🎨 **Multi-Token Support**: Unified interface for ERC20, ERC721 NFTs, and ERC1155 semi-fungible tokens
-- 🔐 **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
-- 🔗 **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
-- 🌲 **Unbalanced Merkle Trees**: Hybrid two-part structure for cross-chain proofs:
+- **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
+- **Multi-Token Support**: Unified interface for ERC20, ERC721 NFTs, and ERC1155 semi-fungible tokens
+- **Direct Permit Execution**: Execute permit operations without signatures when caller has authority
+- **ERC-7702 Integration**: Account Abstraction support for enhanced user experience
+- **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
+- **NFT & Semi-Fungible Token Features**:
+    - Dual-allowance system (per-token and collection-wide)
+    - TokenId encoding for signed permits
+    - Batch operations for multiple token types
+    - ERC1155 gaming asset support
+- **Flexible Allowance Management**:
+    - Increase/decrease allowances asynchronously
+    - Time-bound permissions with automatic expiration
+    - Account locking for enhanced security
+- **Gas-Optimized Design**:
+    - Non-sequential nonces for concurrent operations
+    - Bitmap-based nonce tracking for efficient gas usage
+    - Standard merkle proofs using OpenZeppelin's MerkleProof library
+- **Emergency Security Controls**:
+    - Cross-chain revocation system
+    - Account locking mechanism
+    - Time-bound permissions
+- **Full Permit2 Compatibility**:
+    - Implements basic transfer Permit2 interfaces
+    - Drop-in replacement for existing integrations
+- **Unbalanced Merkle Trees**: Hybrid two-part structure for cross-chain proofs:
   ```
                  [H1] → [H2] → [H3] → ROOT  ← Unbalanced upper structure
               /      \      \      \
@@ -22,142 +41,77 @@ Permit3 is a revolutionary protocol that enables **cross-chain token approvals a
       /    \     /    \
     [D1]  [D2] [D3]  [D4]                   ← Leaf data
   ```
-  - 🏗️ **Unbalanced Design**: Combines balanced subtrees with unbalanced upper structure for efficiency
-  - 🔄 **Bottom Part**: Efficient membership proofs with O(log n) complexity
-  - 🔗 **Top Part**: Unbalanced structure minimizes proof size for expensive chains  
-  - 🚀 **Gas Optimization**: Chain ordering (cheapest chains first, expensive last)
-  - 🎯 **"Unbalanced"**: Deliberate deviation from balanced trees at top level
-  - 💡 **Security**: Uses merkle tree verification for compatibility
-- 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification and complex permission patterns
-- 🖼️ **NFT & Semi-Fungible Token Features**:
-    - 🎯 Dual-allowance system (per-token and collection-wide)
-    - 🔐 TokenId encoding for signed permits
-    - 📦 Batch operations for multiple token types
-    - 🎮 ERC1155 gaming asset support
-- 🔄 **Flexible Allowance Management**:
-    - ⬆️ Increase/decrease allowances asynchronously
-    - ⏱️ Time-bound permissions with automatic expiration
-    - 🔒 Account locking for enhanced security
-- ⚡ **Gas-Optimized Design**:
-    - 🔢 Non-sequential nonces for concurrent operations
-    - 🗃️ Bitmap-based nonce tracking for efficient gas usage
-    - 🔍 Standard merkle proofs using OpenZeppelin's MerkleProof library
-- 🛡️ **Emergency Security Controls**:
-    - 🚫 Cross-chain revocation system
-    - 🔐 Account locking mechanism
-    - ⏳ Time-bound permissions
-- 🔄 **Full Permit2 Compatibility*:
-    - 📄 Implements basic transfer Permit2 interfaces
-    - 🔌 Drop-in replacement for existing integrations
+  - **Unbalanced Design**: Combines balanced subtrees with unbalanced upper structure for efficiency
+  - **Bottom Part**: Efficient membership proofs with O(log n) complexity
+  - **Top Part**: Unbalanced structure minimizes proof size for expensive chains  
+  - **Gas Optimization**: Chain ordering (cheapest chains first, expensive last)
+  - **"Unbalanced"**: Deliberate deviation from balanced trees at top level
+  - **Security**: Uses merkle tree verification for compatibility
 
-## 📚 Documentation
+## Documentation
 
 Comprehensive documentation is available in the [docs](./docs) directory:
 
 | Section | Description | Quick Links |
 |---------|-------------|-------------|
-| [🏠 Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#getting-started) |
-| [🏗️ Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Multi-Token](./docs/concepts/multi-token-support.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unbalanced-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) |
-| [📚 Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [Multi-Token](./docs/guides/multi-token-integration.md) · [NFT Permits](./docs/guides/multi-token-signed-permits.md) · [ERC-7702](./docs/guides/erc7702-integration.md) · [Witness](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
-| [📋 API Reference](./docs/api/README.md) | Technical specifications | [Full API](./docs/api/api-reference.md) · [Data Structures](./docs/api/data-structures.md) · [Interfaces](./docs/api/interfaces.md) · [Events](./docs/api/events.md) · [Error Codes](./docs/api/error-codes.md) |
-| [💻 Examples](./docs/examples/README.md) | Code samples | [Multi-Token](./docs/examples/multi-token-example.md) · [ERC-7702](./docs/examples/erc7702-example.md) · [Witness](./docs/examples/witness-example.md) · [Cross-Chain](./docs/examples/cross-chain-example.md) · [Allowance](./docs/examples/allowance-management-example.md) · [Security](./docs/examples/security-example.md) · [Integration](./docs/examples/integration-example.md) |
+| [Overview](./docs/README.md) | Getting started with Permit3 | [Introduction](./docs/README.md#getting-started) |
+| [Core Concepts](./docs/concepts/README.md) | Understanding the fundamentals | [Architecture](./docs/concepts/architecture.md) · [Multi-Token](./docs/concepts/multi-token-support.md) · [Witnesses](./docs/concepts/witness-functionality.md) · [Cross-Chain](./docs/concepts/cross-chain-operations.md) · [Merkle Trees](./docs/concepts/unbalanced-merkle-tree.md) · [Nonces](./docs/concepts/nonce-management.md) · [Allowances](./docs/concepts/allowance-system.md) · [Permit2 Compatibility](./docs/concepts/permit2-compatibility.md) · [Operation Modes](./docs/concepts/operation-modes.md)|
+| [Guides](./docs/guides/README.md) | Step-by-step tutorials | [Quick Start](./docs/guides/quick-start.md) · [Multi-Token](./docs/guides/multi-token-integration.md) · [NFT Permits](./docs/guides/multi-token-signed-permits.md) · [ERC-7702](./docs/guides/erc7702-integration.md) · [Witness](./docs/guides/witness-integration.md) · [Cross-Chain](./docs/guides/cross-chain-permit.md) · [Signatures](./docs/guides/signature-creation.md) · [Security](./docs/guides/security-best-practices.md) |
+| [API Reference](./docs/api/README.md) | Technical specifications | [Full API](./docs/api/api-reference.md) · [Data Structures](./docs/api/data-structures.md) · [Interfaces](./docs/api/interfaces.md) · [Events](./docs/api/events.md) · [Error Codes](./docs/api/error-codes.md) |
+| [Examples](./docs/examples/README.md) | Code samples | [Multi-Token](./docs/examples/multi-token-example.md) · [ERC-7702](./docs/examples/erc7702-example.md) · [Witness](./docs/examples/witness-example.md) · [Cross-Chain](./docs/examples/cross-chain-example.md) · [Allowance](./docs/examples/allowance-management-example.md) · [Security](./docs/examples/security-example.md) · [Integration](./docs/examples/integration-example.md) |
 
-## 🔄 Permit2 Compatibility
 
-Permit3 implements IPermit for Permit2 transfer compatibility:
+## Core Concepts
+
+### Allowance Operations
+
+The protocol centers around the `AllowanceOrTransfer` structure:
 
 ```solidity
-// Existing contracts using Permit2 can work without changes
-IPermit2 permit2 = IPermit2(PERMIT3_ADDRESS);
-permit2.transferFrom(msg.sender, recipient, 1000e6, USDC);
-```
-
-### ✅ Supported Permit2 Functions
-```solidity
-// Standard approvals
-function approve(address token, address spender, uint160 amount, uint48 expiration) external;
-
-// Direct transfers
-function transferFrom(address from, address to, uint160 amount, address token) external;
-
-// Batched transfers
-function transferFrom(AllowanceTransferDetails[] calldata transfers) external;
-
-// Permission management
-function allowance(address user, address token, address spender) 
-    external view returns (uint160 amount, uint48 expiration, uint48 nonce);
-function lockdown(TokenSpenderPair[] calldata approvals) external;
-```
-
-### 🔗 Enhanced Functions (Permit3 Exclusive)
-```solidity
-// Direct permit execution (no signatures required, caller is owner)
-function permit(AllowanceOrTransfer[] memory permits) external;
-
-// Single-chain permit operations with signatures  
-function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, 
-                AllowanceOrTransfer[] calldata permits, bytes calldata signature) external;
-
-// Cross-chain operations with Merkle proofs and signatures
-function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp,
-                ChainPermits calldata permits, bytes32[] calldata proof, bytes calldata signature) external;
-```
-
-**Direct Permit Usage:**
-```solidity
-// Execute permit operations directly (msg.sender becomes token owner)
-AllowanceOrTransfer[] memory operations = [
-    AllowanceOrTransfer({
-        modeOrExpiration: 1735689600, // expiration timestamp
-        token: USDC_ADDRESS,
-        account: DEX_ADDRESS,
-        amountDelta: 1000e6 // 1000 USDC allowance
-    })
-];
-
-permit3.permit(operations); // No signature needed, no chainId needed!
-```
-
-## 🎨 Multi-Token Support (NFTs & ERC1155)
-
-Permit3 extends beyond ERC20 tokens to support NFTs and semi-fungible tokens through the `MultiTokenPermit` contract:
-
-### 🔑 Key Features
-
-- **Dual-Allowance System**: Check per-token allowance first, then collection-wide
-- **TokenId Encoding**: For signed permits, encode tokenId into address field
-- **Batch Operations**: Transfer multiple token types in single transaction
-
-### 📝 NFT/ERC1155 with Signed Permits
-
-⚠️ **Important**: The `AllowanceOrTransfer` struct doesn't have a tokenId field, so NFTs and ERC1155 tokens require special encoding:
-
-```javascript
-// Encode tokenId for use in signed permits
-function encodeTokenId(tokenContract, tokenId) {
-    return address(uint160(uint256(
-        keccak256(abi.encodePacked(tokenContract, tokenId))
-    )));
+struct AllowanceOrTransfer {
+    uint48 modeOrExpiration;    // Operation mode/expiration
+    address token;              // Token address
+    address account;            // Approved spender/recipient
+    uint160 amountDelta;        // Amount change/transfer amount
 }
-
-// Use in AllowanceOrTransfer for NFT
-const permit = {
-    modeOrExpiration: expiration,
-    token: encodeTokenId(nftContract, tokenId), // Encoded address
-    account: spender,
-    amountDelta: 1  // Always 1 for NFTs
-};
-
-// For ERC1155 with variable amounts
-const erc1155Permit = {
-    modeOrExpiration: expiration,
-    token: encodeTokenId(erc1155Contract, tokenId),
-    account: spender,
-    amountDelta: amount  // Variable for ERC1155
-};
 ```
 
-### 🎮 Direct Multi-Token Functions
+
+### Timestamp Management
+
+```solidity
+struct Allowance {
+    uint160 amount;
+    uint48 expiration;
+    uint48 timestamp;
+}
+```
+
+- Timestamps order operations across chains
+- Most recent timestamp takes precedence in expiration updates
+- Prevents cross-chain race conditions
+- Critical for async allowance updates
+
+### Account Locking
+
+Locked accounts have special restrictions:
+- Cannot increase/decrease allowances
+- Cannot execute transfers
+- Must submit unlock command with timestamp validation to disable
+- Provides emergency security control
+
+## Integration
+
+### Basic Setup
+```solidity
+// Access Permit2 compatibility
+IPermit permit = IPermit(PERMIT3_ADDRESS);
+permit.transferFrom(msg.sender, recipient, 1000e6, USDC);
+
+// Access Permit3 features
+IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
+```
+### Direct Multi-Token Functions
 
 For direct transfers without signatures, use specialized functions:
 
@@ -173,88 +127,7 @@ TokenTypeTransfer[] memory transfers = [...];
 permit3.batchTransferFrom(transfers);
 ```
 
-## 💡 Core Concepts
-
-### 🔄 Allowance Operations
-
-The protocol centers around the `AllowanceOrTransfer` structure:
-
-```solidity
-struct AllowanceOrTransfer {
-    uint48 modeOrExpiration;    // Operation mode/expiration
-    address token;              // Token address
-    address account;            // Approved spender/recipient
-    uint160 amountDelta;        // Amount change/transfer amount
-}
-```
-
-#### ⚙️ Operation Modes
-
-1. 📤 **Transfer Mode** (`modeOrExpiration = 0`)
-    - Executes immediate token transfer
-    - `account` is recipient
-    - `amountDelta` is transfer amount
-
-2. 📉 **Decrease Mode** (`modeOrExpiration = 1`)
-    - Reduces existing allowance
-    - `amountDelta`: regular decrease amount
-    - Special: `type(uint160).max` resets to 0
-
-3. 🔒 **Lock Mode** (`modeOrExpiration = 2`)
-    - Enters special locked state
-    - Blocks increases/transfers
-    - Rejects all operations until unlocked
-    - Sets approval to 0 for that token/account pair
-
-4. 🔓 **Unlock Mode** (`modeOrExpiration = 3`)
-    - Cancels locked state
-    - Tracks unlock timestamp
-    - Sets allowance to provided amount
-
-5. 📈 **Increase Mode** (`modeOrExpiration > 3`)
-    - Value acts as expiration timestamp
-    - Updates if timestamp is newer
-    - `amountDelta`: increase amount
-    - Special cases:
-        - `0`: Updates expiration only
-        - `type(uint160).max`: Unlimited approval
-
-### ⏱️ Timestamp Management
-
-```solidity
-struct Allowance {
-    uint160 amount;
-    uint48 expiration;
-    uint48 timestamp;
-}
-```
-
-- ⏰ Timestamps order operations across chains
-- 🔄 Most recent timestamp takes precedence in expiration updates
-- 🚧 Prevents cross-chain race conditions
-- 🔑 Critical for async allowance updates
-
-### 🔐 Account Locking
-
-Locked accounts have special restrictions:
-- 🚫 Cannot increase/decrease allowances
-- 🚫 Cannot execute transfers
-- 🔑 Must submit unlock command with timestamp validation to disable
-- 🛡️ Provides emergency security control
-
-## 🔌 Integration
-
-### 🛠️ Basic Setup
-```solidity
-// Access Permit2 compatibility
-IPermit permit = IPermit(PERMIT3_ADDRESS);
-permit.transferFrom(msg.sender, recipient, 1000e6, USDC);
-
-// Access Permit3 features
-IPermit3 permit3 = IPermit3(PERMIT3_ADDRESS);
-```
-
-### 📝 Example Operations
+### Example Operations
 
 ```solidity
 // 1. Create permits array directly
@@ -288,7 +161,7 @@ permits[2] = AllowanceOrTransfer({
 permit3.permit(owner, salt, deadline, timestamp, permits, signature);
 ```
 
-### 🌉 Cross-Chain Usage with Merkle Proofs
+### Cross-Chain Usage with Merkle Proofs
 
 ```javascript
 // Create permits for each chain
@@ -328,24 +201,24 @@ const proof = { nodes: arbProof };
 const signature = signPermit3(owner, salt, deadline, timestamp, merkleRoot);
 ```
 
-## 🛡️ Security Guidelines
+## Security Guidelines
 
-1. 🔑 **Allowance Management**
-    - ⏱️ Set reasonable expiration times
-    - 🔒 Use lock mode for sensitive accounts
-    - 📊 Monitor allowance changes across chains
+1. **Allowance Management**
+    - Set reasonable expiration times
+    - Use lock mode for sensitive accounts
+    - Monitor allowance changes across chains
 
-2. ⏰ **Timestamp Validation**
-    - 📋 Validate operation ordering
-    - ⏳ Check for expired timestamps
-    - 🔐 Handle locked state properly
+2. **Timestamp Validation**
+    - Validate operation ordering
+    - Check for expired timestamps
+    - Handle locked state properly
 
-3. 🌐 **Cross-Chain Security**
-    - 🔍 Verify chain IDs match
-    - 🔢 Use unique nonces
-    - 👀 Monitor pending operations
+3. **Cross-Chain Security**
+    - Verify chain IDs match
+    - Use unique nonces
+    - Monitor pending operations
 
-## 👨‍💻 Development
+## Development
 
 ```bash
 # Install
@@ -361,7 +234,7 @@ forge script script/DeployPermit3.s.sol:DeployPermit3 \
     --broadcast
 ```
 
-### 🚀 Deployment Information
+### Deployment Information
 
 Permit3 is deployed using CREATE2 for deterministic addresses across all chains:
 

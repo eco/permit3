@@ -1,5 +1,5 @@
 <a id="documentation-top"></a>
-# 🔏 Permit3 Documentation 📖
+# Permit3 Documentation
 
 <a id="cross-chain-revolution"></a>
 ## The Cross-Chain Revolution
