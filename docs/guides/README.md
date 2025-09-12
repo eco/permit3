@@ -1,9 +1,5 @@
 <a id="guides-top"></a>
-# 🔏 Permit3 Guides 📚
-
-###### Quick Navigation: [Available Guides](#available-guides) | [Getting Started](#getting-started) | [Common Use Cases](#common-use-cases)
-
-🧭 [Home](/docs/README.md) > Guides
+# Permit3 Guides
 
 This section provides step-by-step guides for common Permit3 use cases.
 
@@ -12,14 +8,14 @@ This section provides step-by-step guides for common Permit3 use cases.
 
 | Guide | Description |
 |-------|-------------|
-| [🚀 Quick Start](./quick-start.md) | Quick introduction to integrating Permit3 |
-| [🔗 ERC-7702 Integration](./erc7702-integration.md) | Batch token approvals with Account Abstraction |
-| [🧩 Witness Integration](./witness-integration.md) | How to implement witness functionality |
-| [🎨 Multi-Token Integration](./multi-token-integration.md) | NFT and semi-fungible token support implementation |
-| [🎨 Multi-Token Signed Permits](./multi-token-signed-permits.md) | Using NFTs and ERC1155 with signed permit functions and encoding |
-| [🌉 Cross-Chain Permits](./cross-chain-permit.md) | Working with permits across multiple chains |
-| [✍️ Signature Creation](./signature-creation.md) | Creating and signing permit operations |
-| [🛡️ Security Best Practices](./security-best-practices.md) | Best practices for secure Permit3 usage |
+| [Quick Start](./quick-start.md) | Quick introduction to integrating Permit3 |
+| [ERC-7702 Integration](./erc7702-integration.md) | Batch token approvals with Account Abstraction |
+| [Witness Integration](./witness-integration.md) | How to implement witness functionality |
+| [Multi-Token Integration](./multi-token-integration.md) | NFT and semi-fungible token support implementation |
+| [Multi-Token Signed Permits](./multi-token-signed-permits.md) | Using NFTs and ERC1155 with signed permit functions and encoding |
+| [Cross-Chain Permits](./cross-chain-permit.md) | Working with permits across multiple chains |
+| [Signature Creation](./signature-creation.md) | Creating and signing permit operations |
+| [Security Best Practices](./security-best-practices.md) | Best practices for secure Permit3 usage |
 
 <a id="getting-started"></a>
 ## 🏁 Getting Started
@@ -29,9 +25,9 @@ If you're new to Permit3, we recommend starting with the [🚀 Quick Start Guide
 For more advanced use cases, check out the specific guides for witness functionality and cross-chain operations.
 
 <a id="common-use-cases"></a>
-## 💼 Common Use Cases
+## Common Use Cases
 
-### 🔓 Basic Token Approval
+### Basic Token Approval
 
 Permit3 enables signature-based token approvals for any ERC20 token:
 
@@ -46,7 +42,7 @@ permit3.permit(
 );
 ```
 
-### 💸 Direct Token Transfer
+### Direct Token Transfer
 
 Permit3 can also directly transfer tokens with a signature:
 
@@ -59,11 +55,11 @@ IPermit3.AllowanceOrTransfer memory permitData = IPermit3.AllowanceOrTransfer({
 });
 ```
 
-### 🔧 Advanced Use Cases
+### Advanced Use Cases
 
 For more advanced use cases like witness functionality and cross-chain operations, refer to the specific guides in this section.
 
-## 💡 Developer Guidance
+## Developer Guidance
 
 ### When to Use Single-Chain vs Cross-Chain Permits
 
@@ -98,11 +94,3 @@ When building cross-chain permits, optimize gas costs through strategic chain or
 4. **User Experience**: Provide clear feedback about which chains are involved
 5. **Error Handling**: Implement robust error handling for cross-chain failures
 6. **Documentation**: Document your chain ordering strategy for users
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Home](/docs/README.md) | [Home](/docs/README.md) | [Quick Start](/docs/guides/quick-start.md) |
-
-[🔝 Back to Top](#guides-top)

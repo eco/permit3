@@ -1,22 +1,19 @@
 <a id="quick-start-top"></a>
-# 🔏 Permit3 Quick Start Guide 🚀
+# Permit3 Quick Start Guide
 
-###### Quick Navigation: [Prerequisites](#prerequisites) | [Installation](#installation) | [Basic Integration](#basic-integration) | [Witness Functionality](#using-witness-functionality) | [Cross-Chain Operations](#cross-chain-operations) | [Common Operations](#common-operations) | [Best Practices](#best-practices) | [Troubleshooting](#troubleshooting)
-
-🧭 [Home](/docs/README.md) > [Guides](/docs/guides/README.md) > Quick Start
 
 This guide will help you quickly integrate Permit3 into your application, enabling cross-chain token approvals and transfers with witness functionality.
 
 <a id="prerequisites"></a>
 ## 📋 Prerequisites
 
-- 💻 An Ethereum development environment (Hardhat, Foundry, etc.)
-- 🔏 Basic understanding of EIP-712 signatures
-- 💰 Familiarity with ERC20 tokens
-- 🔌 Access to the Permit3 contract address on your target chain(s)
+- An Ethereum development environment (Hardhat, Foundry, etc.)
+- Basic understanding of EIP-712 signatures
+- Familiarity with ERC20 tokens
+- Access to the Permit3 contract address on your target chain(s)
 
 <a id="installation"></a>
-## 📥 Installation
+## Installation
 
 ### Using npm
 
@@ -55,7 +52,7 @@ ERC20(token).approve(PERMIT3_ADDRESS, type(uint256).max);
 
 ### 3️⃣  Creating and Signing Permits
 
-#### 💸 Simple Token Transfer
+#### Simple Token Transfer
 
 ```javascript
 // JavaScript (ethers.js)
@@ -431,11 +428,3 @@ const permitData = {
 - Verify witness type string is properly formatted (must end with ')')
 - Ensure witness data matches expected values
 - Check EIP-712 type definitions are consistent across frontend and contracts
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Guides](/docs/guides/README.md) | [Guides](/docs/guides/README.md) | [Witness Integration](/docs/guides/witness-integration.md) |
-
-[🔝 Back to Top](#quick-start-top)

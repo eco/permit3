@@ -1,14 +1,9 @@
 <a id="multi-token-example-top"></a>
-# 🎨 Multi-Token Example: NFT Marketplace with Gaming Assets 🎮
+# Multi-Token Example: NFT Marketplace with Gaming Assets
 
-🧭 [Home](/docs/README.md) > [Examples](/docs/examples/README.md) > Multi-Token Example
-
-This example demonstrates building an NFT marketplace that supports multiple token standards including NFTs (ERC721), gaming items (ERC1155), and payment tokens (ERC20).
-
-###### Navigation: [Overview](#overview) | [Smart Contract](#smart-contract-implementation) | [Frontend Integration](#frontend-integration) | [Testing](#testing-the-marketplace) | [Advanced Features](#advanced-features)
 
 <a id="overview"></a>
-## 📋 Overview
+## Overview
 
 We'll build a marketplace that:
 - Lists NFTs and gaming items for sale
@@ -18,7 +13,7 @@ We'll build a marketplace that:
 - Uses Permit3's dual-allowance system
 
 <a id="smart-contract-implementation"></a>
-## 📄 Smart Contract Implementation
+## Smart Contract Implementation
 
 ### NFT Marketplace Contract
 
@@ -310,7 +305,7 @@ contract MultiTokenMarketplace {
 ```
 
 <a id="frontend-integration"></a>
-## 💻 Frontend Integration
+## Frontend Integration
 
 ### React Component for Marketplace
 
@@ -634,7 +629,7 @@ const ListingCard = ({ listing, onBuy, onSelect, isSelected }) => {
 ```
 
 <a id="testing-the-marketplace"></a>
-## 🧪 Testing the Marketplace
+## Testing the Marketplace
 
 ### Hardhat Test Suite
 
@@ -863,7 +858,7 @@ describe("MultiTokenMarketplace", function () {
 ```
 
 <a id="advanced-features"></a>
-## 🚀 Advanced Features
+## Advanced Features
 
 ### Auction System with Multi-Token Support
 
@@ -960,7 +955,7 @@ contract FractionalNFTTrading {
 }
 ```
 
-## 📊 Gas Optimization Analysis
+## Gas Optimization Analysis
 
 ```javascript
 // Gas comparison for different operations
@@ -983,7 +978,7 @@ const gasAnalysis = {
 };
 ```
 
-## 🔒 Security Best Practices
+## Security Best Practices
 
 1. **Always verify token ownership before listing**
 2. **Use reentrancy guards for critical functions**
@@ -991,18 +986,3 @@ const gasAnalysis = {
 4. **Validate token standards before operations**
 5. **Set reasonable expiration times for approvals**
 6. **Monitor for unusual approval patterns**
-
-## 📚 Additional Resources
-
-- [Multi-Token Support Concepts](/docs/concepts/multi-token-support.md)
-- [Multi-Token Integration Guide](/docs/guides/multi-token-integration.md)
-- [IMultiTokenPermit Interface](/docs/api/interfaces.md#imultitokenpermit)
-- [Gas Optimization Guide](/docs/guides/gas-optimization.md)
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Cross-Chain Example](/docs/examples/cross-chain-example.md) | [Examples](/docs/examples/README.md) | [Security Example](/docs/examples/security-example.md) |
-
-[🔝 Back to Top](#multi-token-example-top)

@@ -775,15 +775,3 @@ console.log("Types:", types);
 console.log("Value:", value);
 console.log("Signature:", signature);
 ```
-
-## Conclusion
-
-This integration example demonstrates how to build a complete Permit3 implementation with:
-
-- Frontend components for user interaction
-- Backend services for cross-chain coordination
-- Smart contract integration
-- Comprehensive testing
-- Best practices and troubleshooting
-
-The Unbalanced Merkle tree methodology using standard merkle proofs with OpenZeppelin's MerkleProof makes the system easy to understand, implement, and maintain while providing powerful functionality for cross-chain operations.

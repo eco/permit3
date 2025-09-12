@@ -1,19 +1,15 @@
 <a id="erc7702-integration-top"></a>
-# 🔗 ERC-7702 Token Approver Integration Guide
-
-###### Quick Navigation: [Overview](#overview) | [How ERC-7702 Works](#how-erc-7702-works) | [Usage Pattern](#usage-pattern) | [Security](#security-considerations) | [Integration](#integration-with-permit3)
-
-🧭 [Home](/docs/README.md) > [Guides](/docs/guides/README.md) > ERC-7702 Integration
+# ERC-7702 Token Approver Integration Guide
 
 <a id="overview"></a>
-## 📖 Overview
+## Overview
 
 The `ERC7702TokenApprover` contract is designed to work with ERC-7702 to enable EOAs (Externally Owned Accounts) to batch approve infinite allowances to the Permit3 contract AND execute permit operations in a single transaction.
 
 This integration provides a seamless user experience by leveraging Account Abstraction capabilities to eliminate both approval friction and signature requirements for permit operations.
 
 <a id="how-erc-7702-works"></a>
-## 🔧 How ERC-7702 Works
+##  How ERC-7702 Works
 
 ERC-7702 allows EOAs to temporarily set code for a single transaction by:
 1. **Authorization List**: Including an authorization list in the transaction
@@ -21,16 +17,16 @@ ERC-7702 allows EOAs to temporarily set code for a single transaction by:
 3. **Delegatecall Execution**: The EOA can then delegatecall to approved contract logic
 
 <a id="usage-pattern"></a>
-## 🚀 Usage Pattern
+##  Usage Pattern
 
-### 1. 🏗️ Deploy the ERC7702TokenApprover
+### 1.  Deploy the ERC7702TokenApprover
 
 ```solidity
 // Deploy with the Permit3 contract address
 ERC7702TokenApprover approver = new ERC7702TokenApprover(PERMIT3_ADDRESS);
 ```
 
-### 2. 🔗 Create ERC-7702 Transaction
+### 2.  Create ERC-7702 Transaction
 
 Users create an ERC-7702 transaction that:
 - **Authorizes delegation** to the `ERC7702TokenApprover` contract
@@ -38,7 +34,7 @@ Users create an ERC-7702 transaction that:
   - `approve(address[] tokens)` - Batch approve tokens
   - `permit(AllowanceOrTransfer[] memory permits)` - Execute permit operations
 
-### 3. ✅ Result
+### 3.  Result
 
 In a single transaction, the user can:
 - Set infinite allowances for all specified tokens to Permit3
@@ -46,9 +42,9 @@ In a single transaction, the user can:
 - All without requiring separate signatures or transactions
 
 <a id="contract-functions"></a>
-## 📋 Contract Functions
+##  Contract Functions
 
-### 🔑 Core Functions
+###  Core Functions
 
 #### Batch Token Approval
 ```solidity
@@ -82,16 +78,16 @@ Executes permit operations directly on Permit3 without requiring signatures.
 - No signature verification required (caller authority via ERC-7702)
 
 <a id="important-notes"></a>
-## ⚠️ Important Notes
+##  Important Notes
 
-### 🎯 ERC-7702 Only Design
+###  ERC-7702 Only Design
 
 This contract is **specifically designed for ERC-7702 delegatecalls**. When called directly:
 - `approve()`: Allowances are set for the contract itself, not the caller
 - `permit()`: Operations are executed with the contract as owner, not the caller
 - This is not useful behavior and should be avoided
 
-### 🔧 Modular Usage Patterns
+###  Modular Usage Patterns
 
 #### Option 1: Approval Only
 ```javascript
@@ -115,17 +111,17 @@ data: multicall([
 ```
 
 <a id="security-considerations"></a>
-### 🛡️ Security Considerations
+###  Security Considerations
 
-1. **♾️ Infinite Approvals**: The `approve()` function always sets infinite allowances
-2. **🔓 No Access Control**: Both functions are publicly callable (security comes from ERC-7702 authorization)
-3. **⚛️ Atomic Operations**: All operations succeed or the entire transaction reverts
-4. **🔄 Single Use**: Each ERC-7702 authorization is for one transaction only
-5. **🎯 Direct Authority**: `permit()` uses caller as token owner - no signature verification needed
-6. **🔗 Chain Validation**: `permit()` validates chain ID to prevent cross-chain replay attacks
+1. **Infinite Approvals**: The `approve()` function always sets infinite allowances
+2. **No Access Control**: Both functions are publicly callable (security comes from ERC-7702 authorization)
+3. **Atomic Operations**: All operations succeed or the entire transaction reverts
+4. **Single Use**: Each ERC-7702 authorization is for one transaction only
+5. **Direct Authority**: `permit()` uses caller as token owner - no signature verification needed
+6. **Chain Validation**: `permit()` validates chain ID to prevent cross-chain replay attacks
 
 <a id="example-transaction-structure"></a>
-## 🔗 Example ERC-7702 Transaction Structures
+## Example ERC-7702 Transaction Structures
 
 ### Basic Approval Transaction
 ```javascript
@@ -164,25 +160,25 @@ data: multicall([
 ```
 
 <a id="integration-with-permit3"></a>
-## 🔧 Integration with Permit3
+## Integration with Permit3
 
 This contract provides two integration levels with Permit3:
 
 ### Level 1: Setup Only (Approval)
 After using `approve()`, users can:
-1. **🌉 Cross-Chain Permits**: Use Permit3's standard permit functionality with signatures
-2. **🚀 Gasless Transfers**: Transfer tokens without additional approval transactions
-3. **⚡ Multi-Chain Operations**: Enjoy efficient token operations across multiple chains
+1. **Cross-Chain Permits**: Use Permit3's standard permit functionality with signatures
+2. **Gasless Transfers**: Transfer tokens without additional approval transactions
+3. **Multi-Chain Operations**: Enjoy efficient token operations across multiple chains
 
 ### Level 2: Complete Integration (Approval + Permit)
 Using both `approve()` and `permit()` enables:
-1. **🔐 Signature-Free Operations**: Execute permits without EIP-712 signatures
-2. **⚡ Single Transaction Setup**: Approve tokens AND execute operations in one transaction
-3. **🎯 Direct Execution**: Immediate permit operations without separate signing steps
-4. **💰 Gas Optimization**: Combine multiple operations to reduce total gas costs
+1. **Signature-Free Operations**: Execute permits without EIP-712 signatures
+2. **Single Transaction Setup**: Approve tokens AND execute operations in one transaction
+3. **Direct Execution**: Immediate permit operations without separate signing steps
+4. **Gas Optimization**: Combine multiple operations to reduce total gas costs
 
 <a id="error-handling"></a>
-## 🚨 Error Handling
+## Error Handling
 
 The contract includes specific error types:
 
@@ -196,26 +192,17 @@ The contract includes specific error types:
 - `AllowanceExpired(uint48 expiration)`: Permit operation on expired allowance
 
 <a id="gas-considerations"></a>
-## ⛽ Gas Considerations
+## Gas Considerations
 
 ### Approval Operations
-- **📈 Linear Scaling**: Gas cost scales linearly with number of tokens (~24k gas per token)
-- **🎯 Efficiency**: Batch processing is more efficient than individual approvals
+- **Linear Scaling**: Gas cost scales linearly with number of tokens (~24k gas per token)
+- **Efficiency**: Batch processing is more efficient than individual approvals
 
 ### Permit Operations  
-- **⚡ No Signature Overhead**: Eliminates gas costs for signature verification
-- **🔗 Direct Execution**: ~20-30k gas savings per permit operation vs signed permits
-- **📊 Operation Dependent**: Gas varies by permit type (transfer vs allowance modification)
+- **No Signature Overhead**: Eliminates gas costs for signature verification
+- **Direct Execution**: ~20-30k gas savings per permit operation vs signed permits
+- **Operation Dependent**: Gas varies by permit type (transfer vs allowance modification)
 
 ### Combined Operations
-- **💰 Transaction Overhead**: Single transaction overhead vs multiple transactions
-- **🎯 Optimal Pattern**: Approve + immediate permit usage in one transaction
-
----
-
-<a id="navigation-footer"></a>
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Security Best Practices](/docs/guides/security-best-practices.md) | [Guides](/docs/guides/README.md) | [Witness Integration](/docs/guides/witness-integration.md) |
-
-[🔝 Back to Top](#erc7702-integration-top)
+- **Transaction Overhead**: Single transaction overhead vs multiple transactions
+- **Optimal Pattern**: Approve + immediate permit usage in one transaction

@@ -531,9 +531,3 @@ async function generateUnusedSalt() {
 3. **Account Switching**: Clear cached signatures when users switch accounts
 4. **Chain Validation**: Always verify the chainId before submitting transactions
 5. **Signature Validation**: Verify signatures client-side before submitting to avoid wasting gas on invalid signatures
-
-## Conclusion
-
-This guide covers the essential aspects of creating and validating signatures for Permit3. By following these practices, you can securely implement signature-based token approvals in your application.
-
-For more complex examples and patterns, refer to the [Integration Example](../examples/integration-example.md) documentation.

@@ -1,18 +1,18 @@
-# 🔏 Permit3 Cross-Chain Example 🌉
+# Permit3 Cross-Chain Example 
 
 This example demonstrates how to use Permit3 to authorize token operations across multiple blockchains with a single signature.
 
-## 🎬 Scenario
+## Scenario
 
 Let's implement a cross-chain DeFi position where you want to:
 
-1. 💰 Provide 1000 USDC liquidity on Ethereum
-2. 📉 Decrease an existing allowance on Arbitrum by 500 USDC
-3. 🔒 Lock all token approvals on Optimism for security
+1. Provide 1000 USDC liquidity on Ethereum
+2. Decrease an existing allowance on Arbitrum by 500 USDC
+3. Lock all token approvals on Optimism for security
 
 All with a single signature.
 
-## 1️⃣ Step 1: Define Chain-Specific Permits
+## Step 1: Define Chain-Specific Permits
 
 First, define the operations for each chain:
 
@@ -51,7 +51,7 @@ const optimismPermits = {
 };
 ```
 
-## 2️⃣ Step 2: Generate Chain Hashes and Unbalanced Root
+## Step 2: Generate Chain Hashes and Unbalanced Root
 
 Generate the hash for each chain's permits, then combine them into the unbalanced root:
 
@@ -69,7 +69,7 @@ const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
 const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```
 
-## 3️⃣ Step 3: Create and Sign the Permit
+## Step 3: Create and Sign the Permit
 
 ```javascript
 // Create salt, deadline, and timestamp
@@ -108,7 +108,7 @@ const value = {
 const signature = await signer._signTypedData(domain, types, value);
 ```
 
-## 4️⃣ Step 4: Create Merkle Proofs for Each Chain
+## Step 4: Create Merkle Proofs for Each Chain
 
 For each chain, generate a merkle proof that demonstrates its permits are part of the signed root:
 
@@ -164,11 +164,11 @@ const optimismProof = {
 };
 ```
 
-## 5️⃣ Step 5: Execute on Each Chain
+## Step 5: Execute on Each Chain
 
 Final step is to submit the proof to each chain:
 
-### 🔷 Ethereum Implementation
+### Ethereum Implementation
 
 ```solidity
 // On Ethereum
@@ -187,7 +187,7 @@ await ethereumTx.wait();
 console.log("Ethereum transaction confirmed:", ethereumTx.hash);
 ```
 
-### 🔹 Arbitrum Implementation
+### Arbitrum Implementation
 
 ```solidity
 // On Arbitrum
@@ -206,7 +206,7 @@ await arbitrumTx.wait();
 console.log("Arbitrum transaction confirmed:", arbitrumTx.hash);
 ```
 
-### 🔴 Optimism Implementation
+### Optimism Implementation
 
 ```solidity
 // On Optimism
@@ -225,7 +225,7 @@ await optimismTx.wait();
 console.log("Optimism transaction confirmed:", optimismTx.hash);
 ```
 
-## 🔍 Verification Process
+## Verification Process
 
 When each chain receives its proof, the following verification happens under the hood:
 
@@ -247,7 +247,7 @@ When each chain receives its proof, the following verification happens under the
    - Locks USDC allowances
    - Emits Permit and NonceUsed events
 
-## 🔬 Advanced: Adding Balance Subtrees
+## Advanced: Adding Balance Subtrees
 
 For more complex cases with many operations per chain, you can use balanced Merkle trees for each chain:
 
@@ -282,14 +282,3 @@ const ethereumProof = {
     proof: completeTree.getProof(ethHash).map(p => '0x' + p.data.toString('hex'))
 };
 ```
-
-## 🎯 Conclusion
-
-This example demonstrates how Permit3 enables cross-chain operations with a single signature. The key advantages are:
-
-1. 🛡️ **Security**: One signature controls operations across all chains
-2. ⚡ **Gas Efficiency**: Each chain only needs to verify what's relevant to it
-3. 🔄 **Flexibility**: Supports different operation types on each chain
-4. 🧩 **Composability**: Works with any ERC20 token and spender contract
-
-By using the Unbalanced Merkle tree methodology with standard merkle proofs, the system maintains security while minimizing gas costs for cross-chain verification.
