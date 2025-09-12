@@ -1,11 +1,9 @@
 <a id="data-structures-top"></a>
-# 🔏 Permit3 Data Structures 📋
+# Permit3 Data Structures 
 
-🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Data Structures
 
 This document provides a detailed reference of all data structures used in Permit3.
 
-###### Navigation: [Core Structures](#core-data-structures) | [Merkle Tree Methodology](#merkle-tree-methodology) | [Relations](#relations-between-structures) | [Gas Optimization](#gas-optimization-note)
 
 <a id="core-data-structures"></a>
 ## Core Data Structures
