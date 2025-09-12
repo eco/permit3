@@ -1,14 +1,10 @@
 <a id="unbalanced-merkle-tree-top"></a>
-# 🔏 Permit3: Unbalanced Merkle Trees 🌲
-
-🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Unbalanced Merkle Trees
+# Permit3: Unbalanced Merkle Trees
 
 The Unbalanced Merkle Tree methodology is a key approach used in Permit3 that enables efficient cross-chain proofs. This document explains what they are, how they work, and how they're implemented within the Permit3 system.
 
-###### Navigation: [What Are They](#what-are-unbalanced-merkle-trees) | [Why "Unbalanced"](#why-unbalanced) | [Key Structure](#key-structure-strategic-unbalancing) | [How It Works](#how-it-works) | [Cross-Chain Use](#applied-to-cross-chain-use-cases) | [Gas Optimization](#gas-optimization-through-chain-ordering) | [Proof Structure](#proof-structure) | [Verification](#verification-process) | [Implementation](#implementation-in-permit3) | [Example](#example-cross-chain-permit-with-unbalanced-merkle-tree) | [Benefits](#benefits-of-unbalanced-merkle-trees) | [Applications](#applications-beyond-permit3) | [Comparison](#comparison-with-other-approaches) | [Conclusion](#conclusion)
-
 <a id="what-are-unbalanced-merkle-trees"></a>
-## 🤔 What are Unbalanced Merkle Trees?
+## What are Unbalanced Merkle Trees?
 
 The Unbalanced Merkle Tree methodology is an approach for structuring merkle trees that strategically unbalances the tree to optimize gas costs across different chains. 
 
@@ -19,7 +15,7 @@ The key insight is **strategic gas optimization**:
 Uses merkle tree verification for security and compatibility.
 
 <a id="why-unbalanced"></a>
-## 🏷️ Why "Unbalanced"?
+## Why "Unbalanced"?
 
 The name "Unbalanced" reflects the deliberate breaking away from creating separate, isolated merkle trees for each chain. Instead of traditional separate trees per chain, the methodology creates a single "unbalanced" tree that spans multiple chains.
 
@@ -30,7 +26,7 @@ The tree is strategically unbalanced to optimize gas costs:
 This creates a more gas-efficient structure for cross-chain operations while using standard merkle tree verification.
 
 <a id="key-structure-strategic-unbalancing"></a>
-## 🧩 Key Structure: Strategic Unbalancing for Gas Optimization
+## Key Structure: Strategic Unbalancing for Gas Optimization
 
 The foundation of the Unbalanced Merkle Tree methodology is strategic operation ordering:
 
@@ -46,13 +42,13 @@ The foundation of the Unbalanced Merkle Tree methodology is strategic operation 
 
 ### Strategic Positioning:
 
-1. 🔽 **High-Cost Chains (e.g., Ethereum mainnet)**:
+1. **High-Cost Chains (e.g., Ethereum mainnet)**:
    - Positioned closer to the root
    - Require fewer proof elements (shorter paths)
    - Minimize calldata costs where gas is expensive
    - Example: Mainnet operations might need only 2-3 proof elements
    
-2. 🔼 **Low-Cost Chains (e.g., L2s, sidechains)**:
+2. **Low-Cost Chains (e.g., L2s, sidechains)**:
    - Can be positioned deeper in the tree
    - Longer proofs are acceptable due to cheaper gas
    - Example: L2 operations might have 5-6 proof elements without significant cost impact
@@ -304,22 +300,3 @@ Unbalanced Merkle Trees have applications beyond token approvals:
 | **Unbalanced Merkle Trees** | Hybrid design + standard security | None - best of both worlds |
 
 <a id="conclusion"></a>
-## Conclusion
-
-The Unbalanced Merkle Tree methodology represents a breakthrough for cross-chain proof systems. The strategic unbalancing approach—positioning expensive chains closer to the root for smaller proofs—provides the foundation for gas-optimal cross-chain operations.
-
-Provides security and compatibility benefits through merkle tree verification.
-
-Key advantages:
-- **Design Innovation**: Strategic unbalancing optimized for cross-chain gas costs
-- **Security**: Battle-tested merkle tree verification using standard libraries
-- **Gas Optimization**: Expensive chains get smaller proofs through strategic positioning
-- **Simplicity**: Uses standard merkle proof verification (OpenZeppelin's MerkleProof)
-
-This approach enables a future where users can seamlessly authorize operations across the entire blockchain ecosystem with a single signature, while maintaining security through proven cryptographic primitives and the flexibility to implement advanced optimizations as the ecosystem evolves.
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Nonce Management](/docs/concepts/nonce-management.md) | [Concepts](/docs/concepts/README.md) | [Witness Functionality](/docs/concepts/witness-functionality.md) |

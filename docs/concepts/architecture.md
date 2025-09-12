@@ -1,54 +1,50 @@
 <a id="architecture-top"></a>
-# 🔏 Permit3 Architecture 🏛️
-
-🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Architecture
+# Permit3 Architecture
 
 This document provides a comprehensive overview of the Permit3 architecture, explaining how its components work together to enable cross-chain token approvals and transfers.
 
-###### Navigation: [Overview](#overview) | [Core Components](#core-components) | [Inheritance Structure](#contract-inheritance-structure) | [Data Structures](#key-data-structures) | [Operations](#core-operations) | [Cross-Chain](#cross-chain-mechanism) | [Security](#security-features) | [Gas Optimization](#gas-optimization) | [Integration](#integration-with-external-systems) | [Audits](#security-audits) | [Conclusion](#conclusion)
-
 <a id="overview"></a>
-## 🔍 Overview
+## Overview
 
 Permit3 is a cross-chain token approval and transfer system that extends the functionality of Permit2 with advanced features:
 
-1. 🌉 **Cross-Chain Operations**: Execute approvals and transfers across multiple blockchains with a single signature
-2. 🔢 **Non-Sequential Nonces**: Enable concurrent operations and optimize gas usage
-3. 🔄 **Flexible Allowance Management**: Support time-bound permissions with various operation modes
-4. 🧩 **Witness Functionality**: Attach arbitrary data to permits for enhanced verification
-5. 🔏 **EIP-712 Typed Signatures**: Secure signature verification with structured data
+1.  **Cross-Chain Operations**: Execute approvals and transfers across multiple blockchains with a single signature
+2.  **Non-Sequential Nonces**: Enable concurrent operations and optimize gas usage
+3.  **Flexible Allowance Management**: Support time-bound permissions with various operation modes
+4.  **Witness Functionality**: Attach arbitrary data to permits for enhanced verification
+5.  **EIP-712 Typed Signatures**: Secure signature verification with structured data
 
 <a id="core-components"></a>
-## 🧱 Core Components
+## Core Components
 
 The Permit3 system consists of three main components:
 
-### 1️⃣  Permit3 Contract
+### Permit3 Contract
 
 The main contract that inherits from PermitBase and NonceManager, implementing the core functionality:
 
-- 📝 Processes permit signatures for approvals and transfers
-- ✅ Verifies EIP-712 signatures with standard and witness data
-- 🔗 Handles cross-chain operations through hash chaining
-- 🧩 Implements witness functionality for custom data verification
+- Processes permit signatures for approvals and transfers
+- Verifies EIP-712 signatures with standard and witness data
+- Handles cross-chain operations through hash chaining
+- Implements witness functionality for custom data verification
 
-### 2️⃣  PermitBase Contract
+### PermitBase Contract
 
 Manages token approvals and transfers:
 
-- 📊 Tracks allowances with amounts and expiration times
-- 💸 Handles token transfers through approvals
-- 🔀 Implements allowance modes (increase, decrease, lock, unlock)
-- 🔒 Provides emergency account locking functionality
+- Tracks allowances with amounts and expiration times
+- Handles token transfers through approvals
+- Implements allowance modes (increase, decrease, lock, unlock)
+- Provides emergency account locking functionality
 
-### 3️⃣  NonceManager Contract
+### NonceManager Contract
 
 Handles nonce management for replay protection:
 
-- 🧮 Uses non-sequential nonces for gas efficiency
-- 🌐 Supports cross-chain nonce invalidation
-- 🧂 Implements salt-based signature replay protection
-- 🏷️ Provides domain separation for EIP-712 signatures
+- Uses non-sequential nonces for gas efficiency
+- Supports cross-chain nonce invalidation
+- Implements salt-based signature replay protection
+- Provides domain separation for EIP-712 signatures
 
 <a id="contract-inheritance-structure"></a>
 ## Contract Inheritance Structure
@@ -336,28 +332,3 @@ Permit3 is designed for seamless integration:
    - Clear interfaces for external contracts
    - Witness functionality for custom verification
    - Support for complex integration patterns
-
-<a id="security-audits"></a>
-## Security Audits
-
-Permit3 has undergone comprehensive security audits by leading blockchain security firms to ensure that the protocol is robust and secure. The audits focused on key aspects of the protocol including:
-
-1. **Smart Contract Security**: Identifying potential vulnerabilities in the contract code
-2. **Cross-Chain Security**: Validating the security of cross-chain operation mechanisms
-3. **Cryptographic Verification**: Ensuring the correct implementation of signature schemes and hash functions
-4. **Gas Optimization**: Verifying that gas optimizations don't compromise security
-
-To review the complete audit reports, visit the [security documentation](/docs/security/audit-reports.md).
-
-<a id="conclusion"></a>
-## Conclusion
-
-The Permit3 architecture provides a flexible, secure, and gas-efficient system for cross-chain token approvals and transfers. By extending Permit2 with advanced features like witness functionality and non-sequential nonces, it enables new use cases while maintaining backward compatibility.
-
-The modular design with separate components for allowance management, nonce handling, and core functionality creates a clean architecture that can be extended and maintained efficiently.
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Allowance System](/docs/concepts/allowance-system.md) | [Concepts](/docs/concepts/README.md) | [Cross-Chain Operations](/docs/concepts/cross-chain-operations.md) |
