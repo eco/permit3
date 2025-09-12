@@ -55,7 +55,6 @@ Learn about the core concepts that power Permit3's functionality:
 - [**Unbalanced Merkle Trees**](./concepts/unbalanced-merkle-tree.md) - Deep dive into the cryptographic structure for efficient cross-chain proofs
 - [**Nonce Management**](./concepts/nonce-management.md) - Understanding non-sequential nonces for replay protection
 - [**Allowance System**](./concepts/allowance-system.md) - Comprehensive guide to Permit3's flexible allowance mechanisms
-- [**Operation Modes**](./concepts/operation-modes.md)- Understanding different operation modes
 - [**Permit2 Compatiblity**](./concepts/permit2-compatibility.md) - How permit3 drops-in with existing permit2 integrations
 
 [View all concepts →](./concepts/README.md)
