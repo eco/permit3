@@ -345,7 +345,7 @@ contract Permit3Test is TestBase {
         bytes32 invalidTokenKey = keccak256(abi.encodePacked(address(token), uint256(123))); // NFT-style key
 
         permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(IPermit3.PermitType.Transfer), // Transfer mode
+            modeOrExpiration: uint48(IPermit3.PermitType.TransferERC20), // Transfer ERC20 mode
             tokenKey: invalidTokenKey, // Invalid for transfer - has data in upper bits
             account: recipient,
             amountDelta: AMOUNT

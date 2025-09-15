@@ -423,7 +423,7 @@ async function batchNFTTransferWithPermit(
 ) {
     // Create permits for batch transfer
     const permits = nfts.map(nft => ({
-        modeOrExpiration: 0,  // 0 = immediate transfer mode
+        modeOrExpiration: 0,  // 0 = immediate ERC20 transfer mode
         token: encodeTokenId(nft.contract, nft.tokenId),
         account: nft.recipient,
         amountDelta: 1

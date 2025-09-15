@@ -321,7 +321,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      * @param timestamp Block timestamp for validation and allowance updates
      * @param chainPermits Bundle of permit operations to process on the current chain
      * @notice Handles multiple types of operations based on modeOrExpiration value:
-     *         - 0: Immediate transfer mode - transfers tokens directly without approval
+     *         - 0: Immediate ERC20 transfer mode - transfers ERC20 tokens directly without approval
      *         - 1: Decrease allowance mode - reduces existing allowance by specified amount
      *         - 2: Lock allowance mode - sets allowance to locked state preventing usage
      *         - 3: Unlock allowance mode - removes lock from previously locked allowance
@@ -333,7 +333,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
         for (uint256 i = 0; i < permitsLength; i++) {
             AllowanceOrTransfer memory p = chainPermits.permits[i];
 
-            if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
+            if (p.modeOrExpiration == uint48(PermitType.TransferERC20)) {
                 // Extract address from tokenKey for transfer
                 require(uint256(p.tokenKey) >> 160 == 0, InvalidTokenKeyForTransfer());
 

@@ -37,14 +37,14 @@ struct AllowanceOrTransfer {
 
 The system supports five distinct operations based on the `modeOrExpiration` value:
 
-### 1. Transfer Mode (0)
+### 1. TransferERC20 Mode (0)
 
-Executes an immediate token transfer without changing allowances.
+Executes an immediate ERC20 token transfer without changing allowances.
 
 ```solidity
 // Example: Transfer 100 USDC to recipient
 {
-    modeOrExpiration: 0,             // Transfer mode
+    modeOrExpiration: 0,             // TransferERC20 mode
     token: USDC_ADDRESS,              // Token to transfer
     account: RECIPIENT_ADDRESS,       // Transfer recipient
     amountDelta: 100000000            // 100 USDC (with 6 decimals)

@@ -199,7 +199,7 @@ async function createAndSignOrder(
     const chainPermits = {
         chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
-            modeOrExpiration: 0, // Transfer mode
+            modeOrExpiration: 0, // TransferERC20 mode
             token: order.tokenIn,
             account: orderBookAddress,
             amountDelta: order.amountIn
@@ -594,7 +594,7 @@ async function createAndSignMultiSigOrder(
     const chainPermits = {
         chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
-            modeOrExpiration: 0, // Transfer mode
+            modeOrExpiration: 0, // TransferERC20 mode
             token: order.tokenIn,
             account: orderBookAddress,
             amountDelta: order.amountIn
