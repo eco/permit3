@@ -1052,10 +1052,6 @@ contract MultiTokenPermitTest is TestBase {
             nftOwner, address(nftToken), spenderAddress, tokenId, amount, expiration
         );
 
-        // Also expect the standard Approval event for backward compatibility
-        vm.expectEmit(true, true, true, true);
-        emit IPermit.Approval(nftOwner, address(nftToken), spenderAddress, amount, expiration);
-
         vm.prank(nftOwner);
         permit3.approve(address(nftToken), spenderAddress, tokenId, amount, expiration);
 

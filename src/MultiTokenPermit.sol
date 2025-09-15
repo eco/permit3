@@ -59,11 +59,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         allowances[msg.sender][tokenKey][spender] =
             Allowance({ amount: amount, expiration: expiration, timestamp: uint48(block.timestamp) });
 
-        // Emit the new event with tokenId for better transparency
+        // Emit event with tokenId for better transparency
         emit ApprovalWithTokenId(msg.sender, token, spender, tokenId, amount, expiration);
-
-        // Also emit standard approval event for backward compatibility
-        emit Approval(msg.sender, token, spender, amount, expiration);
     }
 
     /**
