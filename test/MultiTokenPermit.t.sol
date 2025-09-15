@@ -321,7 +321,9 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer
         vm.prank(spenderAddress);
-        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
+        permit3.transferFromERC1155(
+            multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2
+        );
 
         // Verify transfer
         assertEq(multiToken.balanceOf(recipientAddress, TOKEN_ID_1), ERC1155_AMOUNT_2);
@@ -337,7 +339,9 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer
         vm.prank(spenderAddress);
-        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
+        permit3.transferFromERC1155(
+            multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2
+        );
 
         // Verify transfer
         assertEq(multiToken.balanceOf(recipientAddress, TOKEN_ID_1), ERC1155_AMOUNT_2);
@@ -354,7 +358,9 @@ contract MultiTokenPermitTest is TestBase {
         // Should revert with insufficient allowance
         vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, ERC1155_AMOUNT_2, 0));
         vm.prank(spenderAddress);
-        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
+        permit3.transferFromERC1155(
+            multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2
+        );
     }
 
     function test_transferFromERC1155_batchTransfer() public {
@@ -1043,18 +1049,13 @@ contract MultiTokenPermitTest is TestBase {
         // Test ERC721 approval (amount = 1)
         vm.expectEmit(true, true, true, true);
         emit IMultiTokenPermit.ApprovalWithTokenId(
-            nftOwner,
-            address(nftToken),
-            spenderAddress,
-            tokenId,
-            amount,
-            expiration
+            nftOwner, address(nftToken), spenderAddress, tokenId, amount, expiration
         );
-        
+
         // Also expect the standard Approval event for backward compatibility
         vm.expectEmit(true, true, true, true);
         emit IPermit.Approval(nftOwner, address(nftToken), spenderAddress, amount, expiration);
-        
+
         vm.prank(nftOwner);
         permit3.approve(address(nftToken), spenderAddress, tokenId, amount, expiration);
 
@@ -1062,14 +1063,9 @@ contract MultiTokenPermitTest is TestBase {
         uint160 erc1155Amount = 100;
         vm.expectEmit(true, true, true, true);
         emit IMultiTokenPermit.ApprovalWithTokenId(
-            multiTokenOwner,
-            address(multiToken),
-            spenderAddress,
-            tokenId,
-            erc1155Amount,
-            expiration
+            multiTokenOwner, address(multiToken), spenderAddress, tokenId, erc1155Amount, expiration
         );
-        
+
         vm.prank(multiTokenOwner);
         permit3.approve(address(multiToken), spenderAddress, tokenId, erc1155Amount, expiration);
     }
@@ -1085,17 +1081,12 @@ contract MultiTokenPermitTest is TestBase {
 
         vm.expectEmit(true, true, true, true);
         emit IMultiTokenPermit.ApprovalWithTokenId(
-            nftOwner,
-            address(nftToken),
-            spenderAddress,
-            collectionTokenId,
-            amount,
-            expiration
+            nftOwner, address(nftToken), spenderAddress, collectionTokenId, amount, expiration
         );
-        
+
         vm.prank(nftOwner);
         permit3.approve(address(nftToken), spenderAddress, collectionTokenId, amount, expiration);
-        
+
         // Verify the approval was set correctly
         (uint160 approvedAmount,,) = permit3.allowance(nftOwner, address(nftToken), spenderAddress, collectionTokenId);
         assertEq(approvedAmount, amount);

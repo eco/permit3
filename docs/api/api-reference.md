@@ -701,7 +701,7 @@ permit3.permitWitness(
 
 | Mode Value | Operation Type | Description |
 |------------|----------------|-------------|
-| 0 | Transfer | Immediate token transfer to recipient |
+| 0 | TransferERC20 | Immediate ERC20 token transfer to recipient |
 | 1 | Decrease | Reduce existing allowance |
 | 2 | Lock | Lock allowance for security |
 | 3 | Unlock | Unlock previously locked allowance |

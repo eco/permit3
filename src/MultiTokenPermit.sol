@@ -61,7 +61,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
         // Emit the new event with tokenId for better transparency
         emit ApprovalWithTokenId(msg.sender, token, spender, tokenId, amount, expiration);
-        
+
         // Also emit standard approval event for backward compatibility
         emit Approval(msg.sender, token, spender, amount, expiration);
     }
@@ -95,7 +95,13 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param tokenId The specific ERC1155 token ID to transfer
      * @param amount Number of tokens to transfer
      */
-    function transferFromERC1155(address from, address to, address token, uint256 tokenId, uint160 amount) public override {
+    function transferFromERC1155(
+        address from,
+        address to,
+        address token,
+        uint256 tokenId,
+        uint160 amount
+    ) public override {
         // Check and update dual-allowance
         _updateDualAllowance(from, token, tokenId, amount);
 
