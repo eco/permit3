@@ -405,7 +405,7 @@ async function executeMarketplaceSale(
     );
     
     // 2. Transfer NFT from seller to buyer
-    await permit3.transferFrom(
+    await permit3.transferFromERC721(
         permitData.owner,  // from (seller)
         buyer,             // to
         nftContract,
@@ -526,8 +526,8 @@ When you encode an NFT as `keccak256(contract + tokenId)`:
 // ❌ WRONG: Cannot use standard transferFrom for NFTs
 await permit3.transferFrom(from, to, amount, encodedTokenId);
 
-// ✅ CORRECT: Use MultiTokenPermit functions
-await permit3['transferFrom(address,address,address,uint256)'](
+// ✅ CORRECT: Use explicit NFT transfer function
+await permit3.transferFromERC721(
     from, to, nftContract, tokenId
 );
 ```

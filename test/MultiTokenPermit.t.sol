@@ -232,7 +232,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer
         vm.prank(spenderAddress);
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
 
         // Verify transfer
         assertEq(nftToken.ownerOf(TOKEN_ID_1), recipientAddress);
@@ -247,7 +247,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer
         vm.prank(spenderAddress);
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
 
         // Verify transfer
         assertEq(nftToken.ownerOf(TOKEN_ID_1), recipientAddress);
@@ -257,7 +257,7 @@ contract MultiTokenPermitTest is TestBase {
         // No allowance set - should revert
         vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, 1, 0));
         vm.prank(spenderAddress);
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
     }
 
     function test_transferFromERC721_expiredAllowance() public {
@@ -292,7 +292,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute batch transfer
         vm.prank(spenderAddress);
-        permit3.transferFrom(transfers);
+        permit3.batchTransferERC721(transfers);
 
         // Verify all transfers
         for (uint256 i = 0; i < 3; i++) {
@@ -305,7 +305,7 @@ contract MultiTokenPermitTest is TestBase {
 
         vm.expectRevert(IPermit.EmptyArray.selector);
         vm.prank(spenderAddress);
-        permit3.transferFrom(transfers);
+        permit3.batchTransferERC721(transfers);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -321,7 +321,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer
         vm.prank(spenderAddress);
-        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
+        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
 
         // Verify transfer
         assertEq(multiToken.balanceOf(recipientAddress, TOKEN_ID_1), ERC1155_AMOUNT_2);
@@ -337,7 +337,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer
         vm.prank(spenderAddress);
-        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
+        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
 
         // Verify transfer
         assertEq(multiToken.balanceOf(recipientAddress, TOKEN_ID_1), ERC1155_AMOUNT_2);
@@ -354,7 +354,7 @@ contract MultiTokenPermitTest is TestBase {
         // Should revert with insufficient allowance
         vm.expectRevert(abi.encodeWithSelector(IPermit.InsufficientAllowance.selector, ERC1155_AMOUNT_2, 0));
         vm.prank(spenderAddress);
-        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
+        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, ERC1155_AMOUNT_2);
     }
 
     function test_transferFromERC1155_batchTransfer() public {
@@ -381,7 +381,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute batch transfer
         vm.prank(spenderAddress);
-        permit3.transferFrom(transfers);
+        permit3.batchTransferERC1155(transfers);
 
         // Verify all transfers
         for (uint256 i = 1; i <= 3; i++) {
@@ -395,7 +395,7 @@ contract MultiTokenPermitTest is TestBase {
 
         vm.expectRevert(IPermit.EmptyArray.selector);
         vm.prank(spenderAddress);
-        permit3.transferFrom(transfers);
+        permit3.batchTransferERC1155(transfers);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -428,7 +428,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute batch transfer
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(batchTransfer);
+        permit3.batchTransferERC1155(batchTransfer);
 
         // Verify all transfers
         for (uint256 i = 0; i < 3; i++) {
@@ -451,7 +451,7 @@ contract MultiTokenPermitTest is TestBase {
 
         vm.expectRevert(IPermit.EmptyArray.selector);
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(batchTransfer);
+        permit3.batchTransferERC1155(batchTransfer);
     }
 
     function test_batchTransferFrom_mismatchedArrays() public {
@@ -468,7 +468,7 @@ contract MultiTokenPermitTest is TestBase {
 
         vm.expectRevert(IMultiTokenPermit.InvalidArrayLength.selector);
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(batchTransfer);
+        permit3.batchTransferERC1155(batchTransfer);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -531,7 +531,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute mixed batch transfer
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(transfers);
+        permit3.batchTransferMultiToken(transfers);
 
         // Verify all transfers
         assertEq(token.balanceOf(recipient), AMOUNT);
@@ -544,7 +544,7 @@ contract MultiTokenPermitTest is TestBase {
 
         vm.expectRevert(IPermit.EmptyArray.selector);
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(transfers);
+        permit3.batchTransferMultiToken(transfers);
     }
 
     function test_batchTransferFrom_ERC721_invalidAmount() public {
@@ -569,19 +569,19 @@ contract MultiTokenPermitTest is TestBase {
         // Should revert with InvalidAmount
         vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, 2));
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(transfers);
+        permit3.batchTransferMultiToken(transfers);
 
         // Test with amount = 0
         transfers[0].transfer.amount = 0;
         vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, 0));
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(transfers);
+        permit3.batchTransferMultiToken(transfers);
 
         // Test with max amount
         transfers[0].transfer.amount = type(uint160).max;
         vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, type(uint160).max));
         vm.prank(spenderAddress);
-        permit3.batchTransferFrom(transfers);
+        permit3.batchTransferMultiToken(transfers);
     }
 
     // Note: This test would fail compilation due to the enum casting issue in MultiTokenPermit.sol
@@ -622,7 +622,7 @@ contract MultiTokenPermitTest is TestBase {
         // Should revert when trying to transfer non-existent token
         vm.expectRevert(); // ERC721 will revert with owner query for nonexistent token
         vm.prank(spenderAddress);
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), nonexistentTokenId);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), nonexistentTokenId);
     }
 
     function test_transferFrom_zeroAmount() public {
@@ -636,7 +636,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer with zero amount (should succeed but no change)
         vm.prank(spenderAddress);
-        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, 0);
+        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), TOKEN_ID_1, 0);
 
         // Verify no change in balance
         assertEq(multiToken.balanceOf(recipientAddress, TOKEN_ID_1), initialBalance);
@@ -664,7 +664,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Transfer should use per-token allowance
         vm.prank(spenderAddress);
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), TOKEN_ID_1);
 
         assertEq(nftToken.ownerOf(TOKEN_ID_1), recipientAddress);
     }
@@ -690,7 +690,7 @@ contract MultiTokenPermitTest is TestBase {
         for (uint256 i = 0; i < numTokens; i++) {
             uint256 gasBeforeIndividual = gasleft();
             vm.prank(spenderAddress);
-            permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), tokenIds[i]);
+            permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), tokenIds[i]);
             gasUsedIndividual += gasBeforeIndividual - gasleft();
         }
 
@@ -716,7 +716,7 @@ contract MultiTokenPermitTest is TestBase {
         // Measure gas for batch transfer
         uint256 gasBefore = gasleft();
         vm.prank(spenderAddress);
-        permit3.transferFrom(transfers);
+        permit3.batchTransferERC721(transfers);
         uint256 gasUsedBatch = gasBefore - gasleft();
 
         // Batch should be more efficient (though this depends on specific implementation)
@@ -853,7 +853,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Verify the spender can transfer the specific token
         vm.prank(spenderAddress);
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), tokenId);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), tokenId);
         assertEq(nftToken.ownerOf(tokenId), recipientAddress);
 
         // Mint a new token for the next test
@@ -878,7 +878,7 @@ contract MultiTokenPermitTest is TestBase {
                 IMultiTokenPermit.CollectionLocked.selector, nftOwner, address(nftToken), spenderAddress
             )
         );
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), newTokenId);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), newTokenId);
     }
 
     /**
@@ -904,7 +904,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Verify the spender can transfer the specific token
         vm.prank(spenderAddress);
-        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), tokenId, 25);
+        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), tokenId, 25);
         assertEq(multiToken.balanceOf(recipientAddress, tokenId), 25);
 
         // Now lockdown the collection
@@ -921,7 +921,7 @@ contract MultiTokenPermitTest is TestBase {
                 IMultiTokenPermit.CollectionLocked.selector, multiTokenOwner, address(multiToken), spenderAddress
             )
         );
-        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), tokenId, 25);
+        permit3.transferFromERC1155(multiTokenOwner, recipientAddress, address(multiToken), tokenId, 25);
     }
 
     /**
@@ -964,7 +964,7 @@ contract MultiTokenPermitTest is TestBase {
                 IMultiTokenPermit.CollectionLocked.selector, nftOwner, address(nftToken), spenderAddress
             )
         );
-        permit3.transferFrom(transfers);
+        permit3.batchTransferERC721(transfers);
     }
 
     /**
@@ -989,7 +989,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Execute transfer of token with max tokenId
         vm.prank(spenderAddress);
-        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), maxTokenId);
+        permit3.transferFromERC721(nftOwner, recipientAddress, address(nftToken), maxTokenId);
 
         // Verify transfer succeeded
         assertEq(nftToken.ownerOf(maxTokenId), recipientAddress);

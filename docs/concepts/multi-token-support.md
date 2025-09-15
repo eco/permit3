@@ -130,12 +130,12 @@ MultiTokenPermit supports efficient batch operations for handling multiple token
 
 #### 1. Multiple ERC721 Transfers
 ```solidity
-ERC721TransferDetails[] memory transfers = new ERC721TransferDetails[](3);
-transfers[0] = ERC721TransferDetails(owner, recipient, tokenId1, nftContract);
-transfers[1] = ERC721TransferDetails(owner, recipient, tokenId2, nftContract);
-transfers[2] = ERC721TransferDetails(owner, recipient, tokenId3, nftContract);
+ERC721Transfer[] memory transfers = new ERC721Transfer[](3);
+transfers[0] = ERC721Transfer(owner, recipient, tokenId1, nftContract);
+transfers[1] = ERC721Transfer(owner, recipient, tokenId2, nftContract);
+transfers[2] = ERC721Transfer(owner, recipient, tokenId3, nftContract);
 
-permit3.transferFrom(transfers);
+permit3.batchTransferERC721(transfers);
 ```
 
 #### 2. ERC1155 Batch Transfer
@@ -143,8 +143,8 @@ permit3.transferFrom(transfers);
 uint256[] memory tokenIds = [1, 2, 3];
 uint256[] memory amounts = [100, 50, 25];
 
-ERC1155BatchTransferDetails memory batchTransfer = 
-    ERC1155BatchTransferDetails(
+ERC1155BatchTransfer memory batchTransfer = 
+    ERC1155BatchTransfer(
         owner,
         recipient, 
         tokenIds,
@@ -152,7 +152,7 @@ ERC1155BatchTransferDetails memory batchTransfer =
         erc1155Contract
     );
 
-permit3.batchTransferFrom(batchTransfer);
+permit3.batchTransferERC1155(batchTransfer);
 ```
 
 #### 3. Mixed Token Types
@@ -162,22 +162,22 @@ TokenTypeTransfer[] memory mixedTransfers = new TokenTypeTransfer[](3);
 // Add an ERC20 transfer
 mixedTransfers[0] = TokenTypeTransfer(
     TokenStandard.ERC20,
-    MultiTokenTransfer(owner, recipient, usdcContract, 0, amount)
+    TokenTransfer(owner, recipient, usdcContract, 0, amount)
 );
 
 // Add an ERC721 transfer
 mixedTransfers[1] = TokenTypeTransfer(
     TokenStandard.ERC721,
-    MultiTokenTransfer(owner, recipient, nftContract, tokenId, 1)
+    TokenTransfer(owner, recipient, nftContract, tokenId, 1)
 );
 
 // Add an ERC1155 transfer
 mixedTransfers[2] = TokenTypeTransfer(
     TokenStandard.ERC1155,
-    MultiTokenTransfer(owner, recipient, sftContract, tokenId, amount)
+    TokenTransfer(owner, recipient, sftContract, tokenId, amount)
 );
 
-permit3.batchTransferFrom(mixedTransfers);
+permit3.batchTransferMultiToken(mixedTransfers);
 ```
 
 ### Gas Optimization Benefits
@@ -226,7 +226,7 @@ permit3.batchTransferFrom(mixedTransfers);
 
 ```solidity
 // Unified transfer structure for any token type
-struct MultiTokenTransfer {
+struct TokenTransfer {
     address from;        // Token owner
     address to;          // Recipient
     address token;       // Token contract
@@ -235,7 +235,7 @@ struct MultiTokenTransfer {
 }
 
 // ERC721-specific transfer
-struct ERC721TransferDetails {
+struct ERC721Transfer {
     address from;
     address to;
     uint256 tokenId;
@@ -243,7 +243,7 @@ struct ERC721TransferDetails {
 }
 
 // ERC1155 batch transfer
-struct ERC1155BatchTransferDetails {
+struct ERC1155BatchTransfer {
     address from;
     address to;
     uint256[] tokenIds;

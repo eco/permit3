@@ -15,17 +15,6 @@ import { PermitBase } from "./PermitBase.sol";
  */
 abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
     /**
-     * @dev Internal helper to get the storage key for a token/tokenId pair
-     * @param token Token contract address
-     * @param tokenId Token ID (specific ID for NFT/ERC1155)
-     * @return Storage key for allowance mapping
-     */
-    function _getTokenKey(address token, uint256 tokenId) internal pure returns (bytes32) {
-        // Hash token and tokenId together to ensure unique keys
-        return keccak256(abi.encodePacked(token, tokenId));
-    }
-
-    /**
      * @notice Query multi-token allowance for a specific token ID
      * @param owner Token owner
      * @param token Token contract address
@@ -84,7 +73,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param token ERC721 contract address
      * @param tokenId The unique NFT token ID to transfer
      */
-    function transferFrom(address from, address to, address token, uint256 tokenId) public override {
+    function transferFromERC721(address from, address to, address token, uint256 tokenId) public override {
         // Check and update dual-allowance
         _updateDualAllowance(from, token, tokenId, 1);
 
@@ -103,7 +92,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param tokenId The specific ERC1155 token ID to transfer
      * @param amount Number of tokens to transfer
      */
-    function transferFrom(address from, address to, address token, uint256 tokenId, uint160 amount) public override {
+    function transferFromERC1155(address from, address to, address token, uint256 tokenId, uint160 amount) public override {
         // Check and update dual-allowance
         _updateDualAllowance(from, token, tokenId, amount);
 
@@ -116,7 +105,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Each transfer uses the dual-allowance system independently
      * @param transfers Array of ERC721 transfer instructions
      */
-    function transferFrom(
+    function batchTransferERC721(
         ERC721Transfer[] calldata transfers
     ) external override {
         uint256 transfersLength = transfers.length;
@@ -125,7 +114,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         }
 
         for (uint256 i = 0; i < transfersLength; i++) {
-            transferFrom(transfers[i].from, transfers[i].to, transfers[i].token, transfers[i].tokenId);
+            transferFromERC721(transfers[i].from, transfers[i].to, transfers[i].token, transfers[i].tokenId);
         }
     }
 
@@ -134,7 +123,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Each transfer uses the dual-allowance system independently
      * @param transfers Array of multi-token transfer instructions
      */
-    function transferFrom(
+    function batchTransferERC1155(
         TokenTransfer[] calldata transfers
     ) external override {
         uint256 transfersLength = transfers.length;
@@ -143,7 +132,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         }
 
         for (uint256 i = 0; i < transfersLength; i++) {
-            transferFrom(
+            transferFromERC1155(
                 transfers[i].from, transfers[i].to, transfers[i].token, transfers[i].tokenId, transfers[i].amount
             );
         }
@@ -154,7 +143,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @dev Checks allowances for all token IDs first, then executes batch transfer
      * @param transfer Batch transfer details containing arrays of token IDs and amounts
      */
-    function batchTransferFrom(
+    function batchTransferERC1155(
         ERC1155BatchTransfer calldata transfer
     ) external override {
         uint256 tokenIdsLength = transfer.tokenIds.length;
@@ -182,7 +171,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      *      Note: This function uses explicit TokenStandard enum to provide unambiguous routing for mixed-type batches.
      * @param transfers Array of multi-token transfer instructions with explicit token types
      */
-    function batchTransferFrom(
+    function batchTransferMultiToken(
         TokenTypeTransfer[] calldata transfers
     ) external override {
         uint256 transfersLength = transfers.length;
@@ -214,6 +203,17 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
                 );
             }
         }
+    }
+    /**
+     * @dev Internal helper to get the storage key for a token/tokenId pair
+     * @param token Token contract address
+     * @param tokenId Token ID (specific ID for NFT/ERC1155)
+     * @return Storage key for allowance mapping
+     */
+
+    function _getTokenKey(address token, uint256 tokenId) internal pure returns (bytes32) {
+        // Hash token and tokenId together to ensure unique keys
+        return keccak256(abi.encodePacked(token, tokenId));
     }
 
     /**

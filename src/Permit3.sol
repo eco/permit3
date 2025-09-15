@@ -336,6 +336,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
             if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
                 // Extract address from tokenKey for transfer
                 require(uint256(p.tokenKey) >> 160 == 0, InvalidTokenKeyForTransfer());
+
                 address token = address(uint160(uint256(p.tokenKey)));
                 _transferFrom(owner, p.account, p.amountDelta, token);
             } else {

@@ -87,7 +87,7 @@ This creates a unique "virtual address" for each token ID that reuses the existi
 Permit3 supports efficient batch operations for multiple token types:
 
 ```solidity
-struct MultiTokenTransfer {
+struct TokenTransfer {
     address from;
     address to;
     address token;
@@ -97,11 +97,11 @@ struct MultiTokenTransfer {
 
 struct TokenTypeTransfer {
     TokenStandard tokenType;
-    MultiTokenTransfer transfer;
+    TokenTransfer transfer;
 }
 
 // Execute mixed token transfers in single transaction
-function batchTransferFrom(TokenTypeTransfer[] calldata transfers) external;
+function batchTransferMultiToken(TokenTypeTransfer[] calldata transfers) external;
 ```
 
 This enables complex operations like:

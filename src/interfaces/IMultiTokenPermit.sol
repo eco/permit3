@@ -143,7 +143,7 @@ interface IMultiTokenPermit {
      * @param token ERC721 token address
      * @param tokenId The NFT token ID
      */
-    function transferFrom(address from, address to, address token, uint256 tokenId) external;
+    function transferFromERC721(address from, address to, address token, uint256 tokenId) external;
 
     /**
      * @notice Execute approved ERC1155 token transfer
@@ -153,13 +153,13 @@ interface IMultiTokenPermit {
      * @param tokenId The ERC1155 token ID
      * @param amount Transfer amount
      */
-    function transferFrom(address from, address to, address token, uint256 tokenId, uint160 amount) external;
+    function transferFromERC1155(address from, address to, address token, uint256 tokenId, uint160 amount) external;
 
     /**
      * @notice Execute approved ERC721 batch transfer
      * @param transfers Array of ERC721 transfer instructions
      */
-    function transferFrom(
+    function batchTransferERC721(
         ERC721Transfer[] calldata transfers
     ) external;
 
@@ -167,7 +167,7 @@ interface IMultiTokenPermit {
      * @notice Execute approved ERC1155 batch transfer with multiple token types
      * @param transfers Array of multi-token transfer instructions
      */
-    function transferFrom(
+    function batchTransferERC1155(
         TokenTransfer[] calldata transfers
     ) external;
 
@@ -175,7 +175,7 @@ interface IMultiTokenPermit {
      * @notice Execute approved ERC1155 batch transfer for multiple token IDs
      * @param transfer Batch transfer details for multiple token IDs
      */
-    function batchTransferFrom(
+    function batchTransferERC1155(
         ERC1155BatchTransfer calldata transfer
     ) external;
 
@@ -183,7 +183,7 @@ interface IMultiTokenPermit {
      * @notice Execute multiple token transfers of any type in a single transaction
      * @param transfers Array of multi-token transfer instructions
      */
-    function batchTransferFrom(
+    function batchTransferMultiToken(
         TokenTypeTransfer[] calldata transfers
     ) external;
 }

@@ -231,7 +231,7 @@ async function transferERC1155(
 
 ```javascript
 async function batchTransferNFTs(transfers) {
-    // Format: Array of ERC721TransferDetails
+    // Format: Array of ERC721Transfer
     const formattedTransfers = transfers.map(t => ({
         from: t.from,
         to: t.to,
@@ -271,7 +271,7 @@ async function mixedBatchTransfer(transfers) {
         });
     }
     
-    await permit3.batchTransferFrom(formattedTransfers);
+    await permit3.batchTransferMultiToken(formattedTransfers);
 }
 ```
 
@@ -293,7 +293,7 @@ async function batchTransferERC1155(
         token: tokenContract
     };
     
-    await permit3.batchTransferFrom(batchDetails);
+    await permit3.batchTransferERC1155(batchDetails);
 }
 ```
 
@@ -305,11 +305,12 @@ async function batchTransferERC1155(
 ```javascript
 // ✅ Good: Batch multiple operations
 const batchTransfers = [...];
-await permit3.batchTransferFrom(batchTransfers);
+await permit3.batchTransferMultiToken(batchTransfers);
 
 // ❌ Bad: Individual transactions
 for (const transfer of transfers) {
-    await permit3.transferFrom(transfer);
+    // Would need to call specific function based on token type
+    await permit3.transferFromERC721(transfer.from, transfer.to, transfer.token, transfer.tokenId);
 }
 ```
 
@@ -330,8 +331,8 @@ async function safeTransfer(from, to, token, tokenId, amount) {
             throw new Error('Insufficient allowance');
         }
         
-        // Proceed with transfer
-        await permit3.transferFrom(from, to, token, tokenId, amount);
+        // Proceed with transfer (ERC1155 example)
+        await permit3.transferFromERC1155(from, to, token, tokenId, amount);
         
     } catch (error) {
         if (error.message.includes('AllowanceExpired')) {
@@ -417,12 +418,12 @@ async function promptApprovalType(nftContract) {
 
 ```javascript
 // ❌ Wrong: Trying to transfer without approval
-await permit3.transferFrom(from, to, nftContract, tokenId);
+await permit3.transferFromERC721(from, to, nftContract, tokenId);
 
 // ✅ Correct: Approve NFT to Permit3 first
 const nft = new ethers.Contract(nftContract, ERC721_ABI, signer);
 await nft.setApprovalForAll(permit3.address, true);
-await permit3.transferFrom(from, to, nftContract, tokenId);
+await permit3.transferFromERC721(from, to, nftContract, tokenId);
 ```
 
 ### 2. Incorrect TokenId for ERC20
@@ -438,11 +439,11 @@ await permit3.approve(erc20Token, spender, amount, expiration);
 ### 3. Amount Confusion for NFTs
 
 ```javascript
-// ❌ Wrong: Using amount > 1 for ERC721
-await permit3.transferFrom(from, to, nftContract, tokenId, 100);
+// ❌ Wrong: Using wrong function for ERC721
+await permit3.transferFromERC1155(from, to, nftContract, tokenId, 100);
 
-// ✅ Correct: Amount is always 1 for ERC721 (or omitted)
-await permit3.transferFrom(from, to, nftContract, tokenId);
+// ✅ Correct: Use ERC721-specific function
+await permit3.transferFromERC721(from, to, nftContract, tokenId);
 ```
 
 ## 📚 Complete Integration Example

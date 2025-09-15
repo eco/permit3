@@ -163,19 +163,19 @@ contract MultiTokenMarketplace {
         
         // Transfer NFT/item from seller to buyer based on token type
         if (listing.tokenType == IMultiTokenPermit.TokenStandard.ERC721) {
-            permit3.transferFrom(
+            permit3.transferFromERC721(
                 listing.seller,
                 msg.sender,
                 listing.tokenContract,
                 listing.tokenId
             );
         } else {
-            permit3.transferFrom(
+            permit3.transferFromERC1155(
                 listing.seller,
                 msg.sender,
                 listing.tokenContract,
                 listing.tokenId,
-                listing.amount
+                uint160(listing.amount)
             );
         }
         
@@ -247,7 +247,7 @@ contract MultiTokenMarketplace {
         );
         
         // Transfer NFT to buyer
-        permit3.transferFrom(
+        permit3.transferFromERC721(
             msg.sender,
             offer.buyer,
             offer.collection,
@@ -279,7 +279,7 @@ contract MultiTokenMarketplace {
             // Add payment transfer
             transfers[transferIndex++] = IMultiTokenPermit.TokenTypeTransfer({
                 tokenType: IMultiTokenPermit.TokenStandard.ERC20,
-                transfer: IMultiTokenPermit.MultiTokenTransfer({
+                transfer: IMultiTokenPermit.TokenTransfer({
                     from: msg.sender,
                     to: listing.seller,
                     token: listing.paymentToken,
@@ -291,7 +291,7 @@ contract MultiTokenMarketplace {
             // Add item transfer
             transfers[transferIndex++] = IMultiTokenPermit.TokenTypeTransfer({
                 tokenType: listing.tokenType,
-                transfer: IMultiTokenPermit.MultiTokenTransfer({
+                transfer: IMultiTokenPermit.TokenTransfer({
                     from: listing.seller,
                     to: msg.sender,
                     token: listing.tokenContract,
@@ -304,7 +304,7 @@ contract MultiTokenMarketplace {
         }
         
         // Execute all transfers in one batch
-        permit3.batchTransferFrom(transfers);
+        permit3.batchTransferMultiToken(transfers);
     }
 }
 ```
@@ -946,7 +946,7 @@ contract FractionalNFTTrading {
         uint256 shares
     ) external {
         // Transfer NFT to this contract via Permit3
-        permit3.transferFrom(
+        permit3.transferFromERC721(
             msg.sender,
             address(this),
             nftContract,
