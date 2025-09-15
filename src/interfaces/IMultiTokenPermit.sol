@@ -42,6 +42,25 @@ interface IMultiTokenPermit {
     );
 
     /**
+     * @notice Emitted when a specific token (NFT/ERC1155) approval is granted
+     * @dev Provides full visibility for off-chain services to track individual token approvals
+     * @param owner Token owner address
+     * @param token Token contract address
+     * @param spender Spender address
+     * @param tokenId Specific token ID being approved
+     * @param amount Approved amount (1 for ERC721, variable for ERC1155)
+     * @param expiration Expiration timestamp (0 for no expiration)
+     */
+    event ApprovalWithTokenId(
+        address indexed owner,
+        address indexed token,
+        address indexed spender,
+        uint256 tokenId,
+        uint160 amount,
+        uint48 expiration
+    );
+
+    /**
      * @notice Enum representing different token standards
      * @param ERC20 Standard fungible tokens with divisible amounts
      * @param ERC721 Non-fungible tokens with unique token IDs

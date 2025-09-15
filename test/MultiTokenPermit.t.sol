@@ -1030,4 +1030,74 @@ contract MultiTokenPermitTest is TestBase {
         (maxTokenAmount,,) = permit3.allowance(nftOwner, address(nftToken), spenderAddress, maxTokenId);
         assertEq(maxTokenAmount, 1, "Max tokenId specific allowance should be set");
     }
+
+    /**
+     * @notice Test that approve emits ApprovalWithTokenId event for better transparency
+     * @dev Verifies the fix for the audit finding about missing tokenId in approval events
+     */
+    function test_approve_emitsApprovalWithTokenId() public {
+        uint48 expiration = uint48(block.timestamp + 3600);
+        uint256 tokenId = 42;
+        uint160 amount = 1;
+
+        // Test ERC721 approval (amount = 1)
+        vm.expectEmit(true, true, true, true);
+        emit IMultiTokenPermit.ApprovalWithTokenId(
+            nftOwner,
+            address(nftToken),
+            spenderAddress,
+            tokenId,
+            amount,
+            expiration
+        );
+        
+        // Also expect the standard Approval event for backward compatibility
+        vm.expectEmit(true, true, true, true);
+        emit IPermit.Approval(nftOwner, address(nftToken), spenderAddress, amount, expiration);
+        
+        vm.prank(nftOwner);
+        permit3.approve(address(nftToken), spenderAddress, tokenId, amount, expiration);
+
+        // Test ERC1155 approval with higher amount
+        uint160 erc1155Amount = 100;
+        vm.expectEmit(true, true, true, true);
+        emit IMultiTokenPermit.ApprovalWithTokenId(
+            multiTokenOwner,
+            address(multiToken),
+            spenderAddress,
+            tokenId,
+            erc1155Amount,
+            expiration
+        );
+        
+        vm.prank(multiTokenOwner);
+        permit3.approve(address(multiToken), spenderAddress, tokenId, erc1155Amount, expiration);
+    }
+
+    /**
+     * @notice Test collection-wide approval emits ApprovalWithTokenId with max uint256 tokenId
+     * @dev Collection-wide approvals use type(uint256).max as tokenId
+     */
+    function test_approve_collectionWide_emitsApprovalWithTokenId() public {
+        uint48 expiration = uint48(block.timestamp + 3600);
+        uint256 collectionTokenId = type(uint256).max;
+        uint160 amount = type(uint160).max;
+
+        vm.expectEmit(true, true, true, true);
+        emit IMultiTokenPermit.ApprovalWithTokenId(
+            nftOwner,
+            address(nftToken),
+            spenderAddress,
+            collectionTokenId,
+            amount,
+            expiration
+        );
+        
+        vm.prank(nftOwner);
+        permit3.approve(address(nftToken), spenderAddress, collectionTokenId, amount, expiration);
+        
+        // Verify the approval was set correctly
+        (uint160 approvedAmount,,) = permit3.allowance(nftOwner, address(nftToken), spenderAddress, collectionTokenId);
+        assertEq(approvedAmount, amount);
+    }
 }
