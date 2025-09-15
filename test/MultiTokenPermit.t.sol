@@ -276,10 +276,10 @@ contract MultiTokenPermitTest is TestBase {
         }
 
         // Prepare batch transfer
-        IMultiTokenPermit.ERC721TransferDetails[] memory transfers = new IMultiTokenPermit.ERC721TransferDetails[](3);
+        IMultiTokenPermit.ERC721Transfer[] memory transfers = new IMultiTokenPermit.ERC721Transfer[](3);
 
         for (uint256 i = 0; i < 3; i++) {
-            transfers[i] = IMultiTokenPermit.ERC721TransferDetails({
+            transfers[i] = IMultiTokenPermit.ERC721Transfer({
                 from: nftOwner,
                 to: recipientAddress,
                 tokenId: i,
@@ -298,7 +298,7 @@ contract MultiTokenPermitTest is TestBase {
     }
 
     function test_transferFromERC721_batchTransfer_emptyArray() public {
-        IMultiTokenPermit.ERC721TransferDetails[] memory transfers = new IMultiTokenPermit.ERC721TransferDetails[](0);
+        IMultiTokenPermit.ERC721Transfer[] memory transfers = new IMultiTokenPermit.ERC721Transfer[](0);
 
         vm.expectRevert(IPermit.EmptyArray.selector);
         vm.prank(spenderAddress);
@@ -364,10 +364,10 @@ contract MultiTokenPermitTest is TestBase {
         }
 
         // Prepare batch transfer
-        IMultiTokenPermit.MultiTokenTransfer[] memory transfers = new IMultiTokenPermit.MultiTokenTransfer[](3);
+        IMultiTokenPermit.TokenTransfer[] memory transfers = new IMultiTokenPermit.TokenTransfer[](3);
 
         for (uint256 i = 0; i < 3; i++) {
-            transfers[i] = IMultiTokenPermit.MultiTokenTransfer({
+            transfers[i] = IMultiTokenPermit.TokenTransfer({
                 from: multiTokenOwner,
                 to: recipientAddress,
                 token: address(multiToken),
@@ -388,7 +388,7 @@ contract MultiTokenPermitTest is TestBase {
     }
 
     function test_transferFromERC1155_batchTransfer_emptyArray() public {
-        IMultiTokenPermit.MultiTokenTransfer[] memory transfers = new IMultiTokenPermit.MultiTokenTransfer[](0);
+        IMultiTokenPermit.TokenTransfer[] memory transfers = new IMultiTokenPermit.TokenTransfer[](0);
 
         vm.expectRevert(IPermit.EmptyArray.selector);
         vm.prank(spenderAddress);
@@ -404,7 +404,7 @@ contract MultiTokenPermitTest is TestBase {
 
         // Set allowances for multiple tokens
         uint256[] memory tokenIds = new uint256[](3);
-        uint160[] memory amounts = new uint160[](3);
+        uint256[] memory amounts = new uint256[](3);
 
         for (uint256 i = 0; i < 3; i++) {
             tokenIds[i] = i + 1;
@@ -415,8 +415,7 @@ contract MultiTokenPermitTest is TestBase {
         }
 
         // Prepare batch transfer
-        IMultiTokenPermit.ERC1155BatchTransferDetails memory batchTransfer = IMultiTokenPermit
-            .ERC1155BatchTransferDetails({
+        IMultiTokenPermit.ERC1155BatchTransfer memory batchTransfer = IMultiTokenPermit.ERC1155BatchTransfer({
             from: multiTokenOwner,
             to: recipientAddress,
             tokenIds: tokenIds,
@@ -437,10 +436,9 @@ contract MultiTokenPermitTest is TestBase {
 
     function test_batchTransferFrom_emptyArray() public {
         uint256[] memory tokenIds = new uint256[](0);
-        uint160[] memory amounts = new uint160[](0);
+        uint256[] memory amounts = new uint256[](0);
 
-        IMultiTokenPermit.ERC1155BatchTransferDetails memory batchTransfer = IMultiTokenPermit
-            .ERC1155BatchTransferDetails({
+        IMultiTokenPermit.ERC1155BatchTransfer memory batchTransfer = IMultiTokenPermit.ERC1155BatchTransfer({
             from: multiTokenOwner,
             to: recipientAddress,
             tokenIds: tokenIds,
@@ -455,10 +453,9 @@ contract MultiTokenPermitTest is TestBase {
 
     function test_batchTransferFrom_mismatchedArrays() public {
         uint256[] memory tokenIds = new uint256[](3);
-        uint160[] memory amounts = new uint160[](2); // Mismatched length
+        uint256[] memory amounts = new uint256[](2); // Mismatched length
 
-        IMultiTokenPermit.ERC1155BatchTransferDetails memory batchTransfer = IMultiTokenPermit
-            .ERC1155BatchTransferDetails({
+        IMultiTokenPermit.ERC1155BatchTransfer memory batchTransfer = IMultiTokenPermit.ERC1155BatchTransfer({
             from: multiTokenOwner,
             to: recipientAddress,
             tokenIds: tokenIds,
@@ -496,7 +493,7 @@ contract MultiTokenPermitTest is TestBase {
         // ERC20 transfer
         transfers[0] = IMultiTokenPermit.TokenTypeTransfer({
             tokenType: IMultiTokenPermit.TokenStandard.ERC20,
-            transfer: IMultiTokenPermit.MultiTokenTransfer({
+            transfer: IMultiTokenPermit.TokenTransfer({
                 from: owner,
                 to: recipient,
                 token: address(token),
@@ -508,7 +505,7 @@ contract MultiTokenPermitTest is TestBase {
         // ERC721 transfer
         transfers[1] = IMultiTokenPermit.TokenTypeTransfer({
             tokenType: IMultiTokenPermit.TokenStandard.ERC721,
-            transfer: IMultiTokenPermit.MultiTokenTransfer({
+            transfer: IMultiTokenPermit.TokenTransfer({
                 from: nftOwner,
                 to: recipientAddress,
                 token: address(nftToken),
@@ -520,7 +517,7 @@ contract MultiTokenPermitTest is TestBase {
         // ERC1155 transfer
         transfers[2] = IMultiTokenPermit.TokenTypeTransfer({
             tokenType: IMultiTokenPermit.TokenStandard.ERC1155,
-            transfer: IMultiTokenPermit.MultiTokenTransfer({
+            transfer: IMultiTokenPermit.TokenTransfer({
                 from: multiTokenOwner,
                 to: recipientAddress,
                 token: address(multiToken),
@@ -543,6 +540,43 @@ contract MultiTokenPermitTest is TestBase {
         IMultiTokenPermit.TokenTypeTransfer[] memory transfers = new IMultiTokenPermit.TokenTypeTransfer[](0);
 
         vm.expectRevert(IPermit.EmptyArray.selector);
+        vm.prank(spenderAddress);
+        permit3.batchTransferFrom(transfers);
+    }
+
+    function test_batchTransferFrom_ERC721_invalidAmount() public {
+        // Setup: Approve NFT
+        uint48 futureExpiration = uint48(block.timestamp + 1 hours);
+        vm.prank(nftOwner);
+        permit3.approve(address(nftToken), spenderAddress, TOKEN_ID_1, 1, futureExpiration);
+
+        // Create transfer with invalid amount (not 1) for ERC721
+        IMultiTokenPermit.TokenTypeTransfer[] memory transfers = new IMultiTokenPermit.TokenTypeTransfer[](1);
+        transfers[0] = IMultiTokenPermit.TokenTypeTransfer({
+            tokenType: IMultiTokenPermit.TokenStandard.ERC721,
+            transfer: IMultiTokenPermit.TokenTransfer({
+                from: nftOwner,
+                to: recipientAddress,
+                token: address(nftToken),
+                tokenId: TOKEN_ID_1,
+                amount: 2 // Invalid: ERC721 must have amount = 1
+             })
+        });
+
+        // Should revert with InvalidAmount
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, 2));
+        vm.prank(spenderAddress);
+        permit3.batchTransferFrom(transfers);
+
+        // Test with amount = 0
+        transfers[0].transfer.amount = 0;
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, 0));
+        vm.prank(spenderAddress);
+        permit3.batchTransferFrom(transfers);
+
+        // Test with max amount
+        transfers[0].transfer.amount = type(uint160).max;
+        vm.expectRevert(abi.encodeWithSelector(IPermit.InvalidAmount.selector, type(uint160).max));
         vm.prank(spenderAddress);
         permit3.batchTransferFrom(transfers);
     }
@@ -665,11 +699,10 @@ contract MultiTokenPermitTest is TestBase {
         vm.stopPrank();
 
         // Prepare batch transfer
-        IMultiTokenPermit.ERC721TransferDetails[] memory transfers =
-            new IMultiTokenPermit.ERC721TransferDetails[](numTokens);
+        IMultiTokenPermit.ERC721Transfer[] memory transfers = new IMultiTokenPermit.ERC721Transfer[](numTokens);
 
         for (uint256 i = 0; i < numTokens; i++) {
-            transfers[i] = IMultiTokenPermit.ERC721TransferDetails({
+            transfers[i] = IMultiTokenPermit.ERC721Transfer({
                 from: nftOwner,
                 to: recipientAddress,
                 tokenId: tokenIds[i],

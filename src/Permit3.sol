@@ -335,6 +335,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
 
             if (p.modeOrExpiration == uint48(PermitType.Transfer)) {
                 // Extract address from tokenKey for transfer
+                require(uint256(p.tokenKey) >> 160 == 0, InvalidTokenKeyForTransfer());
                 address token = address(uint160(uint256(p.tokenKey)));
                 _transferFrom(owner, p.account, p.amountDelta, token);
             } else {
@@ -466,49 +467,26 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
     ) private view {
         // Handle amount increase if specified
         if (p.amountDelta > 0) {
-            _increaseAllowanceAmount(allowed, p.amountDelta);
-        }
-
-        // Update expiration and timestamp based on precedence rules
-        _updateExpirationAndTimestamp(allowed, p.modeOrExpiration, timestamp);
-    }
-
-    /**
-     * @dev Increases allowance amount, handling MAX_ALLOWANCE cases
-     * @param allowed Allowance to modify
-     * @param amountDelta Amount to increase by
-     */
-    function _increaseAllowanceAmount(Allowance memory allowed, uint160 amountDelta) private pure {
-        if (allowed.amount != MAX_ALLOWANCE) {
-            if (amountDelta == MAX_ALLOWANCE) {
-                allowed.amount = MAX_ALLOWANCE;
-            } else {
-                allowed.amount += amountDelta;
+            if (allowed.amount != MAX_ALLOWANCE) {
+                if (p.amountDelta == MAX_ALLOWANCE) {
+                    allowed.amount = MAX_ALLOWANCE;
+                } else {
+                    allowed.amount += p.amountDelta;
+                }
             }
         }
-    }
 
-    /**
-     * @dev Updates expiration and timestamp based on precedence rules
-     * @param allowed Allowance to modify
-     * @param newExpiration New expiration value
-     * @param timestamp Current timestamp
-     */
-    function _updateExpirationAndTimestamp(
-        Allowance memory allowed,
-        uint48 newExpiration,
-        uint48 timestamp
-    ) private view {
         // Prevent setting timestamps in the future
         if (block.timestamp < timestamp) {
             revert InvalidTimestamp(timestamp, uint48(block.timestamp));
         }
 
+        // Update expiration and timestamp based on precedence rules
         if (timestamp > allowed.timestamp) {
-            allowed.expiration = newExpiration;
+            allowed.expiration = p.modeOrExpiration;
             allowed.timestamp = timestamp;
-        } else if (timestamp == allowed.timestamp && newExpiration > allowed.expiration) {
-            allowed.expiration = newExpiration;
+        } else if (timestamp == allowed.timestamp && p.modeOrExpiration > allowed.expiration) {
+            allowed.expiration = p.modeOrExpiration;
         }
     }
 

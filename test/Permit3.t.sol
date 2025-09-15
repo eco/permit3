@@ -336,6 +336,33 @@ contract Permit3Test is TestBase {
         permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
     }
 
+    function test_permit_revertsInvalidTokenKeyForTransfer() public {
+        // Create a permit with transfer mode but NFT-style tokenKey (has data in upper bits)
+        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+
+        // Create a tokenKey that has data in the upper 96 bits (like an NFT would)
+        // This is invalid for transfer mode which requires a clean ERC20 address
+        bytes32 invalidTokenKey = keccak256(abi.encodePacked(address(token), uint256(123))); // NFT-style key
+
+        permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(IPermit3.PermitType.Transfer), // Transfer mode
+            tokenKey: invalidTokenKey, // Invalid for transfer - has data in upper bits
+            account: recipient,
+            amountDelta: AMOUNT
+        });
+
+        IPermit3.ChainPermits memory chainPermits =
+            IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+        uint48 timestamp = uint48(block.timestamp);
+        bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
+
+        // Should revert with InvalidTokenKeyForTransfer
+        vm.expectRevert(IPermit3.InvalidTokenKeyForTransfer.selector);
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+    }
+
     function test_permit_revertsZeroTokenKey() public {
         // Create a permit with zero tokenKey
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);

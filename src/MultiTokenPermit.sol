@@ -91,26 +91,10 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param tokenId The unique NFT token ID to transfer
      */
     function transferFrom(address from, address to, address token, uint256 tokenId) public override {
-        // Get the encoded identifier for this specific token ID
-        bytes32 encodedId = _getTokenKey(token, tokenId);
+        // Check and update dual-allowance
+        _updateDualAllowance(from, token, tokenId, 1);
 
-        // First, try to update allowance for the specific token ID
-        (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, 1);
-
-        if (revertDataPerId.length > 0) {
-            // Fallback: if no specific token approval exists, check for collection-wide approval
-            // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
-            bytes32 collectionKey = bytes32(uint256(uint160(token)));
-
-            if (encodedId == collectionKey) {
-                // Special case: tokenId = max is the same wild card approval
-                _revert(revertDataPerId);
-            }
-
-            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, 1);
-
-            _handleAllowanceError(revertDataPerId, revertDataWildcard);
-        }
+        // Execute the ERC721 transfer
         IERC721(token).safeTransferFrom(from, to, tokenId);
     }
 
@@ -126,26 +110,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param amount Number of tokens to transfer
      */
     function transferFrom(address from, address to, address token, uint256 tokenId, uint160 amount) public override {
-        // Get the encoded identifier for this specific token ID
-        bytes32 encodedId = _getTokenKey(token, tokenId);
-
-        // First, try to update allowance for the specific token ID
-        (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, amount);
-
-        if (revertDataPerId.length > 0) {
-            // Fallback: if no specific token approval exists, check for collection-wide approval
-            // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
-            bytes32 collectionKey = bytes32(uint256(uint160(token)));
-
-            if (encodedId == collectionKey) {
-                // Special case: tokenId = max is the same wild card approval
-                _revert(revertDataPerId);
-            }
-
-            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, amount);
-
-            _handleAllowanceError(revertDataPerId, revertDataWildcard);
-        }
+        // Check and update dual-allowance
+        _updateDualAllowance(from, token, tokenId, amount);
 
         // Execute the ERC1155 transfer
         IERC1155(token).safeTransferFrom(from, to, tokenId, amount, "");
@@ -157,7 +123,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param transfers Array of ERC721 transfer instructions
      */
     function transferFrom(
-        ERC721TransferDetails[] calldata transfers
+        ERC721Transfer[] calldata transfers
     ) external override {
         uint256 transfersLength = transfers.length;
         if (transfersLength == 0) {
@@ -175,7 +141,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param transfers Array of multi-token transfer instructions
      */
     function transferFrom(
-        MultiTokenTransfer[] calldata transfers
+        TokenTransfer[] calldata transfers
     ) external override {
         uint256 transfersLength = transfers.length;
         if (transfersLength == 0) {
@@ -191,11 +157,11 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
     /**
      * @notice Execute approved ERC1155 batch transfer for multiple token IDs to a single recipient
-     * @dev Processes each token ID individually through the dual-allowance system
+     * @dev Checks allowances for all token IDs first, then executes batch transfer
      * @param transfer Batch transfer details containing arrays of token IDs and amounts
      */
     function batchTransferFrom(
-        ERC1155BatchTransferDetails calldata transfer
+        ERC1155BatchTransfer calldata transfer
     ) external override {
         uint256 tokenIdsLength = transfer.tokenIds.length;
         if (tokenIdsLength == 0) {
@@ -205,10 +171,15 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
             revert InvalidArrayLength();
         }
 
-        // Execute batch by processing each token ID individually to leverage dual-allowance logic
+        // Check and update allowances for all token IDs
         for (uint256 i = 0; i < tokenIdsLength; i++) {
-            transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenIds[i], transfer.amounts[i]);
+            _updateDualAllowance(transfer.from, transfer.token, transfer.tokenIds[i], uint160(transfer.amounts[i]));
         }
+
+        // Execute the batch transfer after all allowances are verified
+        IERC1155(transfer.token).safeBatchTransferFrom(
+            transfer.from, transfer.to, transfer.tokenIds, transfer.amounts, ""
+        );
     }
 
     /**
@@ -228,18 +199,56 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
         for (uint256 i = 0; i < transfersLength; i++) {
             TokenTypeTransfer calldata typeTransfer = transfers[i];
-            MultiTokenTransfer calldata transfer = typeTransfer.transfer;
+            TokenTransfer calldata transfer = typeTransfer.transfer;
 
             if (typeTransfer.tokenType == TokenStandard.ERC20) {
                 // ERC20: Use amount field, tokenId is ignored
                 PermitBase.transferFrom(transfer.from, transfer.to, transfer.amount, transfer.token);
             } else if (typeTransfer.tokenType == TokenStandard.ERC721) {
-                // ERC721: Use tokenId field, amount should be 1 (but not enforced)
-                transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId);
+                // ERC721: Use tokenId field, amount must be 1
+                require(transfer.amount == 1, InvalidAmount(transfer.amount));
+                // Check and update dual-allowance
+                _updateDualAllowance(transfer.from, transfer.token, transfer.tokenId, 1);
+                // Execute the ERC721 transfer
+                IERC721(transfer.token).safeTransferFrom(transfer.from, transfer.to, transfer.tokenId);
             } else if (typeTransfer.tokenType == TokenStandard.ERC1155) {
                 // ERC1155: Use both tokenId and amount
-                transferFrom(transfer.from, transfer.to, transfer.token, transfer.tokenId, transfer.amount);
+                // Check and update dual-allowance
+                _updateDualAllowance(transfer.from, transfer.token, transfer.tokenId, transfer.amount);
+                // Execute the ERC1155 transfer
+                IERC1155(transfer.token).safeTransferFrom(
+                    transfer.from, transfer.to, transfer.tokenId, transfer.amount, ""
+                );
             }
+        }
+    }
+
+    /**
+     * @dev Internal helper to check and update dual-allowance (per-token and collection-wide)
+     * @param from The address to transfer from
+     * @param token The token contract address
+     * @param tokenId The specific token ID
+     * @param amount The amount to transfer (1 for ERC721, variable for ERC1155)
+     */
+    function _updateDualAllowance(address from, address token, uint256 tokenId, uint160 amount) internal {
+        bytes32 encodedId = _getTokenKey(token, tokenId);
+
+        // First, try to update allowance for the specific token ID
+        (, bytes memory revertDataPerId) = _updateAllowance(from, encodedId, msg.sender, amount);
+
+        if (revertDataPerId.length > 0) {
+            // Fallback: if no specific token approval exists, check for collection-wide approval
+            // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
+            bytes32 collectionKey = bytes32(uint256(uint160(token)));
+
+            if (encodedId == collectionKey) {
+                // Special case: tokenId = max is the same as wild card approval
+                _revert(revertDataPerId);
+            }
+
+            (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, amount);
+
+            _handleAllowanceError(revertDataPerId, revertDataWildcard);
         }
     }
 

@@ -6,7 +6,7 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { Execution, IERC7579Execution, IERC7579Module } from "@openzeppelin/contracts/interfaces/draft-IERC7579.sol";
 import { Test } from "forge-std/Test.sol";
 
-import { Permit3ApproverModule } from "../../src/modules/Permit3ApproverModule.sol";
+import { ERC7579ApproverModule } from "../../src/modules/ERC7579ApproverModule.sol";
 
 contract MockERC20 is IERC20 {
     mapping(address => uint256) public balanceOf;
@@ -79,14 +79,14 @@ contract MockSmartAccount is IERC7579Execution {
 }
 
 contract Permit3ApproverModuleTest is Test {
-    Permit3ApproverModule public module;
+    ERC7579ApproverModule public module;
     MockSmartAccount public smartAccount;
     MockERC20 public token1;
     MockERC20 public token2;
     address public constant PERMIT3 = address(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
     function setUp() public {
-        module = new Permit3ApproverModule(PERMIT3);
+        module = new ERC7579ApproverModule(PERMIT3);
         smartAccount = new MockSmartAccount();
         token1 = new MockERC20();
         token2 = new MockERC20();
@@ -131,7 +131,7 @@ contract Permit3ApproverModuleTest is Test {
         tokens[1] = address(token2);
 
         // Get execution data
-        bytes memory execData = module.getExecutionData(tokens);
+        bytes memory execData = abi.encode(tokens, new address[](0), new address[](0));
 
         // Execute through module (which will call executeFromExecutor on the smart account)
         module.execute(address(smartAccount), execData);
@@ -148,7 +148,7 @@ contract Permit3ApproverModuleTest is Test {
         address[] memory tokens = new address[](2);
         tokens[0] = address(token1);
         tokens[1] = address(token2);
-        bytes memory execData = abi.encode(tokens);
+        bytes memory execData = abi.encode(tokens, new address[](0), new address[](0));
 
         // Test that execute properly encodes and calls executeFromExecutor
         // We'll verify this by checking the execution happens correctly
@@ -163,9 +163,9 @@ contract Permit3ApproverModuleTest is Test {
         smartAccount.installModule(2, address(module), "");
 
         address[] memory tokens = new address[](0);
-        bytes memory execData = abi.encode(tokens);
+        bytes memory execData = abi.encode(tokens, new address[](0), new address[](0));
 
-        vm.expectRevert(Permit3ApproverModule.NoTokensProvided.selector);
+        vm.expectRevert(ERC7579ApproverModule.NoTokensProvided.selector);
         module.execute(address(smartAccount), execData);
     }
 
@@ -175,25 +175,25 @@ contract Permit3ApproverModuleTest is Test {
         address[] memory tokens = new address[](2);
         tokens[0] = address(token1);
         tokens[1] = address(0);
-        bytes memory execData = abi.encode(tokens);
+        bytes memory execData = abi.encode(tokens, new address[](0), new address[](0));
 
-        vm.expectRevert(abi.encodeWithSelector(Permit3ApproverModule.ZeroAddress.selector, "token"));
+        vm.expectRevert(abi.encodeWithSelector(ERC7579ApproverModule.ZeroAddress.selector));
         module.execute(address(smartAccount), execData);
     }
 
     function testConstructorZeroAddress() public {
-        vm.expectRevert(abi.encodeWithSelector(Permit3ApproverModule.ZeroAddress.selector, "permit3"));
-        new Permit3ApproverModule(address(0));
+        vm.expectRevert(abi.encodeWithSelector(ERC7579ApproverModule.ZeroAddress.selector));
+        new ERC7579ApproverModule(address(0));
     }
 
-    function testGetExecutionData() public view {
+    function testGetExecutionData() public pure {
         address[] memory tokens = new address[](3);
         tokens[0] = address(0x1);
         tokens[1] = address(0x2);
         tokens[2] = address(0x3);
 
-        bytes memory data = module.getExecutionData(tokens);
-        address[] memory decoded = abi.decode(data, (address[]));
+        bytes memory data = abi.encode(tokens, new address[](0), new address[](0));
+        (address[] memory decoded,,) = abi.decode(data, (address[], address[], address[]));
 
         assertEq(decoded.length, 3);
         assertEq(decoded[0], address(0x1));

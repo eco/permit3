@@ -51,7 +51,7 @@ interface IMultiTokenPermit {
      * @param tokenId The specific NFT token ID
      * @param token The ERC721 contract address
      */
-    struct ERC721TransferDetails {
+    struct ERC721Transfer {
         address from;
         address to;
         uint256 tokenId;
@@ -66,7 +66,7 @@ interface IMultiTokenPermit {
      * @param tokenId Token ID (used for ERC721 and ERC1155, ignored for ERC20)
      * @param amount Transfer amount (used for ERC20 and ERC1155, must be 1 for ERC721)
      */
-    struct MultiTokenTransfer {
+    struct TokenTransfer {
         address from;
         address to;
         address token;
@@ -82,11 +82,11 @@ interface IMultiTokenPermit {
      * @param amounts Array of amounts corresponding to each token ID
      * @param token The ERC1155 contract address
      */
-    struct ERC1155BatchTransferDetails {
+    struct ERC1155BatchTransfer {
         address from;
         address to;
         uint256[] tokenIds;
-        uint160[] amounts;
+        uint256[] amounts;
         address token;
     }
 
@@ -97,7 +97,7 @@ interface IMultiTokenPermit {
      */
     struct TokenTypeTransfer {
         TokenStandard tokenType;
-        MultiTokenTransfer transfer;
+        TokenTransfer transfer;
     }
 
     /**
@@ -152,7 +152,7 @@ interface IMultiTokenPermit {
      * @param transfers Array of ERC721 transfer instructions
      */
     function transferFrom(
-        ERC721TransferDetails[] calldata transfers
+        ERC721Transfer[] calldata transfers
     ) external;
 
     /**
@@ -160,7 +160,7 @@ interface IMultiTokenPermit {
      * @param transfers Array of multi-token transfer instructions
      */
     function transferFrom(
-        MultiTokenTransfer[] calldata transfers
+        TokenTransfer[] calldata transfers
     ) external;
 
     /**
@@ -168,7 +168,7 @@ interface IMultiTokenPermit {
      * @param transfer Batch transfer details for multiple token IDs
      */
     function batchTransferFrom(
-        ERC1155BatchTransferDetails calldata transfer
+        ERC1155BatchTransfer calldata transfer
     ) external;
 
     /**

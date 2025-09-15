@@ -9,38 +9,37 @@ import {
     ModePayload,
     ModeSelector
 } from "@openzeppelin/contracts/account/utils/draft-ERC7579Utils.sol";
+
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { Execution, IERC7579Execution, IERC7579Module } from "@openzeppelin/contracts/interfaces/draft-IERC7579.sol";
 
+import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 /**
- * @title Permit3ApproverModule
+ * @title ERC7579ApproverModule
  * @notice ERC-7579 executor module that allows anyone to approve tokens to Permit3 on behalf of the account
  * @dev This module integrates with smart accounts using executeFromExecutor
- *      It allows permissionless approval of tokens to the Permit3 contract
- *
- * @dev Implementation details:
- *      - Uses ERC7579Utils for proper mode encoding (CALLTYPE_BATCH with EXECTYPE_DEFAULT)
- *      - Encodes executions using ERC7579Utils.encodeBatch()
- *      - Fully compliant with EIP-7579 executor module specification
+ *      It allows permissionless approval of ERC20, ERC721, and ERC1155 tokens to the Permit3 contract
  */
-contract Permit3ApproverModule is IERC7579Module {
-    /// @notice The Permit3 contract address that will receive approvals
-    address public immutable PERMIT3;
+contract ERC7579ApproverModule is IERC7579Module {
+    /// @notice Thrown when no tokens are provided for approval
+    error NoTokensProvided();
+
+    /// @notice Thrown when a zero address is provided where it's not allowed
+    error ZeroAddress();
 
     /// @notice Module type identifier for ERC-7579
     uint256 public constant MODULE_TYPE = 2; // Executor module
 
     /// @notice Name of the module
-    string private constant NAME = "Permit3ApproverModule";
+    string public constant name = "Permit3ApproverModule";
 
     /// @notice Version of the module
-    string private constant VERSION = "1.0.0";
+    string public constant version = "1.0.0";
 
-    /// @notice Thrown when no tokens are provided for approval
-    error NoTokensProvided();
-
-    /// @notice Thrown when a zero address is provided where it's not allowed
-    error ZeroAddress(string parameterName);
+    /// @notice The Permit3 contract address that will receive approvals
+    address public immutable PERMIT3;
 
     /**
      * @notice Constructor to set the Permit3 contract address
@@ -50,7 +49,7 @@ contract Permit3ApproverModule is IERC7579Module {
         address permit3
     ) {
         if (permit3 == address(0)) {
-            revert ZeroAddress("permit3");
+            revert ZeroAddress();
         }
         PERMIT3 = permit3;
     }
@@ -88,33 +87,61 @@ contract Permit3ApproverModule is IERC7579Module {
     }
 
     /**
-     * @notice Execute approval of tokens to Permit3
+     * @notice Execute approval of multiple token types to Permit3
      * @dev Implements ERC-7579 Executor behavior by calling executeFromExecutor
-     * @param account The smart account executing the approval
-     * @param data Encoded array of token addresses to approve
+     *      - ERC20 tokens: Uses approve(permit3, type(uint256).max)
+     *      - ERC721 tokens: Uses setApprovalForAll(permit3, true)
+     *      - ERC1155 tokens: Uses setApprovalForAll(permit3, true)
+     * @param account The smart account executing the approvals
+     * @param data Encoded arrays of token addresses for each token type
      */
     function execute(address account, bytes calldata data) external {
-        // Decode the token addresses from the data
-        address[] memory tokens = abi.decode(data, (address[]));
+        // Decode the token addresses for each type
+        (address[] memory erc20Tokens, address[] memory erc721Tokens, address[] memory erc1155Tokens) =
+            abi.decode(data, (address[], address[], address[]));
 
-        uint256 tokensLength = tokens.length;
-        if (tokensLength == 0) {
+        uint256 totalLength = erc20Tokens.length + erc721Tokens.length + erc1155Tokens.length;
+        if (totalLength == 0) {
             revert NoTokensProvided();
         }
 
-        // Create execution array for approvals
-        Execution[] memory executions = new Execution[](tokensLength);
+        // Create execution array for all approvals
+        Execution[] memory executions = new Execution[](totalLength);
+        uint256 executionIndex = 0;
 
-        for (uint256 i = 0; i < tokensLength; ++i) {
-            if (tokens[i] == address(0)) {
-                revert ZeroAddress("token");
+        // Add ERC20 approvals
+        for (uint256 i = 0; i < erc20Tokens.length; ++i) {
+            if (erc20Tokens[i] == address(0)) {
+                revert ZeroAddress();
             }
-
-            // Create execution for each token approval
-            executions[i] = Execution({
-                target: tokens[i],
+            executions[executionIndex++] = Execution({
+                target: erc20Tokens[i],
                 value: 0,
                 callData: abi.encodeCall(IERC20.approve, (PERMIT3, type(uint256).max))
+            });
+        }
+
+        // Add ERC721 approvals
+        for (uint256 i = 0; i < erc721Tokens.length; ++i) {
+            if (erc721Tokens[i] == address(0)) {
+                revert ZeroAddress();
+            }
+            executions[executionIndex++] = Execution({
+                target: erc721Tokens[i],
+                value: 0,
+                callData: abi.encodeCall(IERC721.setApprovalForAll, (PERMIT3, true))
+            });
+        }
+
+        // Add ERC1155 approvals
+        for (uint256 i = 0; i < erc1155Tokens.length; ++i) {
+            if (erc1155Tokens[i] == address(0)) {
+                revert ZeroAddress();
+            }
+            executions[executionIndex++] = Execution({
+                target: erc1155Tokens[i],
+                value: 0,
+                callData: abi.encodeCall(IERC1155.setApprovalForAll, (PERMIT3, true))
             });
         }
 
@@ -131,34 +158,6 @@ contract Permit3ApproverModule is IERC7579Module {
 
         // Call executeFromExecutor on the smart account
         IERC7579Execution(account).executeFromExecutor(Mode.unwrap(mode), executionCalldata);
-    }
-
-    /**
-     * @notice Get the execution data for approving tokens
-     * @dev Helper function to encode the data for the execute function
-     * @param tokens Array of token addresses to approve
-     * @return data Encoded data for the execute function
-     */
-    function getExecutionData(
-        address[] calldata tokens
-    ) external pure returns (bytes memory data) {
-        return abi.encode(tokens);
-    }
-
-    /**
-     * @notice Get the name of the module
-     * @return The module name
-     */
-    function name() external pure returns (string memory) {
-        return NAME;
-    }
-
-    /**
-     * @notice Get the version of the module
-     * @return The module version
-     */
-    function version() external pure returns (string memory) {
-        return VERSION;
     }
 
     /**

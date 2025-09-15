@@ -10,6 +10,11 @@ import { IPermit } from "./IPermit.sol";
  */
 interface IPermit3 is IPermit, INonceManager {
     /**
+     * @notice Thrown when an invalid token key is used for transfer
+     */
+    error InvalidTokenKeyForTransfer();
+
+    /**
      * @notice Enum representing the type of permit operation
      * @param Transfer Execute immediate transfer
      * @param Decrease Decrease allowance
