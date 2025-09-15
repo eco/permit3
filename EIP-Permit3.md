@@ -91,7 +91,7 @@ struct MultiTokenTransfer {
     address from;
     address to;
     address token;
-    uint256 tokenId;    // 0 for ERC20, specific ID for NFT/ERC1155
+    uint256 tokenId;    // Specific ID for NFT/ERC1155
     uint160 amount;     // 1 for ERC721, variable for others
 }
 

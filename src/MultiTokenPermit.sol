@@ -17,17 +17,12 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
     /**
      * @dev Internal helper to get the storage key for a token/tokenId pair
      * @param token Token contract address
-     * @param tokenId Token ID (0 for ERC20, specific ID for NFT, type(uint256).max for collection-wide)
+     * @param tokenId Token ID (specific ID for NFT/ERC1155)
      * @return Storage key for allowance mapping
      */
     function _getTokenKey(address token, uint256 tokenId) internal pure returns (bytes32) {
-        if (tokenId == type(uint256).max) {
-            // ERC20 or collection-wide approval - convert address to bytes32
-            return bytes32(uint256(uint160(token)));
-        } else {
-            // Specific token ID - hash token and tokenId together
-            return keccak256(abi.encodePacked(token, tokenId));
-        }
+        // Hash token and tokenId together to ensure unique keys
+        return keccak256(abi.encodePacked(token, tokenId));
     }
 
     /**
@@ -35,8 +30,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param owner Token owner
      * @param token Token contract address
      * @param spender Approved spender
-     * @param tokenId Token ID (0 for ERC20, type(uint256).max for NFT collection-wide approval allowing any token in
-     * collection)
+     * @param tokenId Token ID (specific ID for NFT/ERC1155)
      * @return amount Approved amount (max uint160 for unlimited)
      * @return expiration Timestamp when approval expires (0 for no expiration)
      * @return timestamp Timestamp when approval was set
@@ -56,7 +50,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @notice Approve a spender for a specific token or collection
      * @param token Token contract address
      * @param spender Address to approve
-     * @param tokenId Token ID (0 for ERC20, specific ID for NFT, type(uint256).max for NFT collection-wide approval)
+     * @param tokenId Token ID (specific ID for NFT/ERC1155)
      * @param amount Amount to approve (ignored for ERC721, used for ERC20/ERC1155)
      * @param expiration Timestamp when approval expires (0 for no expiration)
      */
@@ -83,7 +77,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
     /**
      * @notice Execute approved ERC721 token transfer
      * @dev Uses a dual-allowance system: first checks for specific token ID approval,
-     *      then falls back to collection-wide approval (set with tokenId = type(uint256).max).
+     *      then falls back to collection-wide approval.
      *      This allows users to either approve individual NFTs or entire collections.
      * @param from Token owner address
      * @param to Transfer recipient address
@@ -101,7 +95,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
     /**
      * @notice Execute approved ERC1155 token transfer
      * @dev Uses a dual-allowance system: first checks for specific token ID approval,
-     *      then falls back to collection-wide approval (set with tokenId = type(uint256).max).
+     *      then falls back to collection-wide approval.
      *      This allows users to either approve individual token types or entire collections.
      * @param from Token owner address
      * @param to Transfer recipient address
@@ -185,8 +179,7 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
     /**
      * @notice Execute multiple token transfers of any type in a single transaction
      * @dev Routes each transfer to the appropriate function based on explicit token type.
-     *      Note: This function uses explicit TokenStandard enum instead of tokenId conventions
-     *      (tokenId=0 for ERC20) to provide unambiguous routing for mixed-type batches.
+     *      Note: This function uses explicit TokenStandard enum to provide unambiguous routing for mixed-type batches.
      * @param transfers Array of multi-token transfer instructions with explicit token types
      */
     function batchTransferFrom(
@@ -238,13 +231,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
 
         if (revertDataPerId.length > 0) {
             // Fallback: if no specific token approval exists, check for collection-wide approval
-            // Collection-wide approval is set by calling approve() with tokenId = type(uint256).max
+            // Collection-wide approval uses the token address as the key
             bytes32 collectionKey = bytes32(uint256(uint160(token)));
-
-            if (encodedId == collectionKey) {
-                // Special case: tokenId = max is the same as wild card approval
-                _revert(revertDataPerId);
-            }
 
             (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, amount);
 

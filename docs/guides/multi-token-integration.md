@@ -127,14 +127,13 @@ async function approveSpecificNFT(nftContract, spender, tokenId) {
 ```javascript
 // Approve all NFTs in a collection
 async function approveCollection(nftContract, spender) {
-    const COLLECTION_WILDCARD = ethers.constants.MaxUint256;
     const expiration = Math.floor(Date.now() / 1000) + 86400;
     
+    // Use 4-parameter approve for collection-wide allowance
     await permit3.approve(
         nftContract,
         spender,
-        COLLECTION_WILDCARD, // type(uint256).max as wildcard
-        1,
+        ethers.constants.MaxUint160,
         expiration
     );
 }
@@ -165,14 +164,14 @@ async function approveERC1155(
 ### ERC20 Token Approvals
 
 ```javascript
-// Standard ERC20 approval (tokenId = 0)
+// Standard ERC20 approval
 async function approveERC20(tokenContract, spender, amount) {
     const expiration = Math.floor(Date.now() / 1000) + 86400;
     
+    // For ERC20, use the 4-parameter approve
     await permit3.approve(
         tokenContract,
         spender,
-        0, // tokenId is 0 for ERC20
         amount,
         expiration
     );
@@ -429,11 +428,11 @@ await permit3.transferFrom(from, to, nftContract, tokenId);
 ### 2. Incorrect TokenId for ERC20
 
 ```javascript
-// ❌ Wrong: Using non-zero tokenId for ERC20
-await permit3.approve(erc20Token, spender, 123, amount, expiration);
-
-// ✅ Correct: TokenId must be 0 for ERC20
+// ❌ Wrong: Using 5-parameter approve for ERC20
 await permit3.approve(erc20Token, spender, 0, amount, expiration);
+
+// ✅ Correct: Use 4-parameter approve for ERC20
+await permit3.approve(erc20Token, spender, amount, expiration);
 ```
 
 ### 3. Amount Confusion for NFTs

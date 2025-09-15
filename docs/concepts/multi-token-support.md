@@ -77,8 +77,8 @@ The system checks two levels of allowances in order:
 // Approve a specific NFT (token ID 42)
 permit3.approve(nftContract, spender, 42, 1, expiration);
 
-// Approve entire NFT collection (using max uint256 as wildcard)
-permit3.approve(nftContract, spender, type(uint256).max, 1, expiration);
+// Approve entire NFT collection (use 4-parameter approve)
+permit3.approve(nftContract, spender, type(uint160).max, expiration);
 
 // Approve specific ERC1155 token with amount
 permit3.approve(erc1155Contract, spender, tokenId, amount, expiration);
@@ -230,7 +230,7 @@ struct MultiTokenTransfer {
     address from;        // Token owner
     address to;          // Recipient
     address token;       // Token contract
-    uint256 tokenId;     // Token ID (0 for ERC20)
+    uint256 tokenId;     // Token ID for NFT/ERC1155
     uint160 amount;      // Amount (1 for ERC721)
 }
 

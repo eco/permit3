@@ -212,7 +212,7 @@ interface IMultiTokenPermit {
         address from;
         address to;
         address token;
-        uint256 tokenId;    // 0 for ERC20, specific ID for NFT/ERC1155
+        uint256 tokenId;    // Specific ID for NFT/ERC1155
         uint160 amount;     // 1 for ERC721, variable for others
     }
     
@@ -243,14 +243,14 @@ interface IMultiTokenPermit {
         address owner,
         address token,
         address spender,
-        uint256 tokenId  // 0 for ERC20, type(uint256).max for collection wildcard
+        uint256 tokenId  // Specific ID for NFT/ERC1155
     ) external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
     
     // Approve tokens with ID support
     function approve(
         address token,
         address spender,
-        uint256 tokenId,  // 0 for ERC20, specific ID or max for wildcard
+        uint256 tokenId,  // Specific ID for NFT/ERC1155
         uint160 amount,   // Ignored for ERC721
         uint48 expiration
     ) external;

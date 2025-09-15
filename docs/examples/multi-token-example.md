@@ -283,7 +283,7 @@ contract MultiTokenMarketplace {
                     from: msg.sender,
                     to: listing.seller,
                     token: listing.paymentToken,
-                    tokenId: 0,
+                    tokenId: 0, // Ignored for ERC20 in TokenTypeTransfer
                     amount: uint160(listing.price)
                 })
             });
@@ -423,7 +423,6 @@ const MultiTokenMarketplace = () => {
             await permit3.approve(
                 listing.paymentToken,
                 marketplace.address,
-                0, // tokenId is 0 for ERC20
                 listing.price,
                 Math.floor(Date.now() / 1000) + 3600
             );

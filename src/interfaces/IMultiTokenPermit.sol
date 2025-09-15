@@ -12,12 +12,12 @@ interface IMultiTokenPermit {
      * @dev Used when tokenIds.length != amounts.length in ERC1155 batch transfers
      */
     error InvalidArrayLength();
-    
+
     /**
      * @notice Error thrown when attempting to use a collection that has been locked down
      * @dev Used when a collection-wide lockdown is in place to prevent all transfers
      * @param owner Token owner address
-     * @param token Token contract address  
+     * @param token Token contract address
      * @param spender Spender address attempting the transfer
      */
     error CollectionLocked(address owner, address token, address spender);
@@ -114,8 +114,7 @@ interface IMultiTokenPermit {
      * @param owner Token owner
      * @param token Token contract address
      * @param spender Approved spender
-     * @param tokenId Token ID (0 for ERC20, specific ID for NFT/ERC1155, type(uint256).max for collection-wide
-     * wildcard)
+     * @param tokenId Token ID (specific ID for NFT/ERC1155)
      * @return amount Approved amount (max uint160 for unlimited)
      * @return expiration Timestamp when approval expires (0 for no expiration)
      * @return timestamp Timestamp when approval was set
@@ -131,7 +130,7 @@ interface IMultiTokenPermit {
      * @notice Approve a spender for a specific token or collection
      * @param token Token contract address
      * @param spender Address to approve
-     * @param tokenId Token ID (0 for ERC20, specific ID for NFT/ERC1155, type(uint256).max for collection wildcard)
+     * @param tokenId Token ID (specific ID for NFT/ERC1155)
      * @param amount Amount to approve (ignored for ERC721, used for ERC20/ERC1155)
      * @param expiration Timestamp when approval expires (0 for no expiration)
      */
