@@ -12,6 +12,15 @@ interface IMultiTokenPermit {
      * @dev Used when tokenIds.length != amounts.length in ERC1155 batch transfers
      */
     error InvalidArrayLength();
+    
+    /**
+     * @notice Error thrown when attempting to use a collection that has been locked down
+     * @dev Used when a collection-wide lockdown is in place to prevent all transfers
+     * @param owner Token owner address
+     * @param token Token contract address  
+     * @param spender Spender address attempting the transfer
+     */
+    error CollectionLocked(address owner, address token, address spender);
 
     /**
      * @notice Emitted when a multi-token permit is executed for NFTs with specific token IDs

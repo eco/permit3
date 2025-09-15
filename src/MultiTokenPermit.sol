@@ -249,6 +249,14 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
             (, bytes memory revertDataWildcard) = _updateAllowance(from, collectionKey, msg.sender, amount);
 
             _handleAllowanceError(revertDataPerId, revertDataWildcard);
+        } else {
+            // Specific tokenId approval succeeded - verify collection isn't locked
+            // This prevents bypassing the lockdown mechanism with specific token approvals
+            bytes32 collectionKey = bytes32(uint256(uint160(token)));
+            Allowance memory collectionAllowance = allowances[from][collectionKey][msg.sender];
+            if (collectionAllowance.expiration == LOCKED_ALLOWANCE) {
+                revert CollectionLocked(from, token, msg.sender);
+            }
         }
     }
 

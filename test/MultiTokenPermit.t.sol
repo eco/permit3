@@ -835,4 +835,126 @@ contract MultiTokenPermitTest is TestBase {
         vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, nftOwner, tokenKey, spenderAddress));
         permit3.approve(address(nftToken), spenderAddress, type(uint256).max, type(uint160).max, expiration);
     }
+
+    /**
+     * @notice Test that lockdown prevents transfers even with specific tokenId approvals for ERC721
+     * @dev Verifies the fix for the vulnerability where specific token approvals could bypass collection lockdown
+     */
+    function test_lockdownPreventsERC721TransferWithSpecificTokenApproval() public {
+        uint48 expiration = uint48(block.timestamp + 1 days);
+        uint256 tokenId = 0;
+
+        // First, approve a specific token ID for the spender
+        vm.prank(nftOwner);
+        permit3.approve(address(nftToken), spenderAddress, tokenId, 1, expiration);
+
+        // Verify the spender can transfer the specific token
+        vm.prank(spenderAddress);
+        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), tokenId);
+        assertEq(nftToken.ownerOf(tokenId), recipientAddress);
+
+        // Mint a new token for the next test
+        vm.prank(nftOwner);
+        uint256 newTokenId = nftToken.mint(nftOwner);
+
+        // Approve the new specific token
+        vm.prank(nftOwner);
+        permit3.approve(address(nftToken), spenderAddress, newTokenId, 1, expiration);
+
+        // Now lockdown the collection
+        IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
+        pairs[0] = IPermit.TokenSpenderPair({ token: address(nftToken), spender: spenderAddress });
+        
+        vm.prank(nftOwner);
+        permit3.lockdown(pairs);
+
+        // Attempt to transfer the specific token should now fail due to collection lockdown
+        vm.prank(spenderAddress);
+        vm.expectRevert(
+            abi.encodeWithSelector(IMultiTokenPermit.CollectionLocked.selector, nftOwner, address(nftToken), spenderAddress)
+        );
+        permit3.transferFrom(nftOwner, recipientAddress, address(nftToken), newTokenId);
+    }
+
+    /**
+     * @notice Test that lockdown prevents transfers even with specific tokenId approvals for ERC1155
+     * @dev Verifies the fix for the vulnerability where specific token approvals could bypass collection lockdown
+     */
+    function test_lockdownPreventsERC1155TransferWithSpecificTokenApproval() public {
+        uint48 expiration = uint48(block.timestamp + 1 days);
+        uint256 tokenId = 100;
+        uint160 amount = 50;
+
+        // Mint ERC1155 tokens
+        vm.prank(multiTokenOwner);
+        multiToken.mint(multiTokenOwner, tokenId, 100, "");
+
+        // Set approval for Permit3 contract
+        vm.prank(multiTokenOwner);
+        multiToken.setApprovalForAll(address(permit3), true);
+
+        // Approve a specific token ID for the spender
+        vm.prank(multiTokenOwner);
+        permit3.approve(address(multiToken), spenderAddress, tokenId, amount, expiration);
+
+        // Verify the spender can transfer the specific token
+        vm.prank(spenderAddress);
+        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), tokenId, 25);
+        assertEq(multiToken.balanceOf(recipientAddress, tokenId), 25);
+
+        // Now lockdown the collection
+        IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
+        pairs[0] = IPermit.TokenSpenderPair({ token: address(multiToken), spender: spenderAddress });
+        
+        vm.prank(multiTokenOwner);
+        permit3.lockdown(pairs);
+
+        // Attempt to transfer the specific token should now fail due to collection lockdown
+        vm.prank(spenderAddress);
+        vm.expectRevert(
+            abi.encodeWithSelector(IMultiTokenPermit.CollectionLocked.selector, multiTokenOwner, address(multiToken), spenderAddress)
+        );
+        permit3.transferFrom(multiTokenOwner, recipientAddress, address(multiToken), tokenId, 25);
+    }
+
+    /**
+     * @notice Test that lockdown prevents batch transfers with specific token approvals
+     * @dev Ensures batch operations also respect the lockdown mechanism
+     */
+    function test_lockdownPreventsBatchTransfersWithSpecificApprovals() public {
+        uint48 expiration = uint48(block.timestamp + 1 days);
+        
+        // Mint additional tokens
+        vm.prank(nftOwner);
+        uint256[] memory tokenIds = nftToken.mintBatch(nftOwner, 3);
+
+        // Approve specific tokens for the spender
+        vm.prank(nftOwner);
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            permit3.approve(address(nftToken), spenderAddress, tokenIds[i], 1, expiration);
+        }
+
+        // Lockdown the collection
+        IPermit.TokenSpenderPair[] memory pairs = new IPermit.TokenSpenderPair[](1);
+        pairs[0] = IPermit.TokenSpenderPair({ token: address(nftToken), spender: spenderAddress });
+        
+        vm.prank(nftOwner);
+        permit3.lockdown(pairs);
+
+        // Prepare batch transfer
+        IMultiTokenPermit.ERC721Transfer[] memory transfers = new IMultiTokenPermit.ERC721Transfer[](1);
+        transfers[0] = IMultiTokenPermit.ERC721Transfer({
+            from: nftOwner,
+            to: recipientAddress,
+            tokenId: tokenIds[0],
+            token: address(nftToken)
+        });
+
+        // Attempt batch transfer should fail due to lockdown
+        vm.prank(spenderAddress);
+        vm.expectRevert(
+            abi.encodeWithSelector(IMultiTokenPermit.CollectionLocked.selector, nftOwner, address(nftToken), spenderAddress)
+        );
+        permit3.transferFrom(transfers);
+    }
 }
