@@ -209,8 +209,11 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
         // For signatures == 65 bytes ECDSA first then falling back to ERC-1271
         // We don't check for code length as EIP-7702 EOAs can have code
-        if (signature.length == 65 && digest.recover(signature) == owner) {
-            return;
+        if (signature.length == 65) {
+            (address signer,,) = digest.tryRecover(signature);
+            if (signer != address(0) && signer == owner) {
+                return;
+            }
         }
 
         // For longer signatures or when ECDSA failed use ERC-1271 validation

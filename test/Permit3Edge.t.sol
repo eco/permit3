@@ -1133,7 +1133,7 @@ contract Permit3EdgeTest is Test {
 
         // 1. Transfer
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(IPermit3.PermitType.Transfer), // Transfer (0)
+            modeOrExpiration: uint48(IPermit3.PermitType.TransferERC20), // Transfer ERC20 (0)
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: 100 // Transfer 100
@@ -1201,7 +1201,7 @@ contract Permit3EdgeTest is Test {
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
         inputs.permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(IPermit3.PermitType.Transfer), // Transfer
+            modeOrExpiration: uint48(IPermit3.PermitType.TransferERC20), // Transfer ERC20
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: AMOUNT

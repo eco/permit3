@@ -10,14 +10,19 @@ import { IPermit } from "./IPermit.sol";
  */
 interface IPermit3 is IPermit, INonceManager {
     /**
+     * @notice Thrown when an invalid token key is used for transfer
+     */
+    error InvalidTokenKeyForTransfer();
+
+    /**
      * @notice Enum representing the type of permit operation
-     * @param Transfer Execute immediate transfer
+     * @param TransferERC20 Execute immediate ERC20 transfer
      * @param Decrease Decrease allowance
      * @param Lock Lock allowance
      * @param Unlock Unlock previously locked allowance
      */
     enum PermitType {
-        Transfer,
+        TransferERC20,
         Decrease,
         Lock,
         Unlock
@@ -26,7 +31,7 @@ interface IPermit3 is IPermit, INonceManager {
     /**
      * @notice Represents a token allowance modification or transfer operation
      * @param modeOrExpiration Mode indicators:
-     *        = 0: Immediate transfer mode
+     *        = 0: Immediate ERC20 transfer mode
      *        = 1: Decrease allowance mode
      *        = 2: Lock allowance mode
      *        = 3: UnLock allowance mode
@@ -34,9 +39,9 @@ interface IPermit3 is IPermit, INonceManager {
      * @param tokenKey Encoded token identifier (bytes32):
      *        - For ERC20: bytes32(uint256(uint160(address)))
      *        - For ERC721/ERC1155: keccak256(abi.encodePacked(token, tokenId))
-     * @param account Transfer recipient (for mode 0) or approved spender (for allowance)
+     * @param account Transfer recipient (for ERC20 transfer mode) or approved spender (for allowance)
      * @param amountDelta Allowance change or transfer amount:
-     *        - For transfer mode: Amount to transfer
+     *        - For ERC20 transfer mode: Amount to transfer
      *        - For allowance mode: Increases or decreases allowance
      *           - 0: Only updates expiration
      *           - type(uint160).max: Unlimited approval or decrease to 0.

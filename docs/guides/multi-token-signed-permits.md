@@ -78,14 +78,14 @@ contract NFTPermitHelper {
 }
 ```
 
-<a id="wildcard-approvals"></a>
-## Wildcard Approvals for Collections
+<a id="collection-wide-approvals"></a>
+## Collection-Wide Approvals
 
 To approve an entire NFT collection (all token IDs), use the token contract address directly without encoding:
 
 ```javascript
 // For collection-wide approval, use the token address directly
-const collectionWildcard = nftContractAddress; // No encoding needed
+const collectionApproval = nftContractAddress; // No encoding needed
 
 // For ERC20 tokens, also use the token address directly
 const erc20Token = tokenAddress; // No encoding needed
@@ -233,7 +233,7 @@ async function createCollectionPermitSignature(
     // For collection-wide, use the NFT contract address directly
     const permits = [{
         modeOrExpiration: expiration,
-        token: nftContract,      // Direct contract address (wildcard)
+        token: nftContract,      // Direct contract address for collection-wide
         account: spender,
         amountDelta: ethers.constants.MaxUint160 // Max for unlimited
     }];
@@ -401,7 +401,7 @@ async function executeMarketplaceSale(
     );
     
     // 2. Transfer NFT from seller to buyer
-    await permit3.transferFrom(
+    await permit3.transferFromERC721(
         permitData.owner,  // from (seller)
         buyer,             // to
         nftContract,
@@ -419,7 +419,7 @@ async function batchNFTTransferWithPermit(
 ) {
     // Create permits for batch transfer
     const permits = nfts.map(nft => ({
-        modeOrExpiration: 0,  // 0 = immediate transfer mode
+        modeOrExpiration: 0,  // 0 = immediate ERC20 transfer mode
         token: encodeTokenId(nft.contract, nft.tokenId),
         account: nft.recipient,
         amountDelta: 1
@@ -522,8 +522,8 @@ When you encode an NFT as `keccak256(contract + tokenId)`:
 // ❌ WRONG: Cannot use standard transferFrom for NFTs
 await permit3.transferFrom(from, to, amount, encodedTokenId);
 
-// ✅ CORRECT: Use MultiTokenPermit functions
-await permit3['transferFrom(address,address,address,uint256)'](
+// ✅ CORRECT: Use explicit NFT transfer function
+await permit3.transferFromERC721(
     from, to, nftContract, tokenId
 );
 ```
@@ -616,7 +616,7 @@ library MultiTokenPermitHelper {
     ) internal pure returns (IPermit3.AllowanceOrTransfer memory) {
         return IPermit3.AllowanceOrTransfer({
             modeOrExpiration: expiration,
-            token: token, // Direct address for wildcard
+            token: token, // Direct address for collection-wide
             account: spender,
             amountDelta: type(uint160).max
         });

@@ -45,7 +45,7 @@ interface INonceManager {
 
 ```solidity
 enum PermitType {
-    Transfer,  // Execute immediate transfer
+    TransferERC20,  // Execute immediate transfer
     Decrease,  // Decrease allowance
     Lock,      // Lock allowance
     Unlock     // Unlock previously locked allowance
@@ -584,7 +584,7 @@ uint48 timestamp = uint48(block.timestamp);
 
 IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
 permits[0] = IPermit3.AllowanceOrTransfer({
-    modeOrExpiration: 0, // Transfer mode
+    modeOrExpiration: 0, // TransferERC20 mode
     token: USDC,
     account: recipient,
     amountDelta: 1000e6 // 1000 USDC
@@ -698,7 +698,7 @@ permit3.permitWitness(
 
 | Mode Value | Operation Type | Description |
 |------------|----------------|-------------|
-| 0 | Transfer | Immediate token transfer to recipient |
+| 0 | TransferERC20 | Immediate ERC20 token transfer to recipient |
 | 1 | Decrease | Reduce existing allowance |
 | 2 | Lock | Lock allowance for security |
 | 3 | Unlock | Unlock previously locked allowance |

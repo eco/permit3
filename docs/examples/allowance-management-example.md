@@ -213,7 +213,7 @@ const unlockPermit = {
 const transferPermit = {
     chainId: 1,
     permits: [{
-        modeOrExpiration: 0, // Transfer mode
+        modeOrExpiration: 0, // TransferERC20 mode
         token: USDC_ADDRESS,
         account: RECIPIENT_ADDRESS,
         amountDelta: ethers.utils.parseUnits("50", 6)

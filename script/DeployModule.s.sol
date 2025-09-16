@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { Permit3ApproverModule } from "../src/modules/Permit3ApproverModule.sol";
+import { ERC7579ApproverModule } from "../src/modules/ERC7579ApproverModule.sol";
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
@@ -16,15 +16,15 @@ contract DeployModule is Script {
         address permit3 = vm.envOr("PERMIT3_ADDRESS", DEFAULT_PERMIT3);
         bytes32 salt = vm.envOr("SALT", bytes32(0));
 
-        console.log("Deploying Permit3ApproverModule with:");
+        console.log("Deploying ERC7579ApproverModule with:");
         console.log("  Permit3:", permit3);
         console.log("  Salt:", vm.toString(salt));
 
         vm.startBroadcast();
 
         // Option 1: Direct deployment
-        Permit3ApproverModule module = new Permit3ApproverModule(permit3);
-        console.log("Permit3ApproverModule deployed at:", address(module));
+        ERC7579ApproverModule module = new ERC7579ApproverModule(permit3);
+        console.log("ERC7579ApproverModule deployed at:", address(module));
 
         vm.stopBroadcast();
     }
@@ -54,7 +54,7 @@ contract DeployModule is Script {
      * @return moduleAddress The address of the deployed module
      */
     function deployWithCreate2(address permit3, bytes32 salt) internal returns (address moduleAddress) {
-        bytes memory initCode = abi.encodePacked(type(Permit3ApproverModule).creationCode, abi.encode(permit3));
+        bytes memory initCode = abi.encodePacked(type(ERC7579ApproverModule).creationCode, abi.encode(permit3));
 
         // Call CREATE2 factory
         bytes4 selector = bytes4(keccak256("deploy(bytes,bytes32)"));
@@ -73,7 +73,7 @@ contract DeployModule is Script {
      * @return The computed address
      */
     function computeAddress(address permit3, bytes32 salt) external pure returns (address) {
-        bytes memory initCode = abi.encodePacked(type(Permit3ApproverModule).creationCode, abi.encode(permit3));
+        bytes memory initCode = abi.encodePacked(type(ERC7579ApproverModule).creationCode, abi.encode(permit3));
 
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), CREATE2_FACTORY, salt, keccak256(initCode)));
 

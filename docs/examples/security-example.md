@@ -683,7 +683,7 @@ async function auditPermissions(owner, permit3) {
         const { token, account, modeOrExpiration } = event.args;
         const mode = modeOrExpiration & 1n;
         
-        if (mode === 0n) { // Transfer mode
+        if (mode === 0n) { // TransferERC20 mode
             const amount = modeOrExpiration >> 48n;
             const expiration = Number(modeOrExpiration >> 208n);
             const now = Math.floor(Date.now() / 1000);

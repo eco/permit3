@@ -24,7 +24,7 @@ struct AllowanceOrTransfer {
 #### Fields
 
 - **modeOrExpiration**: Determines the operation type
-  - `0`: Transfer mode (execute immediate transfer)
+  - `0`: TransferERC20 mode (execute immediate ERC20 transfer)
   - `1`: Decrease mode (reduce allowance)
   - `2`: Lock mode (lock allowances)
   - `3`: Unlock mode (unlock allowances)

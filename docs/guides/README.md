@@ -48,7 +48,7 @@ Permit3 can also directly transfer tokens with a signature:
 
 ```solidity
 IPermit3.AllowanceOrTransfer memory permitData = IPermit3.AllowanceOrTransfer({
-    modeOrExpiration: 0, // Transfer mode
+    modeOrExpiration: 0, // TransferERC20 mode
     token: tokenAddress,
     account: recipientAddress,
     amountDelta: amount

@@ -159,8 +159,8 @@ contract ZeroAddressValidationTest is Test {
         address[] memory tokens = new address[](1);
         tokens[0] = address(0);
 
-        vm.expectRevert(IERC7702TokenApprover.ZeroToken.selector);
-        approver.approve(tokens);
+        vm.expectRevert(IERC7702TokenApprover.ZeroAddress.selector);
+        approver.approve(tokens, new address[](0), new address[](0));
     }
 
     function test_invalidateNonces_RejectsZeroOwner() public {

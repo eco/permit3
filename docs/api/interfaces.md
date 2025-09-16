@@ -203,22 +203,22 @@ interface IMultiTokenPermit {
     }
     
     // Data structures
-    struct MultiTokenTransfer {
+    struct TokenTransfer {
         address from;
         address to;
         address token;
-        uint256 tokenId;    // 0 for ERC20, specific ID for NFT/ERC1155
+        uint256 tokenId;    // Specific ID for NFT/ERC1155
         uint160 amount;     // 1 for ERC721, variable for others
     }
     
-    struct ERC721TransferDetails {
+    struct ERC721Transfer {
         address from;
         address to;
         uint256 tokenId;
         address token;
     }
     
-    struct ERC1155BatchTransferDetails {
+    struct ERC1155BatchTransfer {
         address from;
         address to;
         uint256[] tokenIds;
@@ -228,7 +228,7 @@ interface IMultiTokenPermit {
     
     struct TokenTypeTransfer {
         TokenStandard tokenType;
-        MultiTokenTransfer transfer;
+        TokenTransfer transfer;
     }
     
     // Functions
@@ -238,20 +238,20 @@ interface IMultiTokenPermit {
         address owner,
         address token,
         address spender,
-        uint256 tokenId  // 0 for ERC20, type(uint256).max for collection wildcard
+        uint256 tokenId  // Specific ID for NFT/ERC1155
     ) external view returns (uint160 amount, uint48 expiration, uint48 timestamp);
     
     // Approve tokens with ID support
     function approve(
         address token,
         address spender,
-        uint256 tokenId,  // 0 for ERC20, specific ID or max for wildcard
+        uint256 tokenId,  // Specific ID for NFT/ERC1155
         uint160 amount,   // Ignored for ERC721
         uint48 expiration
     ) external;
     
     // ERC721 transfer
-    function transferFrom(
+    function transferFromERC721(
         address from,
         address to,
         address token,
@@ -259,7 +259,7 @@ interface IMultiTokenPermit {
     ) external;
     
     // ERC1155 transfer
-    function transferFrom(
+    function transferFromERC1155(
         address from,
         address to,
         address token,
@@ -268,19 +268,19 @@ interface IMultiTokenPermit {
     ) external;
     
     // Batch operations
-    function transferFrom(
-        ERC721TransferDetails[] calldata transfers
+    function batchTransferERC721(
+        ERC721Transfer[] calldata transfers
     ) external;
     
-    function transferFrom(
-        MultiTokenTransfer[] calldata transfers
+    function batchTransferERC1155(
+        TokenTransfer[] calldata transfers
     ) external;
     
-    function batchTransferFrom(
-        ERC1155BatchTransferDetails calldata transfer
+    function batchTransferERC1155(
+        ERC1155BatchTransfer calldata transfer
     ) external;
     
-    function batchTransferFrom(
+    function batchTransferMultiToken(
         TokenTypeTransfer[] calldata transfers
     ) external;
 }

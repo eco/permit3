@@ -117,14 +117,14 @@ For direct transfers without signatures, use specialized functions:
 
 ```solidity
 // NFT transfer
-permit3.transferFrom(from, to, nftContract, tokenId);
+permit3.transferFromERC721(from, to, nftContract, tokenId);
 
 // ERC1155 transfer  
-permit3.transferFrom(from, to, erc1155Contract, tokenId, amount);
+permit3.transferFromERC1155(from, to, erc1155Contract, tokenId, amount);
 
 // Batch mixed tokens
 TokenTypeTransfer[] memory transfers = [...];
-permit3.batchTransferFrom(transfers);
+permit3.batchTransferMultiToken(transfers);
 ```
 
 ### Example Operations
