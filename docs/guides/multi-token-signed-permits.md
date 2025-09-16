@@ -1,11 +1,7 @@
 <a id="multi-token-signed-permits-top"></a>
-# 🎨 Multi-Token Signed Permits Guide 📝
-
-🧭 [Home](/docs/README.md) > [Guides](/docs/guides/README.md) > Multi-Token Signed Permits
+# Multi-Token Signed Permits Guide
 
 This guide explains how to use NFTs (ERC721) and semi-fungible tokens (ERC1155) with Permit3's signed permit functions, including the critical encoding patterns needed for both token types.
-
-###### Navigation: [Important Context](#important-context) | [Encoding TokenIds](#encoding-tokenids) | [Collection-Wide Approvals](#collection-wide-approvals) | [Signed Permit Examples](#signed-permit-examples) | [Cross-Chain NFT Permits](#cross-chain-nft-permits) | [Common Patterns](#common-patterns)
 
 <a id="important-context"></a>
 ## ⚠️ Important Context
@@ -24,7 +20,7 @@ struct AllowanceOrTransfer {
 **Key Limitation**: This struct doesn't have a dedicated `tokenId` field, so NFT and ERC1155 operations require special encoding.
 
 <a id="encoding-tokenids"></a>
-## 🔐 Encoding TokenIds for Multi-Token Permits
+## Encoding TokenIds for Multi-Token Permits
 
 To use NFTs (ERC721) or semi-fungible tokens (ERC1155) with signed permits, you must encode the token address and tokenId into a single address value:
 
@@ -83,7 +79,7 @@ contract NFTPermitHelper {
 ```
 
 <a id="collection-wide-approvals"></a>
-## 🃏 Collection-Wide Approvals
+## Collection-Wide Approvals
 
 To approve an entire NFT collection (all token IDs), use the token contract address directly without encoding:
 
@@ -108,7 +104,7 @@ Is it an NFT/ERC1155 with specific tokenId?
 ```
 
 <a id="signed-permit-examples"></a>
-## 📝 Signed Permit Examples
+## Signed Permit Examples
 
 ### Example 1: ERC1155 Semi-Fungible Token Approval
 
@@ -285,7 +281,7 @@ async function createMixedTokenPermit(
 ```
 
 <a id="cross-chain-multi-token-permits"></a>
-## 🌉 Cross-Chain Multi-Token Permits
+## Cross-Chain Multi-Token Permits
 
 For cross-chain NFT and ERC1155 operations, encode tokenIds on each chain:
 
@@ -362,7 +358,7 @@ async function createCrossChainMultiTokenPermit(
 ```
 
 <a id="common-patterns"></a>
-## 💡 Common Patterns
+## Common Patterns
 
 ### Pattern 1: NFT Marketplace Listing
 
@@ -551,7 +547,7 @@ const { amount: collectionAllowance } = await permit3.allowance(
 );
 ```
 
-## 🔧 Helper Library
+## Helper Library
 
 Here's a complete helper library for multi-token permits:
 
@@ -644,18 +640,3 @@ library MultiTokenPermitHelper {
     }
 }
 ```
-
-## 📚 Related Documentation
-
-- [Multi-Token Support Concepts](/docs/concepts/multi-token-support.md)
-- [Signature Creation Guide](/docs/guides/signature-creation.md)
-- [Multi-Token Integration Guide](/docs/guides/multi-token-integration.md)
-- [Cross-Chain Permits Guide](/docs/guides/cross-chain-permit.md)
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Multi-Token Integration](/docs/guides/multi-token-integration.md) | [Guides](/docs/guides/README.md) | [Cross-Chain Permits](/docs/guides/cross-chain-permit.md) |
-
-[🔝 Back to Top](#multi-token-signed-permits-top)

@@ -1,6 +1,5 @@
-# 🔏 Permit3 Witness Functionality 🧩
+# Permit3 Witness Functionality 
 
-🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Witness Functionality
 
 Witness functionality is a powerful feature in Permit3 that enables smart contracts to include arbitrary data in EIP-712 signature verification. This guide provides a comprehensive explanation of how witness functionality works, its use cases, and how to implement it in your applications.
 
@@ -347,15 +346,3 @@ contract OrderMatcher {
     }
 }
 ```
-
-## Conclusion
-
-Witness functionality in Permit3 provides a powerful mechanism for extending the standard permit flow with application-specific data and verification. By leveraging this functionality, developers can create more secure and context-aware token permission systems across multiple blockchains.
-
-The ability to include arbitrary data in EIP-712 signatures opens up new possibilities for cross-chain applications, complex permission systems, and enhanced security models, all while maintaining compatibility with the efficient signature-based approach of Permit3.
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Unbalanced Merkle Tree](/docs/concepts/unbalanced-merkle-tree.md) | [Concepts](/docs/concepts/README.md) | [Allowance System](/docs/concepts/allowance-system.md) |

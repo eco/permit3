@@ -1,4 +1,4 @@
-# 🔏 Permit3 Allowance System 🔑
+# Permit3 Allowance System 
 
 The allowance system is a core component of Permit3, providing flexible and secure management of token permissions across multiple chains. This document explains the underlying mechanics and advanced features of this system.
 
@@ -221,14 +221,3 @@ bytes32 constant ALLOWANCE_TRANSFER_TYPEHASH = keccak256(
 ```
 
 This enables users to sign structured data representing allowance operations, which can then be submitted to the blockchain by anyone.
-
-## Conclusion
-
-The Permit3 allowance system combines flexibility, security, and cross-chain capability:
-
-- **Unified Operations**: One structure for transfers, increases, decreases, locks, and unlocks
-- **Timestamp Synchronization**: Ensures consistent behavior across chains
-- **Flexible Permissions**: Time-bound allowances with precise control
-- **Emergency Controls**: Account locking for enhanced security
-
-This system forms the foundation for Permit3's advanced cross-chain token permission capabilities.

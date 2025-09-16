@@ -1,4 +1,4 @@
-# 🔏 Permit3 Witness Integration Guide 🧩
+# Permit3 Witness Integration Guide
 
 This guide explains how to integrate Permit3's witness functionality into your application, allowing for enhanced verification and conditional permissions.
 
@@ -347,7 +347,3 @@ const batchedPermits = {
     ]
 };
 ```
-
-## Conclusion
-
-Witness functionality enables powerful conditional permissions by attaching verifiable data to token approvals. By following this guide, you can implement sophisticated permission patterns that go beyond simple allowances, creating more secure and context-aware DeFi applications.

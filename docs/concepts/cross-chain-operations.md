@@ -1,11 +1,5 @@
 <a id="cross-chain-operations-top"></a>
-# 🔏 Permit3 Cross-Chain Operations 🌉
-
-🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Cross-Chain Operations
-
-This document explains how Permit3 enables token operations across multiple blockchains with a single signature.
-
-###### Navigation: [Overview](#overview) | [How It Works](#how-cross-chain-operations-work) | [Legacy Hash Chaining](#legacy-hash-chaining-mechanism) | [Unbalanced Trees](#unbalanced-merkle-tree-approach) | [Proof Structures](#proof-structures) | [Example](#example-cross-chain-token-approval) | [Chain Ordering](#chain-ordering-and-gas-optimization) | [Witness Functionality](#cross-chain-witness-functionality) | [Security](#security-considerations) | [Limitations](#limitations-and-considerations)
+# Permit3 Cross-Chain Operations
 
 <a id="overview"></a>
 ## Overview
@@ -379,15 +373,3 @@ Sophisticated nonce handling prevents replay attacks:
 - **Order Dependency**: If operations have dependencies across chains, consider the execution order
 - **Gas Costs**: Merkle proofs have predictable O(log n) gas costs
 - **Signature Reuse**: The same signature can be used on multiple chains, which can be a feature or a risk depending on your use case
-
-## Conclusion
-
-Cross-chain operations in Permit3 provide a powerful way to manage token permissions across multiple blockchains with a single signature. By understanding hash chaining, proof construction, and security considerations, you can build efficient and secure cross-chain applications.
-
-The ability to authorize operations across chains with one signature significantly improves user experience and enables new use cases for cross-chain applications, making Permit3 a valuable tool for building the multi-chain future of DeFi.
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Architecture](/docs/concepts/architecture.md) | [Concepts](/docs/concepts/README.md) | [Nonce Management](/docs/concepts/nonce-management.md) |

@@ -1,19 +1,16 @@
 <a id="witness-example-top"></a>
-# 🔏 Permit3 Witness Functionality Example 🧩
+# Permit3 Witness Functionality Example 
 
-###### Quick Navigation: [Use Case](#use-case-orderbook-dex-with-witness-data) | [Order Structure](#step-1-define-order-structure) | [Witness Data](#step-2-witness-data-encoding-and-verification) | [Order Execution](#step-3-execute-order-with-witness) | [Client-Side](#step-4-client-side-order-creation-and-signing) | [Multi-Signature Example](#advanced-example-multi-signature-order-execution) | [Key Takeaways](#summary-and-key-takeaways)
-
-🧭 [Home](/docs/README.md) > [Examples](/docs/examples/README.md) > Witness Example
 
 This example demonstrates how to implement and use Permit3's witness functionality in a decentralized exchange scenario.
 
 <a id="use-case-orderbook-dex-with-witness-data"></a>
-## 📊 Use Case: Orderbook DEX with Witness Data
+## Use Case: Orderbook DEX with Witness Data
 
 In this example, we'll create a decentralized exchange where orders are submitted off-chain and executed on-chain using Permit3's witness functionality to verify order parameters.
 
 <a id="step-1-define-order-structure"></a>
-### 📝  Step 1: Define Order Structure
+### Step 1: Define Order Structure
 
 First, we define the order structure that will be encoded in the witness data:
 
@@ -48,7 +45,7 @@ contract OrderBook {
 ```
 
 <a id="step-2-witness-data-encoding-and-verification"></a>
-### 🔍  Step 2: Witness Data Encoding and Verification
+### Step 2: Witness Data Encoding and Verification
 
 Next, we implement functions to encode and verify order data as witness:
 
@@ -705,32 +702,3 @@ async function createAndSignMultiSigOrder(
     };
 }
 ```
-
-<a id="summary-and-key-takeaways"></a>
-## Summary and Key Takeaways
-
-This example demonstrates how Permit3's witness functionality can be used to create powerful and flexible token permission systems. Key points to remember:
-
-1. **Witness Data is Arbitrary**: You can include any data in the witness, as long as it can be hashed to a bytes32 value
-2. **Type Strings are Flexible**: You can define custom EIP-712 type structures for your witness data
-3. **Signatures Include Witness**: The user's signature covers both the permit data and the witness data
-4. **On-Chain Verification**: You must verify the witness data matches expected values on-chain
-5. **Multi-Party Workflows**: Witness data can include signatures from other parties, enabling complex approval flows
-
-Witness functionality enables many advanced DeFi use cases:
-- Multi-signature approvals
-- Order matching with verification
-- Conditional transfers
-- Cross-protocol interactions
-- Fee specifications
-- Metadata inclusion
-
-By leveraging Permit3's witness functionality, you can create more secure and sophisticated token permission systems while maintaining gas efficiency and user experience.
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Examples](/docs/examples/README.md) | [Examples](/docs/examples/README.md) | [Cross-Chain Example](/docs/examples/cross-chain-example.md) |
-
-[🔝 Back to Top](#witness-example-top)

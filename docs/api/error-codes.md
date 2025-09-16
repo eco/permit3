@@ -1,11 +1,8 @@
 <a id="error-codes-top"></a>
-# 🔏 Permit3 Error Codes ⚠️
+# Permit3 Error Codes 
 
-🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Error Codes
 
 This document provides a comprehensive reference for all error codes that can be thrown by the Permit3 system.
-
-###### Navigation: [Core Errors](#core-errors) | [Signature Errors](#signature-errors) | [Nonce Errors](#nonce-errors) | [Chain Errors](#chain-errors) | [Witness Errors](#witness-errors) | [Allowance Errors](#allowance-errors) | [Proof Errors](#proof-errors) | [Best Practices](#error-handling-best-practices) | [Cross-Chain](#cross-chain-error-handling)
 
 <a id="core-errors"></a>
 ## Core Errors

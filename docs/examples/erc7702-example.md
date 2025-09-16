@@ -1,19 +1,15 @@
 <a id="erc7702-example-top"></a>
-# 🔗 ERC-7702 Token Approver Example
-
-###### Quick Navigation: [Overview](#overview) | [Setup](#setup) | [Basic Usage](#basic-usage) | [Advanced Integration](#advanced-integration) | [Frontend Example](#frontend-example)
-
-🧭 [Home](/docs/README.md) > [Examples](/docs/examples/README.md) > ERC-7702 Example
+# ERC-7702 Token Approver Example
 
 <a id="overview"></a>
-## 📖 Overview
+## Overview
 
 This example demonstrates how to integrate the ERC-7702 Token Approver with Permit3 to create a seamless user experience for batch token approvals AND permit operations using Account Abstraction.
 
 The ERC-7702 integration eliminates the need for both approval transactions and signature creation by leveraging delegatecall functionality to approve tokens and execute permit operations in a single transaction.
 
 <a id="setup"></a>
-## 🛠️ Setup
+## Setup
 
 ### Contract Deployment
 
@@ -40,7 +36,7 @@ contract ExampleSetup {
 ```
 
 <a id="basic-usage"></a>
-## 🚀 Basic Usage
+## Basic Usage
 
 ### Single Token Approval
 
@@ -107,7 +103,7 @@ const transaction = {
 ```
 
 <a id="advanced-integration"></a>
-## 🔧 Advanced Integration
+## Advanced Integration
 
 ### DApp Integration Pattern
 
@@ -310,7 +306,7 @@ export function useERC7702Approval() {
 ```
 
 <a id="frontend-example"></a>
-## 🎨 Frontend Example
+## Frontend Example
 
 ### Complete DApp Integration
 
@@ -528,7 +524,7 @@ async function safeERC7702Approval(tokens) {
 ```
 
 <a id="testing"></a>
-## 🧪 Testing
+## Testing
 
 ### Unit Test Example
 
@@ -566,11 +562,3 @@ describe('ERC7702 Integration', () => {
 });
 ```
 
----
-
-<a id="navigation-footer"></a>
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Integration Example](/docs/examples/integration-example.md) | [Examples](/docs/examples/README.md) | [Witness Example](/docs/examples/witness-example.md) |
-
-[🔝 Back to Top](#erc7702-example-top)

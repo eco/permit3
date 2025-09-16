@@ -388,15 +388,3 @@ emergencyLockdown([
     // Add more token addresses as needed
 ]);
 ```
-
-## Conclusion
-
-Permit3's flexible allowance system provides comprehensive token permission management with features like:
-
-- Increasing/decreasing allowances
-- Time-bound permissions
-- Emergency locking/unlocking
-- Direct transfers
-- Cross-chain management
-
-These features allow users to maintain precise control over their token permissions while minimizing on-chain transactions.

@@ -1,11 +1,7 @@
 <a id="multi-token-top"></a>
-# 🎨 Multi-Token Support (NFTs & Semi-Fungible Tokens) 🖼️
-
-🧭 [Home](/docs/README.md) > [Concepts](/docs/concepts/README.md) > Multi-Token Support
+# Multi-Token Support (NFTs & Semi-Fungible Tokens)
 
 This document explains Permit3's comprehensive support for multiple token standards including ERC20, ERC721 (NFTs), and ERC1155 (semi-fungible tokens).
-
-###### Navigation: [Overview](#overview) | [Token Standards](#supported-token-standards) | [Dual-Allowance System](#dual-allowance-system) | [TokenId Encoding](#tokenid-encoding-as-address) | [Batch Operations](#batch-operations) | [Use Cases](#use-cases)
 
 <a id="overview"></a>
 ## 🌟 Overview

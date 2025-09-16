@@ -1,25 +1,38 @@
 <a id="documentation-top"></a>
-# 🔏 Permit3 Documentation 📖
+# Permit3 Documentation
+## Introduction 
+Permit3 enables cross-chain token operations with a single signature. It solves the problem of requiring separate approval signatures for each blockchain when performing multi-chain operations.
 
-<a id="cross-chain-revolution"></a>
-## The Cross-Chain Revolution
+### Problem
 
-Imagine a world where blockchain boundaries no longer limit what you can build. 
+Multi-chain applications currently require:
 
-A trader wants to rebalance their portfolio across five different networks with a single signature. A DeFi protocol needs to coordinate complex operations spanning multiple L2s. A treasury manager wants to authorize payments on various chains without having to sign dozens of separate transactions.
+- Separate transaction signatures for each chain
+- Complex off-chain coordination logic
+- Intermediary bridges or relayers
+- Multiple wallet interactions for users
 
-For years, these scenarios required cumbersome processes: signing separate transactions for each chain, managing complex off-chain coordination, or relying on centralized bridges as intermediaries. The multi-chain ecosystem demanded a better solution—one that respected the sovereignty of each chain while enabling seamless interoperability.
+### Solution
+Permit3 uses Unbalanced Merkle Trees and cryptographic proofs to authorize token operations across multiple blockchains with one signature. Each chain processes only its relevant operations while maintaining cryptographic verification of the complete cross-chain intent.
 
-**That solution is Permit3 🔏**
+**Key Capabilities:**
 
-Permit3 introduces a revolutionary approach to cross-chain token operations. By combining cryptographic innovation (Unbalanced Merkle tree proofs) with signature efficiency, it enables what was previously impossible: authorizing complex token operations across an unlimited number of blockchains with a single signature.
+- Single signature for operations across unlimited chains
+- Per-chain gas optimization (chains only process their data)
+- Cryptographic proof verification without external dependencies
+- Backward compatibility with existing Permit2 implementations
 
-Unlike traditional cross-chain solutions that force compromises between security and usability, Permit3 maintains the highest security standards while dramatically improving the user experience. Each chain processes only what's relevant to it, keeping gas costs optimized while still preserving the mathematically verifiable connection to operations on other chains.
+### Use Cases
 
-This documentation will guide you through understanding and implementing Permit3 in your applications, from the core cryptographic concepts to practical integration patterns. Whether you're building a cross-chain DEX, a multi-chain wallet, or a complex DeFi protocol, Permit3 provides the foundation for a true cross-chain future.
+- Cross-chain DEX aggregators
+- Multi-chain treasury management
+- Portfolio rebalancing across L2s
+- Batched multi-chain DeFi operations
+
+This documentation covers the cryptographic architecture, implementation details, and integration patterns for Permit3.
 
 <a id="documentation-sections"></a>
-## 📑 Documentation Sections
+## Documentation Sections
 
 | Section | Description |
 |---------|-------------|
@@ -31,7 +44,7 @@ This documentation will guide you through understanding and implementing Permit3
 ###### Quick Navigation: [Revolution](#cross-chain-revolution) | [Sections](#documentation-sections) | [Core Concepts](#core-concepts) | [Guides](#guides) | [API Reference](#api-reference) | [Examples](#examples) | [Features](#feature-highlights) | [Resources](#additional-resources) | [Future](#future-cross-chain)
 
 <a id="core-concepts"></a>
-## 🏗️ Core Concepts
+## Core Concepts
 
 Learn about the core concepts that power Permit3's functionality:
 
@@ -42,6 +55,7 @@ Learn about the core concepts that power Permit3's functionality:
 - [**Unbalanced Merkle Trees**](./concepts/unbalanced-merkle-tree.md) - Deep dive into the cryptographic structure for efficient cross-chain proofs
 - [**Nonce Management**](./concepts/nonce-management.md) - Understanding non-sequential nonces for replay protection
 - [**Allowance System**](./concepts/allowance-system.md) - Comprehensive guide to Permit3's flexible allowance mechanisms
+- [**Permit2 Compatiblity**](./concepts/permit2-compatibility.md) - How permit3 drops-in with existing permit2 integrations
 
 [View all concepts →](./concepts/README.md)
 
@@ -86,35 +100,6 @@ Practical examples demonstrating Permit3 implementation:
 
 [View all examples →](./examples/README.md)
 
-<a id="getting-started"></a>
-## 🚀 Getting Started
-
-### Begin Your Cross-Chain Journey
-
-The multi-chain future is here, and Permit3 is your gateway to building within it. Whether you're a:
-
-- **DApp Developer** looking to expand your protocol across multiple chains
-- **Wallet Developer** aiming to simplify cross-chain UX for your users
-- **DeFi Protocol** seeking to coordinate complex operations across networks
-- **Enterprise** needing secure treasury management across blockchains
-
-Permit3 provides the foundation for your cross-chain vision.
-
-Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to get a basic implementation up and running in minutes. Then explore the [Core Concepts](./concepts/README.md) to understand the powerful cryptography that makes it all possible.
-
-<a id="feature-highlights"></a>
-## 🔍 Feature Highlights
-
-| Feature | Description |
-|---------|-------------|
-| **Multi-Token Support** | Unified interface for ERC20, ERC721 NFTs, and ERC1155 semi-fungible tokens with dual-allowance system |
-| **Cross-Chain Operations** | Authorize token operations across multiple blockchains with a single signature |
-| **ERC-7702 Integration** | Batch approve infinite allowances with Account Abstraction for seamless UX |
-| **Witness Functionality** | Attach arbitrary data to permits for enhanced verification and complex permission patterns |
-| **Flexible Allowance System** | Comprehensive tools for managing token permissions with different modes and expirations |
-| **Gas Optimization** | Efficient designs for minimizing gas costs across all operations |
-| **Security Controls** | Robust security features including account locking and permission revocation |
-| **Permit2 Compatibility** | Compatibility with contracts that are already using Permit2 for transfers, allowing them to work with Permit3 without any changes |
 
 <a id="additional-resources"></a>
 ## 🔧 Additional Resources
@@ -125,20 +110,3 @@ Ready to dive in? Start with the [Quick Start Guide](./guides/quick-start.md) to
 - [License](../LICENSE)
 
 <a id="future-cross-chain"></a>
-## 🌐 The Future is Cross-Chain
-
-The blockchain ecosystem is no longer a collection of isolated chains but an interconnected network of specialized blockchains, each with its unique strengths. Permit3 embraces this multi-chain reality, providing the critical infrastructure needed to build seamless experiences across chains.
-
-By reducing friction in cross-chain interactions, Permit3 enables a new generation of applications that aren't constrained by network boundaries. The permissions you grant, the tokens you transfer, and the operations you authorize can span the entire blockchain ecosystem with the same security and simplicity as if they were on a single chain.
-
-Join us in building the cross-chain future. Your journey begins here.
-
----
-
-*This documentation is comprehensive but continuously evolving. If you have suggestions for improvements, please open an issue or pull request in the GitHub repository.*
-
----
-
-| 📚 Documentation Sections |
-|:------------------------:|
-| [Concepts](/docs/concepts/README.md) • [Guides](/docs/guides/README.md) • [API Reference](/docs/api/README.md) • [Examples](/docs/examples/README.md) |

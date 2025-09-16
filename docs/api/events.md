@@ -1,11 +1,8 @@
 <a id="events-top"></a>
-# 🔏 Permit3 Events 📣
+# Permit3 Events 
 
-🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Events
 
 This document provides a comprehensive reference for all events emitted by the Permit3 system.
-
-###### Navigation: [Core Events](#core-events) | [Permit Event](#permit) | [Approval Event](#approval) | [Lockdown Event](#lockdown) | [NonceInvalidated](#nonceinvalidated) | [Event Flows](#event-flow-diagrams) | [Cross-Chain Considerations](#cross-chain-event-considerations) | [Indexing](#indexing-and-monitoring)
 
 <a id="core-events"></a>
 ## Core Events

@@ -1,16 +1,13 @@
 <a id="api-reference-top"></a>
-# 🔏 Permit3 API Reference 📘
+# Permit3 API Reference 
 
-🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > API Reference
 
 This document provides a comprehensive reference for the Permit3 API, including all public interfaces, function signatures, and data structures.
-
-###### Navigation: [Interfaces](#interfaces) | [Data Structures](#data-structures) | [Constants](#constants) | [Errors](#custom-errors) | [Functions](#function-signatures) | [Events](#events) | [EIP-712](#eip-712-domain-separator) | [Type Strings](#type-strings) | [Examples](#usage-examples) | [Modes](#operation-mode-reference) | [Error Reference](#error-reference) | [Nonce Management](#nonce-management-reference) | [Security](#security-considerations)
 
 <a id="interfaces"></a>
 ## 🔌 Interfaces
 
-### 📄 IPermit3
+### IPermit3
 
 The main interface for Permit3, extending IPermit and INonceManager.
 
@@ -20,7 +17,7 @@ interface IPermit3 is IPermit, INonceManager {
 }
 ```
 
-### 📃 IPermit
+### IPermit
 
 Interface for compatibility with contracts that are already using Permit2 for transfers.
 
@@ -31,7 +28,7 @@ interface IPermit {
 }
 ```
 
-### 🧮 INonceManager
+### INonceManager
 
 Interface for nonce management and signature validation.
 
@@ -42,9 +39,9 @@ interface INonceManager {
 ```
 
 <a id="data-structures"></a>
-## 🧰 Data Structures
+## Data Structures
 
-### 🔖 Enums
+### Enums
 
 ```solidity
 enum PermitType {
@@ -55,9 +52,9 @@ enum PermitType {
 }
 ```
 
-### 📋 Structs
+### Structs
 
-#### ✅ Allowance
+#### Allowance
 
 ```solidity
 struct Allowance {
@@ -67,7 +64,7 @@ struct Allowance {
 }
 ```
 
-#### 🔄 AllowanceOrTransfer
+#### AllowanceOrTransfer
 
 ```solidity
 struct AllowanceOrTransfer {
@@ -78,7 +75,7 @@ struct AllowanceOrTransfer {
 }
 ```
 
-#### 🌐 ChainPermits
+#### ChainPermits
 
 ```solidity
 struct ChainPermits {
@@ -87,7 +84,7 @@ struct ChainPermits {
 }
 ```
 
-#### 🌲 Cross-Chain Permit Parameters
+#### Cross-Chain Permit Parameters
 
 Note: In the implementation, cross-chain operations now use separate parameters instead of a struct:
 - `ChainPermits calldata permits`: Permit operations for the current chain
@@ -749,9 +746,3 @@ This approach:
 - **Account Locking**: Understand implications of locked state
 - **Timestamp Ordering**: Be aware of timestamp-based operation ordering
 - **Allowance Management**: Monitor allowance changes across chains
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [API Reference](/docs/api/README.md) | [API Reference](/docs/api/README.md) | [Data Structures](/docs/api/data-structures.md) |

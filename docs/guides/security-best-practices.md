@@ -509,15 +509,3 @@ contract SecurePermit3Integration {
     }
 }
 ```
-
-## Conclusion
-
-Security is paramount when working with token permissions. By implementing these best practices, you can significantly reduce the risk of unauthorized access or loss of funds when using Permit3.
-
-For a complete security implementation example, see [Security Example](../examples/security-example.md).
-
-## Additional Resources
-
-1. [EIP-712 Specification](https://eips.ethereum.org/EIPS/eip-712)
-2. [Smart Contract Security Best Practices](https://consensys.github.io/smart-contract-best-practices/)
-3. [Permit3 Security Overview](../concepts/architecture.md#security-features)

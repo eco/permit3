@@ -1,14 +1,9 @@
 <a id="interfaces-top"></a>
-# 🔏 Permit3 Interfaces 🔌
+# Permit3 Interfaces
 
-🧭 [Home](/docs/README.md) > [API Reference](/docs/api/README.md) > Interfaces
-
-This document provides a comprehensive reference of all interfaces in the Permit3 system.
-
-###### Navigation: [IPermit3](#ipermit3) | [IPermit](#ipermit) | [INonceManager](#inoncemanager) | [Merkle Tree Methodology](#merkle-tree-methodology) | [Inheritance Diagram](#interface-inheritance-diagram) | [Implementation Contracts](#implementation-contracts)
 
 <a id="ipermit3"></a>
-## 📄 IPermit3
+## IPermit3
 
 The main interface for Permit3, combining IPermit and INonceManager functionality plus additional features.
 
@@ -100,7 +95,7 @@ interface IPermit3 is IPermit, INonceManager {
 ```
 
 <a id="ipermit"></a>
-## 📃 IPermit
+## IPermit
 
 Interface providing compatibility with Permit2 functions.
 
@@ -145,7 +140,7 @@ interface IPermit {
 ```
 
 <a id="inoncemanager"></a>
-## 🧮 INonceManager
+## INonceManager
 
 Interface for managing nonces (salts) to prevent replay attacks.
 
@@ -191,7 +186,7 @@ interface INonceManager is IPermit {
 ```
 
 <a id="imultitokenpermit"></a>
-## 🎨 IMultiTokenPermit
+## IMultiTokenPermit
 
 Interface for multi-token support including NFTs (ERC721) and semi-fungible tokens (ERC1155).
 
@@ -299,7 +294,7 @@ interface IMultiTokenPermit {
 - **Token Type Support**: Unified interface for ERC20, ERC721, and ERC1155
 
 <a id="merkle-tree-methodology"></a>
-## 🌲 Unbalanced Merkle Tree Methodology
+## Unbalanced Merkle Tree Methodology
 
 The Unbalanced Merkle tree methodology uses OpenZeppelin's MerkleProof library for verification.
 
@@ -318,7 +313,7 @@ function verify(
 ```
 
 <a id="interface-inheritance-diagram"></a>
-## 📊 Interface Inheritance Diagram
+## Interface Inheritance Diagram
 
 ```
 ┌─────────────────┐
@@ -361,13 +356,13 @@ function verify(
 This diagram shows the inheritance relationship between interfaces in the Permit3 system.
 
 <a id="implementation-contracts"></a>
-## 📁 Implementation Contracts
+## Implementation Contracts
 
 The main contracts implementing these interfaces are:
 
-- 📄 **Permit3.sol**: Implements IPermit3, providing the complete functionality
-- 🔢 **NonceManager.sol**: Implements INonceManager for replay protection
-- 📃 **PermitBase.sol**: Implements IPermit for compatibility with contracts that are already using Permit2 for transfers
-- 🌲 **OpenZeppelin MerkleProof**: Standard library used for Unbalanced Merkle tree methodology
+- **Permit3.sol**: Implements IPermit3, providing the complete functionality
+- **NonceManager.sol**: Implements INonceManager for replay protection
+- **PermitBase.sol**: Implements IPermit for compatibility with contracts that are already using Permit2 for transfers
+- **OpenZeppelin MerkleProof**: Standard library used for Unbalanced Merkle tree methodology
 
 These interfaces provide a flexible and extensible foundation for the Permit3 system, allowing for future upgrades and extensions while maintaining compatibility with existing systems.

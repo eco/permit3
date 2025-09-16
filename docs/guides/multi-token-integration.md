@@ -1,11 +1,7 @@
 <a id="multi-token-guide-top"></a>
-# 🎨 Multi-Token Integration Guide 🖼️
-
-🧭 [Home](/docs/README.md) > [Guides](/docs/guides/README.md) > Multi-Token Integration
+# Multi-Token Integration Guide 
 
 This guide walks you through integrating NFT and semi-fungible token support in your Permit3-based application.
-
-###### Navigation: [Prerequisites](#prerequisites) | [Basic Setup](#basic-setup) | [Token Detection](#detecting-token-types) | [Approval Patterns](#approval-patterns) | [Transfer Operations](#transfer-operations) | [Batch Operations](#batch-operations) | [Best Practices](#best-practices)
 
 <a id="prerequisites"></a>
 ## 📋 Prerequisites
@@ -18,7 +14,7 @@ Before implementing multi-token support, ensure you have:
 4. ✅ Web3 library (ethers.js, viem, or web3.js)
 
 <a id="basic-setup"></a>
-## 🚀 Basic Setup
+## Basic Setup
 
 ### 1. Import Required Interfaces
 
@@ -46,7 +42,7 @@ const permit3 = new ethers.Contract(
 ```
 
 <a id="detecting-token-types"></a>
-## 🔍 Detecting Token Types
+## Detecting Token Types
 
 ### Automatic Token Standard Detection
 
@@ -101,7 +97,7 @@ contract TokenDetector {
 ```
 
 <a id="approval-patterns"></a>
-## 🔓 Approval Patterns
+## Approval Patterns
 
 ### ERC721 NFT Approvals
 
@@ -179,7 +175,7 @@ async function approveERC20(tokenContract, spender, amount) {
 ```
 
 <a id="transfer-operations"></a>
-## 💸 Transfer Operations
+## Transfer Operations
 
 ### Single NFT Transfer
 
@@ -225,7 +221,7 @@ async function transferERC1155(
 ```
 
 <a id="batch-operations"></a>
-## 📦 Batch Operations
+## Batch Operations
 
 ### Batch NFT Transfers
 
@@ -298,7 +294,7 @@ async function batchTransferERC1155(
 ```
 
 <a id="best-practices"></a>
-## ✅ Best Practices
+## Best Practices
 
 ### 1. Gas Optimization
 
@@ -412,7 +408,7 @@ async function promptApprovalType(nftContract) {
 }
 ```
 
-## 🚨 Common Pitfalls
+## Common Pitfalls
 
 ### 1. Forgetting Token Approval to Permit3
 
@@ -520,7 +516,7 @@ class MultiTokenPermit3Client {
 }
 ```
 
-## ⚠️ Critical: Using Multi-Tokens with Signed Permits
+## Critical: Using Multi-Tokens with Signed Permits
 
 **Important**: When using NFTs or ERC1155 tokens with Permit3's signed permit functions (`permit()` with signatures), you must encode the tokenId into the address field since `AllowanceOrTransfer` struct doesn't have a tokenId field:
 
@@ -546,18 +542,3 @@ const permit = {
 
 **For detailed guidance on using multi-tokens with signed permits, see the [Multi-Token Signed Permits Guide](/docs/guides/multi-token-signed-permits.md).**
 
-## 🔗 Related Resources
-
-- [Multi-Token Support Concepts](/docs/concepts/multi-token-support.md)
-- [Multi-Token Example](/docs/examples/multi-token-example.md)
-- [API Reference - IMultiTokenPermit](/docs/api/interfaces.md#imultitokenpermit)
-- [ERC721 Standard](https://eips.ethereum.org/EIPS/eip-721)
-- [ERC1155 Standard](https://eips.ethereum.org/EIPS/eip-1155)
-
----
-
-| ⬅️ Previous | 🏠 Section | ➡️ Next |
-|:-----------|:----------:|------------:|
-| [Witness Integration](/docs/guides/witness-integration.md) | [Guides](/docs/guides/README.md) | [Security Best Practices](/docs/guides/security-best-practices.md) |
-
-[🔝 Back to Top](#multi-token-guide-top)

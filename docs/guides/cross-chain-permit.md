@@ -2,18 +2,18 @@
 
 Learn how to use Permit3's Unbalanced Merkle tree for seamless cross-chain token operations.
 
-## 🌐 Understanding Cross-Chain Permits
+## Understanding Cross-Chain Permits
 
 Cross-chain permits allow you to sign once and execute token operations across multiple chains. This is powered by the Unbalanced Merkle tree, which uses standard merkle proofs to efficiently verify permissions on each chain.
 
 ### Key Benefits
 
-- ✍️ **Single Signature**: Sign once, execute everywhere
-- ⛽ **Gas Efficient**: Each chain only processes its relevant data
-- 🔒 **Secure**: Cryptographically proven with merkle trees
-- 🚀 **Fast**: Parallel execution across chains
+- **Single Signature**: Sign once, execute everywhere
+- **Gas Efficient**: Each chain only processes its relevant data
+- **Secure**: Cryptographically proven with merkle trees
+- **Fast**: Parallel execution across chains
 
-## 📦 Basic Cross-Chain Setup
+## Basic Cross-Chain Setup
 
 ### Step 1: Install Dependencies
 
@@ -176,7 +176,7 @@ await permit3Arbitrum.permit(
 );
 ```
 
-## 🎯 Advanced Patterns
+## Advanced Patterns
 
 ### Multiple Operations Per Chain
 
@@ -296,10 +296,10 @@ const crossChainPermit = await builder.build(signer);
 
 ## ⚡ Gas Optimization Tips
 
-### 1. 📊 **Chain Ordering**
+### 1. **Chain Ordering**
 Order chains by frequency of use. Put the most frequently used chains first in the tree for slightly better proof sizes.
 
-### 2. 📦 **Batching**
+### 2. **Batching**
 Group multiple operations per chain to amortize the verification cost:
 
 ```javascript
@@ -313,7 +313,7 @@ const batchedPermit = {
 // Would require multiple signatures and transactions
 ```
 
-### 3. 🔧 **Proof Caching**
+### 3. **Proof Caching**
 Cache merkle proofs when the same tree is used multiple times:
 
 ```javascript
@@ -336,7 +336,7 @@ class ProofCache {
 }
 ```
 
-### 4. 🧩 **Selective Execution**
+### 4. **Selective Execution**
 Only execute on chains where you need the permissions immediately:
 
 ```javascript
@@ -356,7 +356,7 @@ await Promise.all(
 saveForLater(deferredChains, proofs, signature, salt, deadline, timestamp);
 ```
 
-## 🔍 Verification Process
+## Verification Process
 
 When a chain receives a cross-chain permit:
 
@@ -387,7 +387,7 @@ function verifyMerkleProof(leaf, proof, root) {
 }
 ```
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Common Issues and Solutions
 
@@ -434,7 +434,7 @@ function debugCrossChainPermit(permits, merkleTree, proofs) {
 }
 ```
 
-## 📚 Complete Example
+## Complete Example
 
 Here's a full working example of cross-chain permits:
 
@@ -575,13 +575,3 @@ async function executeCrossChainPermits() {
 // Run the example
 executeCrossChainPermits().catch(console.error);
 ```
-
-## 🎓 Key Takeaways
-
-1. **Unbalanced Merkle tree methodology uses standard merkle proofs** - Simple `bytes32[]` arrays with OpenZeppelin's MerkleProof.processProof()
-2. **Sign once, execute anywhere** - One signature works across all chains
-3. **Order matters** - Keep chain ordering consistent
-4. **Gas efficient** - Each chain only verifies its own proof
-5. **Flexible** - Add as many chains and operations as needed
-
-The merkle tree approach makes cross-chain permits easy to understand and implement while maintaining security and efficiency.
