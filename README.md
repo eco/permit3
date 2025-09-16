@@ -4,6 +4,10 @@
 
 Permit3 is an approval system that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unbalanced Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
 
+## Overview
+
+![Permit3 Architecture](./permit3.jpg)
+
 ## Key Features
 
 - **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature

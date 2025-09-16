@@ -54,6 +54,12 @@ ERC20(token).approve(PERMIT3_ADDRESS, type(uint256).max);
 
 #### Simple Token Transfer
 
+>**⚠️ WARNING**
+>
+>The chainId in the domain object must ALWAYS be set to 1, regardless of which chain the permit is for. This is because Permit3 uses a >universal signature scheme where permits are signed once with chainId: 1 and can then be used across multiple chains.
+>
+>The actual chain where the permit will be executed is specified separately in the permit data itself (e.g., in chainPermits.chainId), >NOT in the EIP-712 domain. Changing the domain chainId from 1 will cause signature verification to fail.
+
 ```javascript
 // JavaScript (ethers.js)
 const domain = {
@@ -71,7 +77,7 @@ const permit = {
 };
 
 const chainPermits = {
-    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
+    chainId: 1, // chainId for network where this permit will be executed (e.g., 1 for Ethereum, 137 for Polygon)
     permits: [permit]
 };
 
