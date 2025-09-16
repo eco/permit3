@@ -4,6 +4,14 @@
 
 Permit3 is an approval system that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unbalanced Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
 
+### Deployment Information
+
+Permit3 is deployed using [ERC-2470 Singleton Factory](https://eips.ethereum.org/EIPS/eip-2470) for deterministic addresses across all chains:
+
+- **Deployment Address**: [`0xEc00030C0000245E27d1521Cc2EE88F071c2Ae34`](https://contractscan.xyz/contract/0xEc00030C0000245E27d1521Cc2EE88F071c2Ae34)
+
+This ensures the same contract address on all supported networks, enabling seamless cross-chain operations.
+
 ## Key Features
 
 - **Cross-Chain Operations**: Authorize token operations across multiple blockchains with one signature
@@ -233,14 +241,6 @@ forge script script/DeployPermit3.s.sol:DeployPermit3 \
     --private-key <KEY> \
     --broadcast
 ```
-
-### Deployment Information
-
-Permit3 is deployed using CREATE2 for deterministic addresses across all chains:
-
-- **Deployment Address**: `0xEc00030C0000245E27d1521Cc2EE88F071c2Ae34`
-
-This ensures the same contract address on all supported networks, enabling seamless cross-chain operations.
 
 ## Audits
 
