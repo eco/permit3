@@ -1,4 +1,4 @@
-# 🔏 Permit3: One-Click Cross-Chain Token Permissions
+# Permit3: One-Click Cross-Chain Token Permissions
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
@@ -242,6 +242,10 @@ Permit3 is deployed using CREATE2 for deterministic addresses across all chains:
 - **Deployment Address**: `0xd8551321f6e45515ad3fc3e56aff40d509230ab6`
 
 This ensures the same contract address on all supported networks, enabling seamless cross-chain operations.
+
+## Audits
+
+See [Audits](./docs/audits/final-report-cantinacode-eco-permit3-pr37-pr28.pdf)
 
 ## 📄 License
 
