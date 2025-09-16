@@ -67,7 +67,7 @@ const domain = {
 };
 
 const permit = {
-    modeOrExpiration: 0, // Transfer mode
+    modeOrExpiration: 0, // TransferERC20 mode
     token: tokenAddress,
     account: recipientAddress,
     amountDelta: ethers.utils.parseUnits('10', 18) // 10 tokens

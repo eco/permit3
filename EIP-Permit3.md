@@ -87,21 +87,21 @@ This creates a unique "virtual address" for each token ID that reuses the existi
 Permit3 supports efficient batch operations for multiple token types:
 
 ```solidity
-struct MultiTokenTransfer {
+struct TokenTransfer {
     address from;
     address to;
     address token;
-    uint256 tokenId;    // 0 for ERC20, specific ID for NFT/ERC1155
+    uint256 tokenId;    // Specific ID for NFT/ERC1155
     uint160 amount;     // 1 for ERC721, variable for others
 }
 
 struct TokenTypeTransfer {
     TokenStandard tokenType;
-    MultiTokenTransfer transfer;
+    TokenTransfer transfer;
 }
 
 // Execute mixed token transfers in single transaction
-function batchTransferFrom(TokenTypeTransfer[] calldata transfers) external;
+function batchTransferMultiToken(TokenTypeTransfer[] calldata transfers) external;
 ```
 
 This enables complex operations like:

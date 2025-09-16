@@ -72,7 +72,7 @@ contract ERC7702TokenApproverTest is Test {
 
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
 
         assertEq(token1.allowance(owner, address(permit3)), type(uint256).max);
@@ -89,7 +89,7 @@ contract ERC7702TokenApproverTest is Test {
 
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
 
         assertEq(token1.allowance(owner, address(permit3)), type(uint256).max);
@@ -106,7 +106,7 @@ contract ERC7702TokenApproverTest is Test {
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         vm.expectRevert(abi.encodeWithSignature("NoTokensProvided()"));
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
     }
 
@@ -122,7 +122,7 @@ contract ERC7702TokenApproverTest is Test {
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         vm.expectRevert(); // SafeERC20.forceApprove will revert on failure
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
     }
 
@@ -141,7 +141,7 @@ contract ERC7702TokenApproverTest is Test {
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
         vm.expectRevert(); // SafeERC20.forceApprove will revert on failure
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
 
         // When transaction reverts, no state changes are applied
@@ -164,7 +164,7 @@ contract ERC7702TokenApproverTest is Test {
 
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
 
         assertEq(token1.allowance(owner, address(permit3)), type(uint256).max);
@@ -181,14 +181,14 @@ contract ERC7702TokenApproverTest is Test {
         Vm.SignedDelegation memory signedDelegation1 = vm.signDelegation(address(approver), ownerPrivateKey);
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation1);
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
 
         // Second EOA approves using EIP-7702
         Vm.SignedDelegation memory signedDelegation2 = vm.signDelegation(address(approver), owner2PrivateKey);
         vm.startPrank(owner2);
         vm.attachDelegation(signedDelegation2);
-        ERC7702TokenApprover(owner2).approve(tokens);
+        ERC7702TokenApprover(owner2).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
 
         // Both should have infinite allowance
@@ -211,7 +211,7 @@ contract ERC7702TokenApproverTest is Test {
 
         vm.startPrank(owner);
         vm.attachDelegation(signedDelegation);
-        ERC7702TokenApprover(owner).approve(tokens);
+        ERC7702TokenApprover(owner).approve(tokens, new address[](0), new address[](0));
         vm.stopPrank();
 
         for (uint256 i = 0; i < tokenCount; i++) {
@@ -226,7 +226,7 @@ contract ERC7702TokenApproverTest is Test {
         address[] memory tokens = new address[](1);
         tokens[0] = address(token1);
 
-        approver.approve(tokens);
+        approver.approve(tokens, new address[](0), new address[](0));
 
         // The allowance will be set for the approver contract (not useful)
         assertEq(token1.allowance(address(approver), address(permit3)), type(uint256).max);

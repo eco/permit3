@@ -50,6 +50,27 @@ event Approval(
 - Monitor permission grants
 - Audit approval history
 
+### ApprovalWithTokenId
+
+Emitted when permissions are set for specific NFTs or ERC1155 tokens through the multi-token approve() function.
+
+```solidity
+event ApprovalWithTokenId(
+    address indexed owner,    // Token owner
+    address indexed token,    // Token contract address
+    address indexed spender,  // Approved spender
+    uint256 tokenId,         // Specific token ID being approved
+    uint160 amount,          // Approved amount (1 for ERC721, variable for ERC1155)
+    uint48 expiration        // Approval expiration timestamp
+);
+```
+
+**Use cases:**
+- Track individual NFT/ERC1155 token approvals
+- Monitor specific token permissions for off-chain services
+- Provide full transparency for marketplace integrations
+- Distinguish between collection-wide and token-specific approvals
+
 ### Lockdown
 
 Emitted when an approval is revoked through the lockdown() function.
