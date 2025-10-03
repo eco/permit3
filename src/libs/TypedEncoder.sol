@@ -1,28 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+/// @title TypedEncoder
+/// @notice A library for dynamic struct encoding supporting both EIP-712 structHash and ABI encoding
+/// @dev Enables encoding arbitrary struct types at runtime without compile-time type knowledge
 library TypedEncoder {
+    /// @notice Represents a complete struct with its type hash and field chunks
+    /// @dev Chunks define field order. Use multiple chunks when field types are interspersed
+    /// @param typeHash EIP-712 type hash for the struct
+    /// @param chunks Ordered array of field chunks
     struct Struct {
         bytes32 typeHash;
         Chunk[] chunks;
     }
 
+    /// @notice Represents a primitive field (static or dynamic)
+    /// @param isDynamic True for dynamic types (string, bytes), false for static (uint256, address, bytes32)
+    /// @param data Encoded field data (use abi.encode for static, abi.encodePacked for dynamic)
     struct Primitive {
         bool isDynamic;
         bytes data;
     }
 
+    /// @notice Represents an array field (fixed-size or dynamic)
+    /// @param isDynamic True for dynamic arrays (T[]), false for fixed-size (T[N])
+    /// @param data Array of chunks, each containing exactly one element
     struct Array {
         bool isDynamic;
         Chunk[] data;
     }
 
+    /// @notice Groups fields of the same category together
+    /// @dev Within a chunk, fields are processed in order: primitives → structs → arrays
+    /// @param primitives Static and dynamic primitive fields
+    /// @param structs Nested struct fields
+    /// @param arrays Array fields
     struct Chunk {
         Primitive[] primitives;
         Struct[] structs;
         Array[] arrays;
     }
 
+    /// @notice Computes the EIP-712 structHash for signature validation
+    /// @dev Follows EIP-712 specification: keccak256(abi.encodePacked(typeHash, encodeData...))
+    /// @param s The struct to hash
+    /// @return The EIP-712 compliant struct hash
     function structHash(
         Struct memory s
     ) internal pure returns (bytes32) {
@@ -36,6 +58,10 @@ library TypedEncoder {
         return keccak256(bz);
     }
 
+    /// @notice Produces standard ABI encoding matching Solidity's abi.encode()
+    /// @dev Static structs encode directly, dynamic structs include offset wrapper
+    /// @param s The struct to encode
+    /// @return ABI-encoded bytes matching native abi.encode() output
     function abiEncode(
         Struct memory s
     ) internal pure returns (bytes memory) {
