@@ -37,7 +37,7 @@ contract TypedEncoderStructHashTest is TestBase {
                 abi.encode(address(0x1234567890123456789012345678901234567890))
             )
         );
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
@@ -54,7 +54,7 @@ contract TypedEncoderStructHashTest is TestBase {
 
         bytes32 expected =
             keccak256(abi.encodePacked(keccak256("Dynamic(string text)"), keccak256(abi.encodePacked("hello"))));
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
@@ -80,7 +80,7 @@ contract TypedEncoderStructHashTest is TestBase {
                 keccak256(abi.encodePacked("Alice"))
             )
         );
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
@@ -108,7 +108,7 @@ contract TypedEncoderStructHashTest is TestBase {
                 abi.encode(uint256(999))
             )
         );
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
@@ -129,7 +129,7 @@ contract TypedEncoderStructHashTest is TestBase {
 
         bytes32 expected =
             keccak256(abi.encodePacked(keccak256("EmptyDynamic(string text,bytes data)"), keccak256(""), keccak256("")));
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
@@ -167,7 +167,7 @@ contract TypedEncoderStructHashTest is TestBase {
                 keccak256("StaticArrayStruct(uint256 value,string[] tag)"), abi.encode(uint256(42)), arrayHash
             )
         );
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
@@ -242,7 +242,7 @@ contract TypedEncoderStructHashTest is TestBase {
                 keccak256(abi.encodePacked("Hello!"))
             )
         );
-        bytes32 actual = mail.structHash();
+        bytes32 actual = mail.hash();
 
         assertEq(actual, expected);
     }
@@ -284,7 +284,7 @@ contract TypedEncoderStructHashTest is TestBase {
                 arrayHash
             )
         );
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
@@ -329,7 +329,7 @@ contract TypedEncoderStructHashTest is TestBase {
         bytes32 outerArrayHash = keccak256(abi.encodePacked(innerArray0Hash, innerArray1Hash));
 
         bytes32 expected = keccak256(abi.encodePacked(keccak256("NestedArrayStruct(string[][] data)"), outerArrayHash));
-        bytes32 actual = encoded.structHash();
+        bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
     }
