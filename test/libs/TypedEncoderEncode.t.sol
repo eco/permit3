@@ -32,7 +32,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
         bytes memory expected =
             abi.encode(Static({ value: 42, addr: address(0x1234567890123456789012345678901234567890) }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -48,7 +48,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("hello") });
 
         bytes memory expected = abi.encode(Dynamic({ text: "hello" }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -68,7 +68,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("test") });
 
         bytes memory expected = abi.encode(Mixed({ id: 123, name: "test" }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -93,7 +93,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         bytes memory expected = abi.encode(
             FixedBytes({ hash: bytes32(0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef), value: 42 })
         );
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -113,7 +113,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({ isDynamic: true, data: hex"" });
 
         bytes memory expected = abi.encode(EmptyDynamic({ text: "", data: hex"" }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -139,7 +139,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
         bytes memory expected =
             abi.encode(ComplexMixed({ id: 999, name: "complex", owner: address(0xABCD), data: hex"deadbeef" }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -165,7 +165,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: false, data: arrayElements });
 
         bytes memory expected = abi.encode(StaticArray({ values: [uint256(1), 2, 3] }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -189,7 +189,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: false, data: arrayElements });
 
         bytes memory expected = abi.encode(StaticArrayOfDynamic({ names: [string("alice"), string("bob")] }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -219,7 +219,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         vals[1] = 20;
         vals[2] = 30;
         bytes memory expected = abi.encode(DynamicArray({ values: vals }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -246,7 +246,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         items[0] = "foo";
         items[1] = "bar";
         bytes memory expected = abi.encode(DynamicStringArray({ items: items }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -264,7 +264,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: new TypedEncoder.Chunk[](0) });
 
         bytes memory expected = abi.encode(EmptyArray({ items: new string[](0) }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -288,7 +288,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         uint256[] memory values = new uint256[](1);
         values[0] = 42;
         bytes memory expected = abi.encode(SingleElementArray({ values: values }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -330,7 +330,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         matrix[1] = new string[](1);
         matrix[1][0] = "c";
         bytes memory expected = abi.encode(NestedArrays({ matrix: matrix }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -369,7 +369,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         names[0] = "alice";
         names[1] = "bob";
         bytes memory expected = abi.encode(MultipleArrays({ numbers: numbers, names: names }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -402,7 +402,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[1].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(200)) });
 
         bytes memory expected = abi.encode(Nested({ inner: Inner({ x: 100 }), y: 200 }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -432,7 +432,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         tags[0] = "tag1";
         tags[1] = "tag2";
         bytes memory expected = abi.encode(StructWithArray({ id: 123, tags: tags }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -482,7 +482,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         pts[0] = Point({ x: 1, y: 2 });
         pts[1] = Point({ x: 3, y: 4 });
         bytes memory expected = abi.encode(ArrayOfStructs({ points: pts }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -530,7 +530,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         records[0] = Record({ name: "alice", value: 100 });
         records[1] = Record({ name: "bob", value: 200 });
         bytes memory expected = abi.encode(ArrayOfDynamicStructs({ records: records }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
@@ -559,7 +559,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[2].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(222)) });
 
         bytes memory expected = abi.encode(MultiChunk({ a: 111, b: "middle", c: 222 }));
-        bytes memory actual = encoded.abiEncode();
+        bytes memory actual = encoded.encode();
 
         assertEq(actual, expected);
     }
