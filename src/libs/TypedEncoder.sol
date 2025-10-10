@@ -5,6 +5,9 @@ pragma solidity ^0.8.26;
 /// @notice A library for dynamic struct encoding supporting both EIP-712 structHash and ABI encoding
 /// @dev Enables encoding arbitrary struct types at runtime without compile-time type knowledge
 library TypedEncoder {
+    error UnsupportedPolymorphicArrayType();
+    error InvalidArrayElementType();
+
     /// @notice Encoding type for struct ABI encoding
     /// @param Struct Normal struct encoding
     /// @param PolymorphicArray Encode struct fields as an array where each element's nested structs are encoded as
@@ -17,12 +20,12 @@ library TypedEncoder {
     /// @notice Represents a complete struct with its type hash and field chunks
     /// @dev Chunks define field order. Use multiple chunks when field types are interspersed
     /// @param typeHash EIP-712 type hash for the struct
-    /// @param chunks Ordered array of field chunks
     /// @param encodingType How to encode the struct for ABI (does not affect 712 hash)
+    /// @param chunks Ordered array of field chunks
     struct Struct {
         bytes32 typeHash;
-        Chunk[] chunks;
         EncodingType encodingType;
+        Chunk[] chunks;
     }
 
     /// @notice Represents a primitive field (static or dynamic)
@@ -90,7 +93,7 @@ library TypedEncoder {
 
         for (uint256 i = 0; i < chunksLen; i++) {
             if (s.chunks[i].primitives.length > 0 || s.chunks[i].arrays.length > 0) {
-                revert("PolymorphicArray only supports struct fields");
+                revert UnsupportedPolymorphicArrayType();
             }
 
             totalStructs += s.chunks[i].structs.length;
@@ -201,7 +204,7 @@ library TypedEncoder {
             Chunk memory chunk = array.data[i];
 
             if (chunk.primitives.length + chunk.structs.length + chunk.arrays.length != 1) {
-                revert("array element must have exactly one item");
+                revert InvalidArrayElementType();
             }
 
             if (chunk.primitives.length == 1) {
@@ -374,7 +377,7 @@ library TypedEncoder {
             return _isDynamic(chunk.arrays[0]);
         }
 
-        revert("array element must have exactly one item");
+        revert InvalidArrayElementType();
     }
 
     function _isDynamic(
