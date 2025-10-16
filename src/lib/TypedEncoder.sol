@@ -5,12 +5,26 @@ pragma solidity ^0.8.26;
 /// @notice A library for dynamic struct encoding supporting both EIP-712 structHash and ABI encoding
 /// @dev Enables encoding arbitrary struct types at runtime without compile-time type knowledge
 library TypedEncoder {
+    error UnsupportedPolymorphicArrayType();
+    error InvalidArrayElementType();
+
+    /// @notice Encoding type for struct ABI encoding
+    /// @param Struct Normal struct encoding
+    /// @param PolymorphicArray Encode struct fields as an array where each element's nested structs are encoded as
+    /// bytes
+    enum EncodingType {
+        Struct,
+        PolymorphicArray
+    }
+
     /// @notice Represents a complete struct with its type hash and field chunks
     /// @dev Chunks define field order. Use multiple chunks when field types are interspersed
     /// @param typeHash EIP-712 type hash for the struct
+    /// @param encodingType How to encode the struct for ABI (does not affect 712 hash)
     /// @param chunks Ordered array of field chunks
     struct Struct {
         bytes32 typeHash;
+        EncodingType encodingType;
         Chunk[] chunks;
     }
 
@@ -65,7 +79,51 @@ library TypedEncoder {
     function encode(
         Struct memory s
     ) internal pure returns (bytes memory) {
-        return _isDynamic(s) ? abi.encodePacked(abi.encode(uint256(32)), _encodeAbi(s)) : _encodeAbi(s);
+        bytes memory encoded =
+            s.encodingType == EncodingType.PolymorphicArray ? _encodeAsPolymorphicArray(s) : _encodeAbi(s, false);
+
+        return _isDynamic(s) ? abi.encodePacked(abi.encode(uint256(32)), encoded) : encoded;
+    }
+
+    function _encodeAsPolymorphicArray(
+        Struct memory s
+    ) private pure returns (bytes memory) {
+        uint256 totalStructs = 0;
+        uint256 chunksLen = s.chunks.length;
+
+        for (uint256 i = 0; i < chunksLen; i++) {
+            if (s.chunks[i].primitives.length > 0 || s.chunks[i].arrays.length > 0) {
+                revert UnsupportedPolymorphicArrayType();
+            }
+
+            totalStructs += s.chunks[i].structs.length;
+        }
+
+        bytes[] memory structEncodings = new bytes[](totalStructs);
+        uint256[] memory offsets = new uint256[](totalStructs);
+        uint256 elementIndex = 0;
+        uint256 currentOffset = totalStructs * 32;
+
+        for (uint256 i = 0; i < chunksLen; i++) {
+            uint256 structsLen = s.chunks[i].structs.length;
+
+            for (uint256 j = 0; j < structsLen; j++) {
+                structEncodings[elementIndex] = _encodeAbi(s.chunks[i].structs[j], true);
+                offsets[elementIndex] = currentOffset;
+                currentOffset += structEncodings[elementIndex].length;
+                elementIndex++;
+            }
+        }
+
+        bytes memory arrayHeader;
+        bytes memory arrayData;
+
+        for (uint256 i = 0; i < totalStructs; i++) {
+            arrayHeader = abi.encodePacked(arrayHeader, abi.encode(offsets[i]));
+            arrayData = abi.encodePacked(arrayData, structEncodings[i]);
+        }
+
+        return abi.encodePacked(abi.encode(totalStructs), arrayHeader, arrayData);
     }
 
     function _encodeEip712(
@@ -106,9 +164,7 @@ library TypedEncoder {
         return keccak256(bz);
     }
 
-    function _encodeAbi(
-        Struct memory s
-    ) private pure returns (bytes memory) {
+    function _encodeAbi(Struct memory s, bool asBytes) private pure returns (bytes memory) {
         uint256 fieldCount = 0;
         uint256 chunksLen = s.chunks.length;
 
@@ -125,7 +181,7 @@ library TypedEncoder {
         uint256 fieldIndex = 0;
 
         for (uint256 i = 0; i < chunksLen; i++) {
-            fieldIndex = _encodeChunkFields(s.chunks[i], headParts, tailParts, hasTail, fieldIndex);
+            fieldIndex = _encodeChunkFields(s.chunks[i], headParts, tailParts, hasTail, fieldIndex, asBytes);
         }
 
         return _abiEncodeHeadTail(headParts, tailParts, hasTail, fieldCount);
@@ -148,7 +204,7 @@ library TypedEncoder {
             Chunk memory chunk = array.data[i];
 
             if (chunk.primitives.length + chunk.structs.length + chunk.arrays.length != 1) {
-                revert("array element must have exactly one item");
+                revert InvalidArrayElementType();
             }
 
             if (chunk.primitives.length == 1) {
@@ -156,7 +212,7 @@ library TypedEncoder {
 
                 elements[i] = hasDynamicElement ? abi.encodePacked(abi.encode(p.data.length), _padTo32(p.data)) : p.data;
             } else if (chunk.structs.length == 1) {
-                elements[i] = _encodeAbi(chunk.structs[0]);
+                elements[i] = _encodeAbi(chunk.structs[0], false);
             } else {
                 elements[i] = _encodeAbi(chunk.arrays[0]);
             }
@@ -193,7 +249,7 @@ library TypedEncoder {
         bytes[] memory tailParts = new bytes[](totalFields);
         bool[] memory hasTail = new bool[](totalFields);
 
-        _encodeChunkFields(chunk, headParts, tailParts, hasTail, 0);
+        _encodeChunkFields(chunk, headParts, tailParts, hasTail, 0, false);
 
         return _abiEncodeHeadTail(headParts, tailParts, hasTail, totalFields);
     }
@@ -203,7 +259,8 @@ library TypedEncoder {
         bytes[] memory headParts,
         bytes[] memory tailParts,
         bool[] memory hasTail,
-        uint256 startIndex
+        uint256 startIndex,
+        bool asBytes
     ) private pure returns (uint256) {
         uint256 fieldIndex = startIndex;
 
@@ -222,15 +279,30 @@ library TypedEncoder {
 
         uint256 structsLen = chunk.structs.length;
         for (uint256 i = 0; i < structsLen; i++) {
-            bytes memory structEncoded = _encodeAbi(chunk.structs[i]);
+            Struct memory childStruct = chunk.structs[i];
 
-            if (_isDynamic(chunk.structs[i])) {
-                tailParts[fieldIndex] = structEncoded;
+            if (asBytes) {
+                bytes memory innerEncoded = _isDynamic(childStruct)
+                    ? abi.encodePacked(abi.encode(uint256(32)), _encodeAbi(childStruct, true))
+                    : _encodeAbi(childStruct, true);
+                tailParts[fieldIndex] = abi.encodePacked(abi.encode(innerEncoded.length), _padTo32(innerEncoded));
                 hasTail[fieldIndex] = true;
-            } else {
-                headParts[fieldIndex] = structEncoded;
+                fieldIndex++;
+                continue;
             }
 
+            bytes memory structEncoded = childStruct.encodingType == EncodingType.PolymorphicArray
+                ? _encodeAsPolymorphicArray(childStruct)
+                : _encodeAbi(childStruct, false);
+
+            if (_isDynamic(childStruct)) {
+                tailParts[fieldIndex] = structEncoded;
+                hasTail[fieldIndex] = true;
+                fieldIndex++;
+                continue;
+            }
+
+            headParts[fieldIndex] = structEncoded;
             fieldIndex++;
         }
 
@@ -241,10 +313,11 @@ library TypedEncoder {
             if (_isDynamic(chunk.arrays[i])) {
                 tailParts[fieldIndex] = arrayEncoded;
                 hasTail[fieldIndex] = true;
-            } else {
-                headParts[fieldIndex] = arrayEncoded;
+                fieldIndex++;
+                continue;
             }
 
+            headParts[fieldIndex] = arrayEncoded;
             fieldIndex++;
         }
 
@@ -304,7 +377,7 @@ library TypedEncoder {
             return _isDynamic(chunk.arrays[0]);
         }
 
-        revert("array element must have exactly one item");
+        revert InvalidArrayElementType();
     }
 
     function _isDynamic(
@@ -354,12 +427,17 @@ library TypedEncoder {
     function _isDynamic(
         Struct memory s
     ) private pure returns (bool) {
+        if (s.encodingType == EncodingType.PolymorphicArray) {
+            return true;
+        }
+
         uint256 chunksLen = s.chunks.length;
         for (uint256 i = 0; i < chunksLen; i++) {
             if (_isDynamic(s.chunks[i])) {
                 return true;
             }
         }
+
         return false;
     }
 }
