@@ -24,10 +24,13 @@ library TypedEncoder {
     /// @notice Defines how a struct should be encoded in ABI format (does not affect EIP-712 hashing)
     /// @dev The encoding type determines the output format of the `encode()` function
     /// @param Struct Standard struct encoding - produces abi.encode() compatible output with proper head/tail layout
-    /// @param Array Array encoding where nested structs become array elements encoded as bytes - used for polymorphic arrays
+    /// @param Array Array encoding where nested structs become array elements encoded as bytes - used for polymorphic
+    /// arrays
     /// @param ABI Pure ABI encoding without offset wrapper - used when embedding structs as bytes in parent structures
-    /// @param CallWithSelector Produces abi.encodeWithSelector() output - combines bytes4 selector with ABI-encoded params for contract calls
-    /// @param CallWithSignature Produces abi.encodeWithSignature() output - computes selector from signature string and combines with params
+    /// @param CallWithSelector Produces abi.encodeWithSelector() output - combines bytes4 selector with ABI-encoded
+    /// params for contract calls
+    /// @param CallWithSignature Produces abi.encodeWithSignature() output - computes selector from signature string and
+    /// combines with params
     enum EncodingType {
         Struct,
         Array,
@@ -41,7 +44,8 @@ library TypedEncoder {
     ///      different field types need to be interspersed (e.g., uint256, string, uint256 would use 3 chunks).
     ///      Within a single chunk, fields are processed in order: primitives → structs → arrays.
     /// @param typeHash The EIP-712 type hash computed as keccak256("TypeName(type1 field1,type2 field2,...)")
-    /// @param encodingType Determines how this struct is encoded for ABI (Struct/Array/ABI/CallWithSelector/CallWithSignature)
+    /// @param encodingType Determines how this struct is encoded for ABI
+    /// (Struct/Array/ABI/CallWithSelector/CallWithSignature)
     /// @param chunks Ordered array of field chunks that define the struct's fields and their layout
     struct Struct {
         bytes32 typeHash;
@@ -50,8 +54,10 @@ library TypedEncoder {
     }
 
     /// @notice Represents a primitive field (non-struct, non-array value)
-    /// @dev Primitives are basic Solidity types like integers, addresses, booleans, fixed-size bytes, strings, and dynamic bytes
-    /// @param isDynamic True for dynamic types (string, bytes, dynamic arrays), false for static types (uint256, address, bytes32, bool, etc.)
+    /// @dev Primitives are basic Solidity types like integers, addresses, booleans, fixed-size bytes, strings, and
+    /// dynamic bytes
+    /// @param isDynamic True for dynamic types (string, bytes, dynamic arrays), false for static types (uint256,
+    /// address, bytes32, bool, etc.)
     /// @param data The encoded field value - use abi.encode() for static types to get 32-byte aligned data,
     ///             use abi.encodePacked() for dynamic types to get the raw bytes without length prefix
     struct Primitive {
@@ -60,10 +66,12 @@ library TypedEncoder {
     }
 
     /// @notice Represents an array field containing elements of any type
-    /// @dev Each array element must be represented by a Chunk containing exactly one field (primitive, struct, or nested array).
+    /// @dev Each array element must be represented by a Chunk containing exactly one field (primitive, struct, or
+    /// nested array).
     ///      This allows arrays of mixed complexity while maintaining type safety.
     /// @param isDynamic True for dynamic-length arrays (T[]), false for fixed-size arrays (T[N])
-    /// @param data Array of chunks where each chunk contains exactly one element (one primitive, one struct, or one array)
+    /// @param data Array of chunks where each chunk contains exactly one element (one primitive, one struct, or one
+    /// array)
     struct Array {
         bool isDynamic;
         Chunk[] data;
@@ -74,7 +82,8 @@ library TypedEncoder {
     ///      always processed in a fixed order: primitives → structs → arrays. Use multiple chunks when
     ///      different field types need to be interleaved to preserve struct field order.
     ///      Example: struct { uint256 a; string b; address c; } → 1 chunk: {primitives: [a,b,c]}
-    ///               struct { uint256 a; bytes32[] arr; uint256 b; } → 2 chunks: [{primitives:[a], arrays:[arr]}, {primitives:[b]}]
+    ///               struct { uint256 a; bytes32[] arr; uint256 b; } → 2 chunks: [{primitives:[a], arrays:[arr]},
+    /// {primitives:[b]}]
     /// @param primitives Array of primitive fields (integers, addresses, strings, bytes, etc.)
     /// @param structs Array of nested struct fields
     /// @param arrays Array of array fields (can be arrays of any type including nested arrays)
@@ -85,7 +94,8 @@ library TypedEncoder {
     }
 
     /// @notice Computes the EIP-712 struct hash for signature validation
-    /// @dev Implements EIP-712 encoding: keccak256(abi.encodePacked(typeHash, encodeData(field1), encodeData(field2), ...))
+    /// @dev Implements EIP-712 encoding: keccak256(abi.encodePacked(typeHash, encodeData(field1), encodeData(field2),
+    /// ...))
     ///      - Static primitives are encoded directly (32 bytes each)
     ///      - Dynamic primitives (string, bytes) are encoded as keccak256(data)
     ///      - Nested structs are encoded recursively as their struct hash
@@ -130,7 +140,7 @@ library TypedEncoder {
         }
         // ABI encoding type returns raw struct encoding without offset wrapper
         if (s.encodingType == EncodingType.ABI) {
-            return _encodeAbi(s, false);
+            return _encodeAbi(s);
         }
 
         // For Array and Struct types, encode and add offset wrapper if dynamic
@@ -139,46 +149,48 @@ library TypedEncoder {
             encoded = _encodeAsArray(s);
         } else {
             // Default Struct type uses _encodeAbi
-            encoded = _encodeAbi(s, false);
+            encoded = _encodeAbi(s);
         }
 
         return _isDynamic(s) ? abi.encodePacked(abi.encode(uint256(32)), encoded) : encoded;
     }
 
-    /// @notice Encodes a struct as an array where each nested struct becomes an array element encoded as bytes
-    /// @dev Used for polymorphic arrays where elements have different struct types. All chunks must contain
-    ///      only structs - primitives and arrays are not supported. The output format is:
-    ///      [array length] [offset1] [offset2] ... [offsetN] [struct1 as bytes] [struct2 as bytes] ...
-    /// @param s The struct with EncodingType.Array - must have only struct fields in chunks
-    /// @return ABI-encoded array with length prefix, offset table, and struct data encoded as bytes elements
+    /// @notice Encodes a struct as a normal struct array
+    /// @dev Used for polymorphic arrays where elements have different struct types for EIP-712 hashing,
+    ///      but produce a normal struct array for encode(). Single chunk must contain only structs -
+    ///      primitives and arrays are not supported. The output format is standard struct array encoding:
+    ///      [array length] [offset1/data1] [offset2/data2] ... [dynamic_data...]
+    /// @param s The struct with EncodingType.Array - must have only struct fields in the chunk
+    /// @return ABI-encoded struct array with length prefix and standard offset/data layout
     function _encodeAsArray(
         Struct memory s
     ) private pure returns (bytes memory) {
-        uint256 totalStructs = 0;
-        uint256 chunksLen = s.chunks.length;
-
-        for (uint256 i = 0; i < chunksLen; i++) {
-            if (s.chunks[i].primitives.length > 0 || s.chunks[i].arrays.length > 0) {
-                revert UnsupportedArrayType();
-            }
-
-            totalStructs += s.chunks[i].structs.length;
+        // Array encoding must use exactly 1 chunk (chunks are for field ordering, not array elements)
+        if (s.chunks.length != 1) {
+            revert UnsupportedArrayType();
         }
+
+        Chunk memory chunk = s.chunks[0];
+
+        // Only struct fields allowed in array encoding (primitives and arrays not supported)
+        if (chunk.primitives.length > 0 || chunk.arrays.length > 0) {
+            revert UnsupportedArrayType();
+        }
+
+        uint256 totalStructs = chunk.structs.length;
 
         bytes[] memory structEncodings = new bytes[](totalStructs);
         uint256[] memory offsets = new uint256[](totalStructs);
-        uint256 elementIndex = 0;
         uint256 currentOffset = totalStructs * 32;
 
-        for (uint256 i = 0; i < chunksLen; i++) {
-            uint256 structsLen = s.chunks[i].structs.length;
+        for (uint256 i = 0; i < totalStructs; i++) {
+            Struct memory childStruct = chunk.structs[i];
 
-            for (uint256 j = 0; j < structsLen; j++) {
-                structEncodings[elementIndex] = _encodeAbi(s.chunks[i].structs[j], true);
-                offsets[elementIndex] = currentOffset;
-                currentOffset += structEncodings[elementIndex].length;
-                elementIndex++;
-            }
+            // Encode child struct normally (not wrapped as bytes)
+            bytes memory childEncoded = _encodeAbi(childStruct);
+            structEncodings[i] = childEncoded;
+            offsets[i] = currentOffset;
+            currentOffset += childEncoded.length;
         }
 
         bytes memory arrayHeader;
@@ -367,11 +379,12 @@ library TypedEncoder {
     /// @dev Implements ABI encoding where:
     ///      - Static fields go in the head (encoded in place)
     ///      - Dynamic fields go in the tail (head contains offset pointer)
-    ///      The asBytes parameter controls whether nested structs should be encoded as bytes (for polymorphic arrays)
+    ///      - Nested structs with EncodingType.ABI/CallWith* are wrapped as bytes
     /// @param s The struct to ABI encode
-    /// @param asBytes If true, encode nested structs as bytes elements (for polymorphic array encoding)
     /// @return ABI-encoded struct data with proper head/tail layout matching Solidity's abi.encode() output
-    function _encodeAbi(Struct memory s, bool asBytes) private pure returns (bytes memory) {
+    function _encodeAbi(
+        Struct memory s
+    ) private pure returns (bytes memory) {
         uint256 fieldCount = 0;
         uint256 chunksLen = s.chunks.length;
 
@@ -388,7 +401,7 @@ library TypedEncoder {
         uint256 fieldIndex = 0;
 
         for (uint256 i = 0; i < chunksLen; i++) {
-            fieldIndex = _encodeChunkFields(s.chunks[i], headParts, tailParts, hasTail, fieldIndex, asBytes);
+            fieldIndex = _encodeChunkFields(s.chunks[i], headParts, tailParts, hasTail, fieldIndex);
         }
 
         return _abiEncodeHeadTail(headParts, tailParts, hasTail, fieldCount);
@@ -428,7 +441,7 @@ library TypedEncoder {
 
                 elements[i] = hasDynamicElement ? abi.encodePacked(abi.encode(p.data.length), _padTo32(p.data)) : p.data;
             } else if (chunk.structs.length == 1) {
-                elements[i] = _encodeAbi(chunk.structs[0], false);
+                elements[i] = _encodeAbi(chunk.structs[0]);
             } else {
                 elements[i] = _encodeAbi(chunk.arrays[0]);
             }
@@ -471,7 +484,7 @@ library TypedEncoder {
         bytes[] memory tailParts = new bytes[](totalFields);
         bool[] memory hasTail = new bool[](totalFields);
 
-        _encodeChunkFields(chunk, headParts, tailParts, hasTail, 0, false);
+        _encodeChunkFields(chunk, headParts, tailParts, hasTail, 0);
 
         return _abiEncodeHeadTail(headParts, tailParts, hasTail, totalFields);
     }
@@ -480,21 +493,19 @@ library TypedEncoder {
     /// @dev Processes fields in order: primitives → structs → arrays
     ///      - Static fields: populated in headParts
     ///      - Dynamic fields: offset in headParts, data in tailParts, hasTail flag set
-    ///      The asBytes parameter forces nested structs to be encoded as bytes (for polymorphic arrays)
+    ///      - ABI/CallWith* encodings are wrapped as bytes (length + data + padding)
     /// @param chunk The chunk containing fields to encode
     /// @param headParts Array to store head data (static values or offsets for dynamic values)
     /// @param tailParts Array to store tail data (dynamic field contents)
     /// @param hasTail Boolean array indicating which fields have tail data
     /// @param startIndex The index in head/tail arrays where this chunk's fields start
-    /// @param asBytes If true, encode child structs as bytes regardless of their encodingType
     /// @return The next available index in head/tail arrays after encoding this chunk's fields
     function _encodeChunkFields(
         Chunk memory chunk,
         bytes[] memory headParts,
         bytes[] memory tailParts,
         bool[] memory hasTail,
-        uint256 startIndex,
-        bool asBytes
+        uint256 startIndex
     ) private pure returns (uint256) {
         uint256 fieldIndex = startIndex;
 
@@ -515,16 +526,6 @@ library TypedEncoder {
         for (uint256 i = 0; i < structsLen; i++) {
             Struct memory childStruct = chunk.structs[i];
 
-            if (asBytes) {
-                bytes memory innerEncoded = _isDynamic(childStruct)
-                    ? abi.encodePacked(abi.encode(uint256(32)), _encodeAbi(childStruct, true))
-                    : _encodeAbi(childStruct, true);
-                tailParts[fieldIndex] = abi.encodePacked(abi.encode(innerEncoded.length), _padTo32(innerEncoded));
-                hasTail[fieldIndex] = true;
-                fieldIndex++;
-                continue;
-            }
-
             bytes memory structEncoded;
             if (childStruct.encodingType == EncodingType.Array) {
                 structEncoded = _encodeAsArray(childStruct);
@@ -532,20 +533,37 @@ library TypedEncoder {
                 structEncoded = _encodeCallWithSelector(childStruct);
             } else if (childStruct.encodingType == EncodingType.CallWithSignature) {
                 structEncoded = _encodeCallWithSignature(childStruct);
+            } else if (childStruct.encodingType == EncodingType.ABI) {
+                bytes memory innerEncoded = _encodeAbi(childStruct);
+                // Check if struct has dynamic field contents (not encoding type)
+                bool hasDynamicFields = _hasDynamicFields(childStruct);
+                structEncoded =
+                    hasDynamicFields ? abi.encodePacked(abi.encode(uint256(32)), innerEncoded) : innerEncoded;
             } else {
-                // EncodingType.Struct or EncodingType.ABI - both use standard ABI encoding
-                structEncoded = _encodeAbi(childStruct, false);
+                // EncodingType.Struct uses standard ABI encoding
+                structEncoded = _encodeAbi(childStruct);
             }
 
-            if (_isDynamic(childStruct)) {
+            // ABI, CallWithSelector, and CallWithSignature are represented as bytes
+            // Wrap with length prefix and padding (always dynamic)
+            if (
+                childStruct.encodingType == EncodingType.ABI
+                    || childStruct.encodingType == EncodingType.CallWithSelector
+                    || childStruct.encodingType == EncodingType.CallWithSignature
+            ) {
+                tailParts[fieldIndex] = abi.encodePacked(abi.encode(structEncoded.length), _padTo32(structEncoded));
+                hasTail[fieldIndex] = true;
+                fieldIndex++;
+            } else if (_isDynamic(childStruct)) {
+                // For Array and Struct types, use standard dynamic/static handling
                 tailParts[fieldIndex] = structEncoded;
                 hasTail[fieldIndex] = true;
                 fieldIndex++;
-                continue;
+            } else {
+                // Static struct
+                headParts[fieldIndex] = structEncoded;
+                fieldIndex++;
             }
-
-            headParts[fieldIndex] = structEncoded;
-            fieldIndex++;
         }
 
         uint256 arraysLen = chunk.arrays.length;
@@ -568,7 +586,8 @@ library TypedEncoder {
 
     /// @notice Combines head and tail parts into final ABI-encoded output
     /// @dev Implements standard ABI head/tail encoding:
-    ///      1. Calculate initial tail offset (sum of head sizes: static fields are 32 bytes, dynamic fields are 32-byte offsets)
+    ///      1. Calculate initial tail offset (sum of head sizes: static fields are 32 bytes, dynamic fields are 32-byte
+    /// offsets)
     ///      2. Build head: static values in place, offsets for dynamic values
     ///      3. Build tail: concatenate all dynamic field data
     ///      4. Result: [head][tail]
@@ -704,33 +723,42 @@ library TypedEncoder {
         return false;
     }
 
-    /// @notice Determines if a struct is dynamic based on its encoding type and field contents
-    /// @dev A struct is dynamic if:
-    ///      - encodingType is Array (polymorphic array encoding is always dynamic)
-    ///      - encodingType is CallWithSelector or CallWithSignature (calldata is always dynamic bytes)
-    ///      - encodingType is Struct or ABI and any of its chunks contain dynamic fields
-    ///      This affects how the struct is encoded when nested in a parent struct (offset vs inline).
+    /// @notice Checks if a struct has dynamic field contents (ignoring encoding type)
+    /// @dev Used to determine if offset wrapper is needed when wrapping struct as bytes.
+    ///      Unlike _isDynamic which considers encoding type, this only checks field contents.
     /// @param s The struct to check
-    /// @return True if the struct requires offset-based encoding when nested, false if it can be encoded inline
-    function _isDynamic(
+    /// @return True if the struct contains any dynamic fields, false otherwise
+    function _hasDynamicFields(
         Struct memory s
     ) private pure returns (bool) {
-        if (s.encodingType == EncodingType.Array) {
-            return true;
-        }
-
-        if (s.encodingType == EncodingType.CallWithSelector || s.encodingType == EncodingType.CallWithSignature) {
-            return true;  // Call encodings are always dynamic (represented as bytes)
-        }
-
-        // For EncodingType.Struct and EncodingType.ABI, check if any chunks are dynamic
         uint256 chunksLen = s.chunks.length;
         for (uint256 i = 0; i < chunksLen; i++) {
             if (_isDynamic(s.chunks[i])) {
                 return true;
             }
         }
-
         return false;
+    }
+
+    /// @notice Determines if a struct is dynamic based on its encoding type and field contents
+    /// @dev A struct is dynamic if:
+    ///      - encodingType is Array (polymorphic array encoding is always dynamic)
+    ///      - encodingType is ABI (wrapped as bytes, always dynamic)
+    ///      - encodingType is CallWithSelector or CallWithSignature (calldata is always dynamic bytes)
+    ///      - encodingType is Struct and any of its chunks contain dynamic fields
+    ///      This affects how the struct is encoded when nested in a parent struct (offset vs inline).
+    /// @param s The struct to check
+    /// @return True if the struct requires offset-based encoding when nested, false if it can be encoded inline
+    function _isDynamic(
+        Struct memory s
+    ) private pure returns (bool) {
+        if (
+            s.encodingType == EncodingType.Array || s.encodingType == EncodingType.ABI
+                || s.encodingType == EncodingType.CallWithSelector || s.encodingType == EncodingType.CallWithSignature
+        ) {
+            return true;
+        }
+
+        return _hasDynamicFields(s);
     }
 }
