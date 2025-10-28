@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import { TypedEncoder } from "../../src/libs/TypedEncoder.sol";
+import { TypedEncoder } from "../../src/lib/TypedEncoder.sol";
 import "forge-std/Test.sol";
 
 contract TypedEncoderPolymorphicTest is Test {
