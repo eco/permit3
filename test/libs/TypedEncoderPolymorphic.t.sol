@@ -133,7 +133,7 @@ contract TypedEncoderPolymorphicTest is Test {
                 "ExecuteParams(bytes data)"
             ),
             chunks: new TypedEncoder.Chunk[](1),
-            encodingType: TypedEncoder.EncodingType.PolymorphicArray
+            encodingType: TypedEncoder.EncodingType.Array
         });
         callsStruct.chunks[0].primitives = new TypedEncoder.Primitive[](0);
         callsStruct.chunks[0].structs = new TypedEncoder.Struct[](3);
