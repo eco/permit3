@@ -33,13 +33,10 @@ library TypedEncoder {
      * @notice Defines how a struct should be encoded in ABI format (does not affect EIP-712 hashing)
      * @dev The encoding type determines the output format of the `encode()` function
      * @param Struct Standard struct encoding - produces abi.encode() compatible output with proper head/tail layout
-     * @param Array Array encoding where nested structs become array elements encoded as bytes - used for polymorphic
-     * arrays
+     * @param Array Array encoding where nested structs become array elements encoded as bytes for polymorphic types
      * @param ABI Pure ABI encoding without offset wrapper - used when embedding structs as bytes in parent structures
-     * @param CallWithSelector Produces abi.encodeWithSelector() output - combines bytes4 selector with ABI-encoded
-     * params for contract calls
-     * @param CallWithSignature Produces abi.encodeWithSignature() output - computes selector from signature string and
-     * combines with params
+     * @param CallWithSelector combines bytes4 selector with ABI-encoded params for contract calls
+     * @param CallWithSignature computes selector from signature string and combines with params
      */
     enum EncodingType {
         Struct,
@@ -67,10 +64,8 @@ library TypedEncoder {
 
     /**
      * @notice Represents a primitive field (non-struct, non-array value)
-     * @dev Primitives are basic Solidity types like integers, addresses, booleans, fixed-size bytes, strings, and
-     * dynamic bytes
-     * @param isDynamic True for dynamic types (string, bytes, dynamic arrays), false for static types (uint256,
-     * address, bytes32, bool, etc.)
+     * @dev Primitives are basic types like integers, addresses, booleans, fixed-size bytes, strings, and bytes
+     * @param isDynamic True for dynamic string, bytes, dynamic arrays; false for uint256, address, bytes32, bool, etc.
      * @param data The encoded field value - use abi.encode() for static types to get 32-byte aligned data,
      *             use abi.encodePacked() for dynamic types to get the raw bytes without length prefix
      */
@@ -113,8 +108,7 @@ library TypedEncoder {
 
     /**
      * @notice Computes the EIP-712 struct hash for signature validation
-     * @dev Implements EIP-712 encoding: keccak256(abi.encodePacked(typeHash, encodeData(field1), encodeData(field2),
-     * ...))
+     * @dev Implements EIP-712 encoding: keccak(encodePacked(typeHash, encodeData(field1), encodeData(field2)))
      *      - Static primitives are encoded directly (32 bytes each)
      *      - Dynamic primitives (string, bytes) are encoded as keccak256(data)
      *      - Nested structs are encoded recursively as their struct hash
