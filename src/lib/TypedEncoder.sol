@@ -30,22 +30,51 @@ library TypedEncoder {
     error InvalidCallEncodingStructure();
 
     /**
+     * @notice Thrown when Create encoding has invalid structure
+     * @dev Create requires exactly 1 chunk with 2 primitives: address deployer, uint256 nonce
+     */
+    error InvalidCreateEncodingStructure();
+
+    /**
+     * @notice Thrown when Create2 encoding has invalid structure
+     * @dev Create2 requires exactly 1 chunk with 3 primitives: address deployer, bytes32 salt, bytes32 initCodeHash
+     */
+    error InvalidCreate2EncodingStructure();
+
+    /**
+     * @notice Thrown when Create3 encoding has invalid structure
+     * @dev Create3 requires exactly 1 chunk with 3 primitives: address deployer, bytes32 salt, bytes32
+     * createDeployCodeHash
+     */
+    error InvalidCreate3EncodingStructure();
+
+    /**
      * @notice Defines how a struct should be encoded in ABI format (does not affect EIP-712 hashing)
      * @dev The encoding type determines the output format of the `encode()` function
      * @param Struct Standard struct encoding - produces abi.encode() compatible output with proper head/tail layout
      * @param Array Array encoding where nested structs become array elements encoded as bytes for polymorphic types
      * @param ABI Pure ABI encoding without offset wrapper - used when embedding structs as bytes in parent structures
+     * @param Packed computes abi.encodePacked(all_fields) for compact byte encoding without hashing
      * @param CallWithSelector combines bytes4 selector with ABI-encoded params for contract calls
      * @param CallWithSignature computes selector from signature string and combines with params
      * @param Hash computes keccak256(abi.encodePacked(all_fields)) for compact hash commitments with expandable data
+     * @param Create computes contract address from CREATE opcode: keccak256(rlp([deployer, nonce]))[12:]
+     * @param Create2 computes contract address from CREATE2 opcode: keccak256(0xff ++ deployer ++ salt ++
+     * initCodeHash)[12:]
+     * @param Create3 computes contract address from CREATE3 pattern: two-stage CREATE2 + CREATE for
+     * bytecode-independent addresses
      */
     enum EncodingType {
         Struct,
         Array,
         ABI,
+        Packed,
         CallWithSelector,
         CallWithSignature,
-        Hash
+        Hash,
+        Create,
+        Create2,
+        Create3
     }
 
     /**
@@ -141,12 +170,14 @@ library TypedEncoder {
      *      - CallWithSelector: Produces calldata with bytes4 selector + ABI params (like abi.encodeWithSelector)
      *      - CallWithSignature: Computes selector from signature string + ABI params (like abi.encodeWithSignature)
      *      - Hash: Computes keccak256(abi.encodePacked(all_fields)) for compact hash commitment (returns 32 bytes)
+     *      - Packed: Computes abi.encodePacked(all_fields) for compact byte encoding (returns dynamic bytes)
      * @param s The struct to encode with its configured encodingType
      * @return Encoded bytes in the format specified by s.encodingType:
      *         Struct/Array: ABI-encoded struct data (with offset wrapper if dynamic)
      *         ABI: Raw ABI encoding (no wrapper)
      *         CallWithSelector/Signature: 4-byte selector + ABI-encoded parameters (calldata)
      *         Hash: 32-byte hash of packed struct data
+     *         Packed: Packed bytes without hashing (dynamic length)
      */
     function encode(
         Struct memory s
@@ -154,6 +185,22 @@ library TypedEncoder {
         // Hash encoding returns keccak256(abi.encodePacked(all_fields)) as 32-byte hash
         if (s.encodingType == EncodingType.Hash) {
             return abi.encodePacked(_encodeHash(s));
+        }
+        // Packed encoding returns abi.encodePacked(all_fields) without hashing
+        if (s.encodingType == EncodingType.Packed) {
+            return _encodePacked(s);
+        }
+        // Create encoding computes contract address from CREATE opcode
+        if (s.encodingType == EncodingType.Create) {
+            return abi.encodePacked(_encodeCreate(s));
+        }
+        // Create2 encoding computes contract address from CREATE2 opcode
+        if (s.encodingType == EncodingType.Create2) {
+            return abi.encodePacked(_encodeCreate2(s));
+        }
+        // Create3 encoding computes contract address from CREATE3 pattern
+        if (s.encodingType == EncodingType.Create3) {
+            return abi.encodePacked(_encodeCreate3(s));
         }
         // CallWithSelector and CallWithSignature return raw calldata (selector + params)
         if (s.encodingType == EncodingType.CallWithSelector) {
@@ -402,6 +449,9 @@ library TypedEncoder {
             // If nested struct is Hash type, hash it first then pack the bytes32
             if (nestedStruct.encodingType == EncodingType.Hash) {
                 packed = abi.encodePacked(packed, _encodeHash(nestedStruct));
+            } else if (nestedStruct.encodingType == EncodingType.Packed) {
+                // If nested struct is Packed type, pack it recursively without hashing
+                packed = abi.encodePacked(packed, _encodePacked(nestedStruct));
             } else {
                 // For other encoding types, pack their ABI encoding
                 packed = abi.encodePacked(packed, _encodeAbi(nestedStruct));
@@ -436,6 +486,259 @@ library TypedEncoder {
         }
 
         return packed;
+    }
+
+    /**
+     * @notice Encodes struct fields using abi.encodePacked for compact byte encoding
+     * @dev Packed encoding produces compact byte sequences without hashing.
+     *      Process: abi.encodePacked(all_fields_recursively) → bytes
+     *      Nested Packed-type structs are packed recursively (no intermediate hashing).
+     *      Arrays pack elements without length prefix for maximum compactness.
+     *      Unlike Hash encoding, this returns the raw packed bytes, not a hash.
+     * @param s The struct to pack with EncodingType.Packed
+     * @return The packed bytes (variable length, dynamic)
+     */
+    function _encodePacked(
+        Struct memory s
+    ) private pure returns (bytes memory) {
+        bytes memory packed;
+        uint256 chunksLen = s.chunks.length;
+
+        for (uint256 i = 0; i < chunksLen; i++) {
+            packed = abi.encodePacked(packed, _encodePackedChunk(s.chunks[i]));
+        }
+
+        return packed;
+    }
+
+    /**
+     * @notice Computes contract address from CREATE opcode using RLP encoding
+     * @dev Formula: keccak256(rlp([sender, nonce]))[12:]
+     *      RLP encoding varies by nonce value:
+     *      - Nonce 0: 0xd6, 0x94, address(20 bytes), 0x80
+     *      - Nonce 1-127: 0xd6, 0x94, address(20 bytes), nonce(1 byte)
+     *      - Nonce 128-255: 0xd7, 0x94, address(20 bytes), 0x81, nonce(1 byte)
+     *      - Nonce 256-65535: 0xd8, 0x94, address(20 bytes), 0x82, nonce_high, nonce_low
+     *      - Higher nonces: more complex RLP encoding (up to uint64)
+     *      Requires exactly 1 chunk with 2 static primitives (address, uint256).
+     * @param s The struct with EncodingType.Create
+     * @return The computed contract address (20 bytes)
+     */
+    function _encodeCreate(
+        Struct memory s
+    ) private pure returns (address) {
+        // Validate: exactly 1 chunk
+        if (s.chunks.length != 1) {
+            revert InvalidCreateEncodingStructure();
+        }
+
+        Chunk memory chunk = s.chunks[0];
+
+        // Validate: exactly 2 primitives, 0 structs, 0 arrays
+        if (chunk.primitives.length != 2 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+            revert InvalidCreateEncodingStructure();
+        }
+
+        // Extract deployer (address, 20 bytes)
+        Primitive memory deployerPrimitive = chunk.primitives[0];
+        if (deployerPrimitive.isDynamic || deployerPrimitive.data.length != 32) {
+            revert InvalidCreateEncodingStructure();
+        }
+
+        bytes memory deployerData = deployerPrimitive.data;
+        address deployer;
+        assembly {
+            deployer := mload(add(deployerData, 32))
+        }
+
+        // Extract nonce (uint256)
+        Primitive memory noncePrimitive = chunk.primitives[1];
+        if (noncePrimitive.isDynamic || noncePrimitive.data.length != 32) {
+            revert InvalidCreateEncodingStructure();
+        }
+
+        bytes memory nonceData = noncePrimitive.data;
+        uint256 nonce;
+        assembly {
+            nonce := mload(add(nonceData, 32))
+        }
+
+        // Compute RLP encoding based on nonce value
+        bytes memory rlpEncoded;
+
+        if (nonce == 0) {
+            // RLP: 0xd6, 0x94, address(20), 0x80
+            rlpEncoded = abi.encodePacked(hex"d694", deployer, hex"80");
+        } else if (nonce <= 0x7f) {
+            // RLP: 0xd6, 0x94, address(20), nonce(1 byte)
+            rlpEncoded = abi.encodePacked(hex"d694", deployer, uint8(nonce));
+        } else if (nonce <= 0xff) {
+            // RLP: 0xd7, 0x94, address(20), 0x81, nonce(1 byte)
+            rlpEncoded = abi.encodePacked(hex"d794", deployer, hex"81", uint8(nonce));
+        } else if (nonce <= 0xffff) {
+            // RLP: 0xd8, 0x94, address(20), 0x82, nonce(2 bytes big-endian)
+            rlpEncoded = abi.encodePacked(hex"d894", deployer, hex"82", uint16(nonce));
+        } else if (nonce <= 0xffffff) {
+            // RLP: 0xd9, 0x94, address(20), 0x83, nonce(3 bytes big-endian)
+            rlpEncoded = abi.encodePacked(hex"d994", deployer, hex"83", uint24(nonce));
+        } else if (nonce <= 0xffffffff) {
+            // RLP: 0xda, 0x94, address(20), 0x84, nonce(4 bytes big-endian)
+            rlpEncoded = abi.encodePacked(hex"da94", deployer, hex"84", uint32(nonce));
+        } else if (nonce <= 0xffffffffff) {
+            // RLP: 0xdb, 0x94, address(20), 0x85, nonce(5 bytes big-endian)
+            rlpEncoded = abi.encodePacked(hex"db94", deployer, hex"85", uint40(nonce));
+        } else if (nonce <= 0xffffffffffff) {
+            // RLP: 0xdc, 0x94, address(20), 0x86, nonce(6 bytes big-endian)
+            rlpEncoded = abi.encodePacked(hex"dc94", deployer, hex"86", uint48(nonce));
+        } else if (nonce <= 0xffffffffffffff) {
+            // RLP: 0xdd, 0x94, address(20), 0x87, nonce(7 bytes big-endian)
+            rlpEncoded = abi.encodePacked(hex"dd94", deployer, hex"87", uint56(nonce));
+        } else {
+            // RLP: 0xde, 0x94, address(20), 0x88, nonce(8 bytes big-endian)
+            rlpEncoded = abi.encodePacked(hex"de94", deployer, hex"88", uint64(nonce));
+        }
+
+        // Hash and extract last 20 bytes as address
+        bytes32 computedHash = keccak256(rlpEncoded);
+        return address(uint160(uint256(computedHash)));
+    }
+
+    /**
+     * @notice Computes contract address from CREATE2 opcode
+     * @dev Formula: keccak256(0xff ++ deployer ++ salt ++ initCodeHash)[12:]
+     *      Standard CREATE2 address computation for deterministic deployments.
+     *      Requires exactly 1 chunk with 3 static primitives (address, bytes32, bytes32).
+     * @param s The struct with EncodingType.Create2
+     * @return The computed contract address (20 bytes)
+     */
+    function _encodeCreate2(
+        Struct memory s
+    ) private pure returns (address) {
+        // Validate: exactly 1 chunk
+        if (s.chunks.length != 1) {
+            revert InvalidCreate2EncodingStructure();
+        }
+
+        Chunk memory chunk = s.chunks[0];
+
+        // Validate: exactly 3 primitives, 0 structs, 0 arrays
+        if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+            revert InvalidCreate2EncodingStructure();
+        }
+
+        // Extract deployer (address, 20 bytes)
+        Primitive memory deployerPrimitive = chunk.primitives[0];
+        if (deployerPrimitive.isDynamic || deployerPrimitive.data.length != 32) {
+            revert InvalidCreate2EncodingStructure();
+        }
+
+        bytes memory deployerData = deployerPrimitive.data;
+        address deployer;
+        assembly {
+            deployer := mload(add(deployerData, 32))
+        }
+
+        // Extract salt (bytes32)
+        Primitive memory saltPrimitive = chunk.primitives[1];
+        if (saltPrimitive.isDynamic || saltPrimitive.data.length != 32) {
+            revert InvalidCreate2EncodingStructure();
+        }
+
+        bytes memory saltData = saltPrimitive.data;
+        bytes32 salt;
+        assembly {
+            salt := mload(add(saltData, 32))
+        }
+
+        // Extract initCodeHash (bytes32)
+        Primitive memory initCodeHashPrimitive = chunk.primitives[2];
+        if (initCodeHashPrimitive.isDynamic || initCodeHashPrimitive.data.length != 32) {
+            revert InvalidCreate2EncodingStructure();
+        }
+
+        bytes memory initCodeHashData = initCodeHashPrimitive.data;
+        bytes32 initCodeHash;
+        assembly {
+            initCodeHash := mload(add(initCodeHashData, 32))
+        }
+
+        // Compute CREATE2 address: keccak256(0xff ++ deployer ++ salt ++ initCodeHash)[12:]
+        bytes32 computedHash = keccak256(abi.encodePacked(hex"ff", deployer, salt, initCodeHash));
+        return address(uint160(uint256(computedHash)));
+    }
+
+    /**
+     * @notice Computes contract address from CREATE3 pattern (CREATE2 + CREATE)
+     * @dev CREATE3 provides bytecode-independent deterministic addresses through two stages:
+     *      Stage 1: Deploy intermediary contract via CREATE2
+     *        intermediary = keccak256(0xff ++ deployer ++ salt ++ createDeployCodeHash)[12:]
+     *      Stage 2: Intermediary deploys target via CREATE with nonce=1
+     *        target = keccak256(rlp([intermediary, 1]))[12:]
+     *      Where rlp([intermediary, 1]) = 0xd6, 0x94, intermediary(20), 0x01
+     *      Requires exactly 1 chunk with 3 static primitives (address, bytes32, bytes32).
+     *      Reference: Axelar CREATE3 implementation
+     * @param s The struct with EncodingType.Create3
+     * @return The computed contract address (20 bytes)
+     */
+    function _encodeCreate3(
+        Struct memory s
+    ) private pure returns (address) {
+        // Validate: exactly 1 chunk
+        if (s.chunks.length != 1) {
+            revert InvalidCreate3EncodingStructure();
+        }
+
+        Chunk memory chunk = s.chunks[0];
+
+        // Validate: exactly 3 primitives, 0 structs, 0 arrays
+        if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+            revert InvalidCreate3EncodingStructure();
+        }
+
+        // Extract deployer (address, 20 bytes)
+        Primitive memory deployerPrimitive = chunk.primitives[0];
+        if (deployerPrimitive.isDynamic || deployerPrimitive.data.length != 32) {
+            revert InvalidCreate3EncodingStructure();
+        }
+
+        bytes memory deployerData = deployerPrimitive.data;
+        address deployer;
+        assembly {
+            deployer := mload(add(deployerData, 32))
+        }
+
+        // Extract salt (bytes32)
+        Primitive memory saltPrimitive = chunk.primitives[1];
+        if (saltPrimitive.isDynamic || saltPrimitive.data.length != 32) {
+            revert InvalidCreate3EncodingStructure();
+        }
+
+        bytes memory saltData = saltPrimitive.data;
+        bytes32 salt;
+        assembly {
+            salt := mload(add(saltData, 32))
+        }
+
+        // Extract createDeployCodeHash (bytes32) - hash of intermediary deployer bytecode
+        Primitive memory createDeployCodeHashPrimitive = chunk.primitives[2];
+        if (createDeployCodeHashPrimitive.isDynamic || createDeployCodeHashPrimitive.data.length != 32) {
+            revert InvalidCreate3EncodingStructure();
+        }
+
+        bytes memory createDeployCodeHashData = createDeployCodeHashPrimitive.data;
+        bytes32 createDeployCodeHash;
+        assembly {
+            createDeployCodeHash := mload(add(createDeployCodeHashData, 32))
+        }
+
+        // Stage 1: Compute intermediary deployer address via CREATE2
+        bytes32 intermediaryHash = keccak256(abi.encodePacked(hex"ff", deployer, salt, createDeployCodeHash));
+        address intermediary = address(uint160(uint256(intermediaryHash)));
+
+        // Stage 2: Compute final address via CREATE with nonce=1
+        // RLP encoding for nonce=1: 0xd6, 0x94, address(20), 0x01
+        bytes32 computedHash = keccak256(abi.encodePacked(hex"d694", intermediary, hex"01"));
+        return address(uint160(uint256(computedHash)));
     }
 
     /**
@@ -664,6 +967,18 @@ library TypedEncoder {
             } else if (childStruct.encodingType == EncodingType.Hash) {
                 // Hash encoding returns bytes32 (32 bytes)
                 structEncoded = abi.encodePacked(_encodeHash(childStruct));
+            } else if (childStruct.encodingType == EncodingType.Packed) {
+                // Packed encoding returns dynamic bytes
+                structEncoded = _encodePacked(childStruct);
+            } else if (childStruct.encodingType == EncodingType.Create) {
+                // Create encoding returns address (20 bytes)
+                structEncoded = abi.encodePacked(_encodeCreate(childStruct));
+            } else if (childStruct.encodingType == EncodingType.Create2) {
+                // Create2 encoding returns address (20 bytes)
+                structEncoded = abi.encodePacked(_encodeCreate2(childStruct));
+            } else if (childStruct.encodingType == EncodingType.Create3) {
+                // Create3 encoding returns address (20 bytes)
+                structEncoded = abi.encodePacked(_encodeCreate3(childStruct));
             } else if (childStruct.encodingType == EncodingType.ABI) {
                 bytes memory innerEncoded = _encodeAbi(childStruct);
                 // Check if struct has dynamic field contents (not encoding type)
@@ -675,12 +990,13 @@ library TypedEncoder {
                 structEncoded = _encodeAbi(childStruct);
             }
 
-            // ABI, CallWithSelector, and CallWithSignature are represented as bytes
+            // ABI, CallWithSelector, CallWithSignature, and Packed are represented as bytes
             // Wrap with length prefix and padding (always dynamic)
             if (
                 childStruct.encodingType == EncodingType.ABI
                     || childStruct.encodingType == EncodingType.CallWithSelector
                     || childStruct.encodingType == EncodingType.CallWithSignature
+                    || childStruct.encodingType == EncodingType.Packed
             ) {
                 tailParts[fieldIndex] = abi.encodePacked(abi.encode(structEncoded.length), _padTo32(structEncoded));
                 hasTail[fieldIndex] = true;
@@ -691,7 +1007,7 @@ library TypedEncoder {
                 hasTail[fieldIndex] = true;
                 fieldIndex++;
             } else {
-                // Static struct (Hash and Struct with all static fields)
+                // Static struct (Hash, Create, Create2, Create3, and Struct with all static fields)
                 headParts[fieldIndex] = structEncoded;
                 fieldIndex++;
             }
@@ -889,6 +1205,7 @@ library TypedEncoder {
      *      - encodingType is Array (polymorphic array encoding is always dynamic)
      *      - encodingType is ABI (wrapped as bytes, always dynamic)
      *      - encodingType is CallWithSelector or CallWithSignature (calldata is always dynamic bytes)
+     *      - encodingType is Packed (produces variable-length bytes, always dynamic)
      *      - encodingType is Hash (produces 32-byte hash, static when nested)
      *      - encodingType is Struct and any of its chunks contain dynamic fields
      *      This affects how the struct is encoded when nested in a parent struct (offset vs inline).
@@ -901,12 +1218,17 @@ library TypedEncoder {
         if (
             s.encodingType == EncodingType.Array || s.encodingType == EncodingType.ABI
                 || s.encodingType == EncodingType.CallWithSelector || s.encodingType == EncodingType.CallWithSignature
+                || s.encodingType == EncodingType.Packed
         ) {
             return true;
         }
 
-        // Hash encoding produces bytes32 (static 32 bytes)
-        if (s.encodingType == EncodingType.Hash) {
+        // Hash, Create, Create2, Create3 produce fixed-size output (static)
+        // Hash: 32 bytes, Create/Create2/Create3: 20 bytes
+        if (
+            s.encodingType == EncodingType.Hash || s.encodingType == EncodingType.Create
+                || s.encodingType == EncodingType.Create2 || s.encodingType == EncodingType.Create3
+        ) {
             return false;
         }
 
