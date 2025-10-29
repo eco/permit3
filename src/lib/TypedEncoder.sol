@@ -37,13 +37,15 @@ library TypedEncoder {
      * @param ABI Pure ABI encoding without offset wrapper - used when embedding structs as bytes in parent structures
      * @param CallWithSelector combines bytes4 selector with ABI-encoded params for contract calls
      * @param CallWithSignature computes selector from signature string and combines with params
+     * @param Hash computes keccak256(abi.encodePacked(all_fields)) for compact hash commitments with expandable data
      */
     enum EncodingType {
         Struct,
         Array,
         ABI,
         CallWithSelector,
-        CallWithSignature
+        CallWithSignature,
+        Hash
     }
 
     /**
@@ -138,15 +140,21 @@ library TypedEncoder {
      *      - ABI: Pure ABI encoding without offset wrapper (for embedding in parent structs as bytes)
      *      - CallWithSelector: Produces calldata with bytes4 selector + ABI params (like abi.encodeWithSelector)
      *      - CallWithSignature: Computes selector from signature string + ABI params (like abi.encodeWithSignature)
+     *      - Hash: Computes keccak256(abi.encodePacked(all_fields)) for compact hash commitment (returns 32 bytes)
      * @param s The struct to encode with its configured encodingType
      * @return Encoded bytes in the format specified by s.encodingType:
      *         Struct/Array: ABI-encoded struct data (with offset wrapper if dynamic)
      *         ABI: Raw ABI encoding (no wrapper)
      *         CallWithSelector/Signature: 4-byte selector + ABI-encoded parameters (calldata)
+     *         Hash: 32-byte hash of packed struct data
      */
     function encode(
         Struct memory s
     ) internal pure returns (bytes memory) {
+        // Hash encoding returns keccak256(abi.encodePacked(all_fields)) as 32-byte hash
+        if (s.encodingType == EncodingType.Hash) {
+            return abi.encodePacked(_encodeHash(s));
+        }
         // CallWithSelector and CallWithSignature return raw calldata (selector + params)
         if (s.encodingType == EncodingType.CallWithSelector) {
             return _encodeCallWithSelector(s);
@@ -342,6 +350,92 @@ library TypedEncoder {
 
         // Combine selector (4 bytes) + params
         return abi.encodePacked(selector, params);
+    }
+
+    /**
+     * @notice Encodes struct fields using abi.encodePacked and computes keccak256 hash
+     * @dev Hash encoding produces compact commitments to struct data that can be expanded later.
+     *      Process: abi.encodePacked(all_fields_recursively) → keccak256() → bytes32
+     *      Nested Hash-type structs are hashed first, then their bytes32 is packed into parent.
+     *      Arrays pack elements without length prefix for maximum compactness.
+     * @param s The struct to hash with EncodingType.Hash
+     * @return The 32-byte hash commitment to the struct's data
+     */
+    function _encodeHash(
+        Struct memory s
+    ) private pure returns (bytes32) {
+        bytes memory packed;
+        uint256 chunksLen = s.chunks.length;
+
+        for (uint256 i = 0; i < chunksLen; i++) {
+            packed = abi.encodePacked(packed, _encodePackedChunk(s.chunks[i]));
+        }
+
+        return keccak256(packed);
+    }
+
+    /**
+     * @notice Encodes a chunk's fields using abi.encodePacked for compact hash computation
+     * @dev Processes fields in standard order: primitives → structs → arrays
+     *      - Primitives: packed directly (no padding)
+     *      - Structs: Hash-type structs are hashed recursively, others are ABI-encoded then packed
+     *      - Arrays: packed without length prefix using _encodePackedArray
+     * @param chunk The chunk containing fields to pack
+     * @return Packed bytes ready for hashing (no padding, minimal overhead)
+     */
+    function _encodePackedChunk(
+        Chunk memory chunk
+    ) private pure returns (bytes memory) {
+        bytes memory packed;
+
+        // Process primitives - pack data directly
+        uint256 primLen = chunk.primitives.length;
+        for (uint256 i = 0; i < primLen; i++) {
+            packed = abi.encodePacked(packed, chunk.primitives[i].data);
+        }
+
+        // Process nested structs
+        uint256 structLen = chunk.structs.length;
+        for (uint256 i = 0; i < structLen; i++) {
+            Struct memory nestedStruct = chunk.structs[i];
+
+            // If nested struct is Hash type, hash it first then pack the bytes32
+            if (nestedStruct.encodingType == EncodingType.Hash) {
+                packed = abi.encodePacked(packed, _encodeHash(nestedStruct));
+            } else {
+                // For other encoding types, pack their ABI encoding
+                packed = abi.encodePacked(packed, _encodeAbi(nestedStruct));
+            }
+        }
+
+        // Process arrays - pack without length prefix
+        uint256 arrLen = chunk.arrays.length;
+        for (uint256 i = 0; i < arrLen; i++) {
+            packed = abi.encodePacked(packed, _encodePackedArray(chunk.arrays[i]));
+        }
+
+        return packed;
+    }
+
+    /**
+     * @notice Encodes an array using abi.encodePacked for compact hash computation
+     * @dev Packs array elements without length prefix for maximum compactness.
+     *      Each element (represented as a Chunk) is packed recursively.
+     *      Used within Hash encoding to create compact hash commitments.
+     * @param array The array to pack (can contain primitives, structs, or nested arrays)
+     * @return Packed bytes of all array elements concatenated (no length, no padding)
+     */
+    function _encodePackedArray(
+        Array memory array
+    ) private pure returns (bytes memory) {
+        bytes memory packed;
+        uint256 arrayLen = array.data.length;
+
+        for (uint256 i = 0; i < arrayLen; i++) {
+            packed = abi.encodePacked(packed, _encodePackedChunk(array.data[i]));
+        }
+
+        return packed;
     }
 
     /**
@@ -567,6 +661,9 @@ library TypedEncoder {
                 structEncoded = _encodeCallWithSelector(childStruct);
             } else if (childStruct.encodingType == EncodingType.CallWithSignature) {
                 structEncoded = _encodeCallWithSignature(childStruct);
+            } else if (childStruct.encodingType == EncodingType.Hash) {
+                // Hash encoding returns bytes32 (32 bytes)
+                structEncoded = abi.encodePacked(_encodeHash(childStruct));
             } else if (childStruct.encodingType == EncodingType.ABI) {
                 bytes memory innerEncoded = _encodeAbi(childStruct);
                 // Check if struct has dynamic field contents (not encoding type)
@@ -594,7 +691,7 @@ library TypedEncoder {
                 hasTail[fieldIndex] = true;
                 fieldIndex++;
             } else {
-                // Static struct
+                // Static struct (Hash and Struct with all static fields)
                 headParts[fieldIndex] = structEncoded;
                 fieldIndex++;
             }
@@ -792,6 +889,7 @@ library TypedEncoder {
      *      - encodingType is Array (polymorphic array encoding is always dynamic)
      *      - encodingType is ABI (wrapped as bytes, always dynamic)
      *      - encodingType is CallWithSelector or CallWithSignature (calldata is always dynamic bytes)
+     *      - encodingType is Hash (produces 32-byte hash, static when nested)
      *      - encodingType is Struct and any of its chunks contain dynamic fields
      *      This affects how the struct is encoded when nested in a parent struct (offset vs inline).
      * @param s The struct to check
@@ -805,6 +903,11 @@ library TypedEncoder {
                 || s.encodingType == EncodingType.CallWithSelector || s.encodingType == EncodingType.CallWithSignature
         ) {
             return true;
+        }
+
+        // Hash encoding produces bytes32 (static 32 bytes)
+        if (s.encodingType == EncodingType.Hash) {
+            return false;
         }
 
         return _hasDynamicFields(s);
