@@ -32,8 +32,7 @@ contract TypedEncoderPackedEncodingTest is TestBase {
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
 
         // Expected: abi.encodePacked(abi.encode(uint256(42)), abi.encode(address(0x1234...)))
@@ -448,8 +447,7 @@ contract TypedEncoderPackedEncodingTest is TestBase {
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](5);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
         encoded.chunks[0].primitives[2] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(true) });
         encoded.chunks[0].primitives[3] =

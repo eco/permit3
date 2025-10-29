@@ -27,8 +27,7 @@ contract TypedEncoderStructHashTest is TestBase {
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
 
         bytes32 expected = keccak256(
@@ -134,8 +133,9 @@ contract TypedEncoderStructHashTest is TestBase {
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: "" });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({ isDynamic: true, data: "" });
 
-        bytes32 expected =
-            keccak256(abi.encodePacked(keccak256("EmptyDynamic(string text,bytes data)"), keccak256(""), keccak256("")));
+        bytes32 expected = keccak256(
+            abi.encodePacked(keccak256("EmptyDynamic(string text,bytes data)"), keccak256(""), keccak256(""))
+        );
         bytes32 actual = encoded.hash();
 
         assertEq(actual, expected);
@@ -202,8 +202,7 @@ contract TypedEncoderStructHashTest is TestBase {
         from.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         from.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("Alice") });
         from.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
 
         TypedEncoder.Struct memory to = TypedEncoder.Struct({
@@ -214,8 +213,7 @@ contract TypedEncoderStructHashTest is TestBase {
         to.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         to.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("Bob") });
         to.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222222))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222222))
         });
 
         TypedEncoder.Struct memory mail = TypedEncoder.Struct({

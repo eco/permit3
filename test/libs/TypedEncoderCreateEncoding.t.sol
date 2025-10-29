@@ -627,9 +627,9 @@ contract TypedEncoderCreateEncodingTest is TestBase {
             id := mload(add(result, 32))
             // Next 20 bytes: createAddr (need to shift since it's not padded)
             createAddr := mload(add(result, 52)) // 32 + 20
-            // Next 20 bytes: create2Addr
+                // Next 20 bytes: create2Addr
             create2Addr := mload(add(result, 72)) // 32 + 20 + 20
-            // Last 20 bytes: create3Addr
+                // Last 20 bytes: create3Addr
             create3Addr := mload(add(result, 92)) // 32 + 20 + 20 + 20
         }
 

@@ -153,7 +153,13 @@ interface IMultiTokenPermit {
      * @param amount Amount to approve (ignored for ERC721, used for ERC20/ERC1155)
      * @param expiration Timestamp when approval expires (0 for no expiration)
      */
-    function approve(address token, address spender, uint256 tokenId, uint160 amount, uint48 expiration) external;
+    function approve(
+        address token,
+        address spender,
+        uint256 tokenId,
+        uint160 amount,
+        uint48 expiration
+    ) external;
 
     /**
      * @notice Execute approved ERC721 token transfer
@@ -162,7 +168,12 @@ interface IMultiTokenPermit {
      * @param token ERC721 token address
      * @param tokenId The NFT token ID
      */
-    function transferFromERC721(address from, address to, address token, uint256 tokenId) external;
+    function transferFromERC721(
+        address from,
+        address to,
+        address token,
+        uint256 tokenId
+    ) external;
 
     /**
      * @notice Execute approved ERC1155 token transfer
@@ -172,7 +183,13 @@ interface IMultiTokenPermit {
      * @param tokenId The ERC1155 token ID
      * @param amount Transfer amount
      */
-    function transferFromERC1155(address from, address to, address token, uint256 tokenId, uint160 amount) external;
+    function transferFromERC1155(
+        address from,
+        address to,
+        address token,
+        uint256 tokenId,
+        uint160 amount
+    ) external;
 
     /**
      * @notice Execute approved ERC721 batch transfer

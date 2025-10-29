@@ -151,8 +151,7 @@ contract TypedEncoderNestedTest is Test {
         level2.chunks[0].structs[0] = level1;
         level2.chunks[1].primitives = new TypedEncoder.Primitive[](1);
         level2.chunks[1].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
 
         // Level 3: Contains Level2 + string (dynamic)
@@ -206,7 +205,9 @@ contract TypedEncoderNestedTest is Test {
             Level5({
                 inner: Level4({
                     inner: Level3({
-                        inner: Level2({ inner: Level1({ value: 42 }), addr: address(0x1111111111111111111111111111111111111111) }),
+                        inner: Level2({
+                            inner: Level1({ value: 42 }), addr: address(0x1111111111111111111111111111111111111111)
+                        }),
                         text: "hello"
                     }),
                     data: hex"deadbeef"
@@ -257,8 +258,7 @@ contract TypedEncoderNestedTest is Test {
         structChild.chunks[0].structs[0] = level1Struct;
         structChild.chunks[1].primitives = new TypedEncoder.Primitive[](1);
         structChild.chunks[1].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222222))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222222))
         });
 
         // Child 3: Using CallWithSelector encoding (embedded as dynamic struct, not wrapped as bytes)
@@ -272,8 +272,7 @@ contract TypedEncoderNestedTest is Test {
         });
         callParams.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         callParams.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x3333333333333333333333333333333333333333))
+            isDynamic: false, data: abi.encode(address(0x3333333333333333333333333333333333333333))
         });
         callParams.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });
@@ -318,8 +317,7 @@ contract TypedEncoderNestedTest is Test {
             MixedParent({
                 abiEncoded: abiChildBytes,
                 structEncoded: Level2({
-                    inner: Level1({ value: 42 }),
-                    addr: address(0x2222222222222222222222222222222222222222)
+                    inner: Level1({ value: 42 }), addr: address(0x2222222222222222222222222222222222222222)
                 }),
                 calldataBytes: calldataBytes,
                 value: 999
@@ -348,8 +346,7 @@ contract TypedEncoderNestedTest is Test {
         staticChild.chunks[0].primitives[0] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(100)) });
         staticChild.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x4444444444444444444444444444444444444444))
+            isDynamic: false, data: abi.encode(address(0x4444444444444444444444444444444444444444))
         });
 
         TypedEncoder.Struct memory parentStatic = TypedEncoder.Struct({
@@ -367,7 +364,9 @@ contract TypedEncoderNestedTest is Test {
         // Expected: Parent struct with bytes field containing encoded static child
         bytes memory expectedStatic = abi.encode(
             Parent({
-                child: abi.encode(StaticChild({ value: 100, addr: address(0x4444444444444444444444444444444444444444) })),
+                child: abi.encode(
+                    StaticChild({ value: 100, addr: address(0x4444444444444444444444444444444444444444) })
+                ),
                 id: 999
             })
         );
@@ -423,12 +422,10 @@ contract TypedEncoderNestedTest is Test {
         });
         tokenPair.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         tokenPair.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
         tokenPair.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222222))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222222))
         });
 
         // Create params struct containing nested TokenPair
@@ -496,8 +493,7 @@ contract TypedEncoderNestedTest is Test {
         });
         orderDetails.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         orderDetails.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x3333333333333333333333333333333333333333))
+            isDynamic: false, data: abi.encode(address(0x3333333333333333333333333333333333333333))
         });
         orderDetails.chunks[1].structs = new TypedEncoder.Struct[](1);
         orderDetails.chunks[1].structs[0] = userInfo;
@@ -525,8 +521,7 @@ contract TypedEncoderNestedTest is Test {
 
         // Build expected output - single nested struct parameter
         OrderDetails memory details = OrderDetails({
-            token: address(0x3333333333333333333333333333333333333333),
-            user: UserInfo({ id: 42, name: "Alice" })
+            token: address(0x3333333333333333333333333333333333333333), user: UserInfo({ id: 42, name: "Alice" })
         });
 
         bytes memory expected = abi.encodeWithSignature(signature, details);
@@ -685,8 +680,7 @@ contract TypedEncoderNestedTest is Test {
         });
         paramsForSig.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         paramsForSig.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x5555555555555555555555555555555555555555))
+            isDynamic: false, data: abi.encode(address(0x5555555555555555555555555555555555555555))
         });
         paramsForSig.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(999)) });
@@ -711,8 +705,7 @@ contract TypedEncoderNestedTest is Test {
         });
         paramsForSel.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         paramsForSel.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x5555555555555555555555555555555555555555))
+            isDynamic: false, data: abi.encode(address(0x5555555555555555555555555555555555555555))
         });
         paramsForSel.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(999)) });

@@ -34,8 +34,7 @@ contract TypedEncoderCalldataTest is TestBase {
         childEncoded.chunks[0].primitives[0] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
         childEncoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
 
         // Create parent struct containing ABI-encoded child
@@ -96,8 +95,9 @@ contract TypedEncoderCalldataTest is TestBase {
         parentEncoded.chunks[0].structs = new TypedEncoder.Struct[](1);
         parentEncoded.chunks[0].structs[0] = childEncoded;
 
-        bytes memory expected =
-            abi.encode(ParentWithDynamicABI({ id: 200, child: abi.encode(ChildDynamic({ name: "test", value: 123 })) }));
+        bytes memory expected = abi.encode(
+            ParentWithDynamicABI({ id: 200, child: abi.encode(ChildDynamic({ name: "test", value: 123 })) })
+        );
         bytes memory actual = parentEncoded.encode();
 
         assertEq(actual, expected);
@@ -119,8 +119,7 @@ contract TypedEncoderCalldataTest is TestBase {
         childA.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         childA.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(10)) });
         childA.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
 
         // Create second ABI-encoded child (dynamic)
@@ -288,8 +287,7 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         paramsEncoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         paramsEncoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
         paramsEncoded.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });
@@ -366,12 +364,10 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         paramsEncoded.chunks[0].primitives = new TypedEncoder.Primitive[](4);
         paramsEncoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
         paramsEncoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222222))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222222))
         });
         paramsEncoded.chunks[0].primitives[2] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(500)) });
@@ -454,8 +450,7 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         innerEncoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         innerEncoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x3333333333333333333333333333333333333333))
+            isDynamic: false, data: abi.encode(address(0x3333333333333333333333333333333333333333))
         });
         innerEncoded.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(777)) });
@@ -502,8 +497,7 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         paramsEncoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         paramsEncoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
         paramsEncoded.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });
@@ -569,12 +563,10 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         paramsEncoded.chunks[0].primitives = new TypedEncoder.Primitive[](3);
         paramsEncoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
         paramsEncoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222222))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222222))
         });
         paramsEncoded.chunks[0].primitives[2] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(500)) });
@@ -615,8 +607,7 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         paramsEncodedSig.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         paramsEncodedSig.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
         paramsEncodedSig.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });
@@ -641,8 +632,7 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         paramsEncodedSel.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         paramsEncodedSel.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
         paramsEncodedSel.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });
@@ -676,8 +666,7 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         innerEncoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         innerEncoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x3333333333333333333333333333333333333333))
+            isDynamic: false, data: abi.encode(address(0x3333333333333333333333333333333333333333))
         });
         innerEncoded.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(777)) });
@@ -754,8 +743,7 @@ contract TypedEncoderCalldataTest is TestBase {
         });
         paramsEncoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         paramsEncoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
         paramsEncoded.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });

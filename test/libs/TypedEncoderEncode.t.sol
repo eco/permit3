@@ -27,8 +27,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
 
         bytes memory expected =

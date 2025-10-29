@@ -32,8 +32,7 @@ contract TypedEncoderHashEncodingTest is TestBase {
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
 
         // Expected: keccak256(abi.encodePacked(uint256(42), address(0x1234...)))
@@ -95,8 +94,7 @@ contract TypedEncoderHashEncodingTest is TestBase {
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(123)) });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("Alice") });
         encoded.chunks[0].primitives[2] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
 
         // Expected: keccak256(abi.encodePacked(uint256(123), "Alice", address(0x1111...)))

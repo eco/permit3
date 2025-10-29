@@ -37,8 +37,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         transferParams.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         transferParams.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x5555555555555555555555555555555555555555))
+            isDynamic: false, data: abi.encode(address(0x5555555555555555555555555555555555555555))
         });
         transferParams.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });
@@ -65,8 +64,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         call1.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         call1.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
         call1.chunks[1].structs = new TypedEncoder.Struct[](1);
         call1.chunks[1].structs[0] = callData1;
@@ -79,8 +77,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         approveParams.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         approveParams.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222222))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222222))
         });
         approveParams.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(2000)) });
@@ -107,8 +104,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         call2.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         call2.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x3333333333333333333333333333333333333333))
+            isDynamic: false, data: abi.encode(address(0x3333333333333333333333333333333333333333))
         });
         call2.chunks[1].structs = new TypedEncoder.Struct[](1);
         call2.chunks[1].structs[0] = callData2;
@@ -141,8 +137,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         call3.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         call3.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x4444444444444444444444444444444444444444))
+            isDynamic: false, data: abi.encode(address(0x4444444444444444444444444444444444444444))
         });
         call3.chunks[1].structs = new TypedEncoder.Struct[](1);
         call3.chunks[1].structs[0] = callData3;
@@ -249,8 +244,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         innerParams1.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         innerParams1.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111000))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111000))
         });
         innerParams1.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1000)) });
@@ -274,8 +268,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         innerParams2.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         innerParams2.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222000))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222000))
         });
         innerParams2.chunks[0].primitives[1] =
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(2000)) });
@@ -319,8 +312,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         outerCall1.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         outerCall1.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1111111111111111111111111111111111111111))
+            isDynamic: false, data: abi.encode(address(0x1111111111111111111111111111111111111111))
         });
         outerCall1.chunks[1].structs = new TypedEncoder.Struct[](1);
         outerCall1.chunks[1].structs[0] = innerCallWithSig1;
@@ -332,8 +324,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         outerCall2.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         outerCall2.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x2222222222222222222222222222222222222222))
+            isDynamic: false, data: abi.encode(address(0x2222222222222222222222222222222222222222))
         });
         outerCall2.chunks[1].structs = new TypedEncoder.Struct[](1);
         outerCall2.chunks[1].structs[0] = innerCallWithSig2;
@@ -345,8 +336,7 @@ contract TypedEncoderPolymorphicTest is Test {
         });
         outerCall3.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         outerCall3.chunks[0].primitives[0] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x3333333333333333333333333333333333333333))
+            isDynamic: false, data: abi.encode(address(0x3333333333333333333333333333333333333333))
         });
         outerCall3.chunks[1].structs = new TypedEncoder.Struct[](1);
         outerCall3.chunks[1].structs[0] = innerCallWithSig3;
