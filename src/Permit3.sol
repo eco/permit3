@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import { IPermit3 } from "./interfaces/IPermit3.sol";
+
+import { TreeNodeLib } from "./lib/TreeNodeLib.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import { MultiTokenPermit } from "./MultiTokenPermit.sol";
@@ -29,21 +31,206 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
     );
 
     /**
-     * @dev EIP-712 typehash for the primary permit signature
-     * Binds owner, deadline, and permit data hash for signature verification
+     * @dev EIP-712 typehash for single-chain permit signature
+     * Binds owner, deadline, and chain permits for signature verification
      */
-    bytes32 public constant SIGNED_PERMIT3_TYPEHASH =
-        keccak256("Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot)");
+    bytes32 public constant PERMIT3_TYPEHASH = keccak256(
+        "Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,ChainPermits chainPermits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)"
+    );
+
+    /**
+     * @dev EIP-712 typehash for PermitNode structure signature
+     * Binds owner, deadline, and permit node tree structure for UI transparency
+     */
+    bytes32 public constant MULTICHAIN_PERMIT3_TYPEHASH = keccak256(
+        "Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,PermitNode permitTree)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)PermitNode(PermitNode[] nodes,ChainPermits[] permits)"
+    );
+
+    /**
+     * @dev EIP-712 typehash for PermitNode structure hashing
+     * Includes all nested type definitions in alphabetical order
+     */
+    bytes32 internal constant PERMIT_NODE_TYPEHASH = keccak256(
+        "PermitNode(PermitNode[] nodes,ChainPermits[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)"
+    );
 
     // Constants for witness type hash strings
     string public constant PERMIT_WITNESS_TYPEHASH_STUB =
         "PermitWitness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot,";
+
+    // Helper struct to avoid stack-too-deep errors
+    struct WitnessParams {
+        address owner;
+        bytes32 salt;
+        uint48 deadline;
+        uint48 timestamp;
+        bytes32 witness;
+        bytes32 currentChainHash;
+        bytes32 merkleRoot;
+        bytes32 permitNodeHash;
+        bytes32 typeHash;
+        bytes32 signedHash;
+    }
+
+    // Context struct for tree witness permit processing
+    struct TreeWitnessContext {
+        bytes32 currentChainHash;
+        bytes32 permitNodeHash;
+        bytes32 signedHash;
+    }
 
     /**
      * @dev Sets up EIP-712 domain separator with protocol identifiers
      * @notice Establishes the contract's domain for typed data signing
      */
     constructor() NonceManager("Permit3", "1") { }
+
+    /**
+     * @notice Direct permit execution for ERC-7702 integration
+     * @dev No signature verification - caller must be the token owner
+     * @param permits Array of permit operations to execute on current chain
+     */
+    function permit(
+        AllowanceOrTransfer[] memory permits
+    ) external {
+        if (permits.length == 0) {
+            revert EmptyArray();
+        }
+
+        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+        _processChainPermits(msg.sender, uint48(block.timestamp), chainPermits);
+    }
+
+    /**
+     * @notice Process token approvals for a single chain
+     * @dev Core permit processing function for single-chain operations
+     * @param sig Permit signature data (owner, salt, deadline, timestamp, signature)
+     * @param permits Array of permit operations to execute
+     */
+    function permit(
+        AllowanceOrTransfer[] calldata permits,
+        Signature calldata sig
+    ) external {
+        if (block.timestamp > sig.deadline) {
+            revert SignatureExpired(sig.deadline, uint48(block.timestamp));
+        }
+
+        if (permits.length == 0) {
+            revert EmptyArray();
+        }
+
+        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+        bytes32 signedHash = keccak256(
+            abi.encode(
+                PERMIT3_TYPEHASH, sig.owner, sig.salt, sig.deadline, sig.timestamp, hashChainPermits(chainPermits)
+            )
+        );
+
+        _useNonce(sig.owner, sig.salt);
+        _verifySignature(sig.owner, signedHash, sig.signature);
+        _processChainPermits(sig.owner, sig.timestamp, chainPermits);
+    }
+
+    /**
+     * @notice Process permit for multi-chain token approvals using tree structure encoding
+     * @dev Reconstructs PermitNode hash from compact encoding for signature verification
+     * @param sig Permit signature data (owner, salt, deadline, timestamp, signature)
+     * @param tree Tree permit data containing proofStructure, currentChainPermits, and proof
+     */
+    function permit(
+        PermitTree calldata tree,
+        Signature calldata sig
+    ) external {
+        if (block.timestamp > sig.deadline) {
+            revert SignatureExpired(sig.deadline, uint48(block.timestamp));
+        }
+        if (tree.currentChainPermits.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), tree.currentChainPermits.chainId);
+        }
+
+        // Hash current chain's permits
+        bytes32 currentChainHash = hashChainPermits(tree.currentChainPermits);
+
+        // Reconstruct the PermitNode hash from the proof and tree structure
+        bytes32 permitNodeHash =
+            TreeNodeLib.computeTreeHash(PERMIT_NODE_TYPEHASH, tree.proofStructure, tree.proof, currentChainHash);
+
+        // Verify signature with MULTICHAIN_PERMIT3_TYPEHASH
+        bytes32 signedHash = keccak256(
+            abi.encode(MULTICHAIN_PERMIT3_TYPEHASH, sig.owner, sig.salt, sig.deadline, sig.timestamp, permitNodeHash)
+        );
+
+        _useNonce(sig.owner, sig.salt);
+        _verifySignature(sig.owner, signedHash, sig.signature);
+        _processChainPermits(sig.owner, sig.timestamp, tree.currentChainPermits);
+    }
+
+    /**
+     * @notice Process token approvals with witness data for single chain operations
+     * @dev Handles permitWitnessTransferFrom operations with dynamic witness data
+     * @param sig Permit signature data (owner, salt, deadline, timestamp, signature)
+     * @param permits Array of permit operations to execute
+     * @param witness Witness data containing witness hash and type string
+     */
+    function permitWitness(
+        AllowanceOrTransfer[] calldata permits,
+        Witness calldata witness,
+        Signature calldata sig
+    ) external {
+        if (block.timestamp > sig.deadline) {
+            revert SignatureExpired(sig.deadline, uint48(block.timestamp));
+        }
+
+        if (permits.length == 0) {
+            revert EmptyArray();
+        }
+
+        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+        // Validate witness type string format
+        _validateWitnessTypeString(witness.witnessTypeString);
+
+        // Get hash of permits data
+        bytes32 permitDataHash = hashChainPermits(chainPermits);
+
+        // Compute witness-specific typehash and signed hash
+        bytes32 typeHash = _getWitnessTypeHash(witness.witnessTypeString);
+        bytes32 signedHash = keccak256(
+            abi.encode(typeHash, sig.owner, sig.salt, sig.deadline, sig.timestamp, permitDataHash, witness.witness)
+        );
+
+        _useNonce(sig.owner, sig.salt);
+        _verifySignature(sig.owner, signedHash, sig.signature);
+        _processChainPermits(sig.owner, sig.timestamp, chainPermits);
+    }
+
+    /**
+     * @notice Process permit with witness data for multi-chain operations using tree structure
+     * @dev Combines tree reconstruction with custom witness data in signature
+     * @param sig Permit signature data (owner, salt, deadline, timestamp, signature)
+     * @param tree Tree permit data containing proofStructure, permits, and proof
+     * @param witness Witness data containing witness hash and type string
+     */
+    function permitWitness(
+        PermitTree calldata tree,
+        Witness calldata witness,
+        Signature calldata sig
+    ) external {
+        if (block.timestamp > sig.deadline) {
+            revert SignatureExpired(sig.deadline, uint48(block.timestamp));
+        }
+        if (tree.currentChainPermits.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), tree.currentChainPermits.chainId);
+        }
+        _validateWitnessTypeString(witness.witnessTypeString);
+
+        TreeWitnessContext memory ctx = _processTreeWitnessHash(sig, tree, witness);
+
+        _useNonce(sig.owner, sig.salt);
+        _verifySignature(sig.owner, ctx.signedHash, sig.signature);
+        _processChainPermits(sig.owner, sig.timestamp, tree.currentChainPermits);
+    }
 
     /**
      * @dev Generate EIP-712 compatible hash for chain permits
@@ -70,248 +257,6 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
         return keccak256(
             abi.encode(CHAIN_PERMITS_TYPEHASH, chainPermits.chainId, keccak256(abi.encodePacked(permitHashes)))
         );
-    }
-
-    /**
-     * @notice Direct permit execution for ERC-7702 integration
-     * @dev No signature verification - caller must be the token owner
-     * @param permits Array of permit operations to execute on current chain
-     */
-    function permit(
-        AllowanceOrTransfer[] memory permits
-    ) external {
-        if (permits.length == 0) {
-            revert EmptyArray();
-        }
-
-        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
-        _processChainPermits(msg.sender, uint48(block.timestamp), chainPermits);
-    }
-
-    /**
-     * @notice Process token approvals for a single chain
-     * @dev Core permit processing function for single-chain operations
-     * @param owner The token owner authorizing the permits
-     * @param salt Unique value for replay protection and nonce management
-     * @param deadline Timestamp limiting signature validity for security
-     * @param timestamp Timestamp of the permit
-     * @param permits Array of permit operations to execute
-     * @param signature EIP-712 signature authorizing all permits in the batch
-     */
-    function permit(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
-        AllowanceOrTransfer[] calldata permits,
-        bytes calldata signature
-    ) external {
-        if (block.timestamp > deadline) {
-            revert SignatureExpired(deadline, uint48(block.timestamp));
-        }
-
-        if (permits.length == 0) {
-            revert EmptyArray();
-        }
-
-        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
-
-        bytes32 signedHash = keccak256(
-            abi.encode(SIGNED_PERMIT3_TYPEHASH, owner, salt, deadline, timestamp, hashChainPermits(chainPermits))
-        );
-
-        _useNonce(owner, salt);
-        _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, timestamp, chainPermits);
-    }
-
-    // Helper struct to avoid stack-too-deep errors
-    struct PermitParams {
-        address owner;
-        bytes32 salt;
-        uint48 deadline;
-        uint48 timestamp;
-        bytes32 currentChainHash;
-        bytes32 merkleRoot;
-    }
-
-    /**
-     * @notice Process token approvals across multiple chains using Merkle Tree verification
-     * @dev Verifies the current chain's permits are part of a larger cross-chain batch
-     * @param owner Token owner authorizing the operations
-     * @param salt Unique salt for replay protection and nonce management
-     * @param deadline Signature expiration timestamp for security
-     * @param timestamp Block timestamp when the permit was created
-     * @param permits Chain-specific permit operations to execute on current chain
-     * @param proof Merkle proof array proving permits belong to the signed batch
-     * @param signature EIP-712 signature covering the entire cross-chain batch via merkle root
-     */
-    function permit(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
-        ChainPermits calldata permits,
-        bytes32[] calldata proof,
-        bytes calldata signature
-    ) external {
-        if (block.timestamp > deadline) {
-            revert SignatureExpired(deadline, uint48(block.timestamp));
-        }
-        if (permits.chainId != uint64(block.chainid)) {
-            revert WrongChainId(uint64(block.chainid), permits.chainId);
-        }
-
-        // Use a struct to avoid stack-too-deep errors
-        PermitParams memory params;
-        params.owner = owner;
-        params.salt = salt;
-        params.deadline = deadline;
-        params.timestamp = timestamp;
-
-        // Hash current chain's permits
-        params.currentChainHash = hashChainPermits(permits);
-
-        // Calculate the merkle root from the proof components
-        // processProof performs validation internally and provides granular error messages
-        params.merkleRoot = MerkleProof.processProof(proof, params.currentChainHash);
-
-        // Verify signature with merkle root
-        bytes32 signedHash = keccak256(
-            abi.encode(
-                SIGNED_PERMIT3_TYPEHASH, params.owner, params.salt, params.deadline, params.timestamp, params.merkleRoot
-            )
-        );
-
-        _useNonce(owner, salt);
-        _verifySignature(params.owner, signedHash, signature);
-        _processChainPermits(params.owner, params.timestamp, permits);
-    }
-
-    /**
-     * @notice Process token approvals with witness data for single chain operations
-     * @dev Handles permitWitnessTransferFrom operations with dynamic witness data
-     * @param owner The token owner authorizing the permits
-     * @param salt Unique salt for replay protection
-     * @param deadline Timestamp limiting signature validity for security
-     * @param timestamp Timestamp of the permit
-     * @param permits Array of permit operations to execute
-     * @param witness Additional data to include in signature verification
-     * @param witnessTypeString EIP-712 type definition for witness data
-     * @param signature EIP-712 signature authorizing all permits with witness
-     */
-    function permitWitness(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
-        AllowanceOrTransfer[] calldata permits,
-        bytes32 witness,
-        string calldata witnessTypeString,
-        bytes calldata signature
-    ) external {
-        if (block.timestamp > deadline) {
-            revert SignatureExpired(deadline, uint48(block.timestamp));
-        }
-
-        if (permits.length == 0) {
-            revert EmptyArray();
-        }
-
-        ChainPermits memory chainPermits = ChainPermits({ chainId: uint64(block.chainid), permits: permits });
-
-        // Validate witness type string format
-        _validateWitnessTypeString(witnessTypeString);
-
-        // Get hash of permits data
-        bytes32 permitDataHash = hashChainPermits(chainPermits);
-
-        // Compute witness-specific typehash and signed hash
-        bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
-        bytes32 signedHash = keccak256(abi.encode(typeHash, owner, salt, deadline, timestamp, permitDataHash, witness));
-
-        _useNonce(owner, salt);
-        _verifySignature(owner, signedHash, signature);
-        _processChainPermits(owner, timestamp, chainPermits);
-    }
-
-    // Helper struct to avoid stack-too-deep errors
-    struct WitnessParams {
-        address owner;
-        bytes32 salt;
-        uint48 deadline;
-        uint48 timestamp;
-        bytes32 witness;
-        bytes32 currentChainHash;
-        bytes32 merkleRoot;
-    }
-
-    /**
-     * @notice Process permit with additional witness data for cross-chain operations
-     * @dev Combines cross-chain merkle verification with custom witness data in signature
-     * @param owner Token owner address authorizing the operations
-     * @param salt Unique salt for replay protection and nonce management
-     * @param deadline Signature expiration timestamp for security
-     * @param timestamp Block timestamp when the permit was created
-     * @param permits Chain-specific permit operations to execute on current chain
-     * @param proof Merkle proof array proving permits belong to the signed batch
-     * @param witness Additional 32-byte data to include in signature verification
-     * @param witnessTypeString EIP-712 type definition string for the witness data structure
-     * @param signature EIP-712 signature authorizing the batch including witness data
-     */
-    function permitWitness(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
-        ChainPermits calldata permits,
-        bytes32[] calldata proof,
-        bytes32 witness,
-        string calldata witnessTypeString,
-        bytes calldata signature
-    ) external {
-        if (block.timestamp > deadline) {
-            revert SignatureExpired(deadline, uint48(block.timestamp));
-        }
-        if (permits.chainId != uint64(block.chainid)) {
-            revert WrongChainId(uint64(block.chainid), permits.chainId);
-        }
-
-        // Validate witness type string format
-        _validateWitnessTypeString(witnessTypeString);
-
-        // Use a struct to avoid stack-too-deep errors
-        WitnessParams memory params;
-        params.owner = owner;
-        params.salt = salt;
-        params.deadline = deadline;
-        params.timestamp = timestamp;
-        params.witness = witness;
-
-        // Hash current chain's permits
-        params.currentChainHash = hashChainPermits(permits);
-
-        // Calculate the merkle root
-        // processProof performs validation internally and provides granular error messages
-        params.merkleRoot = MerkleProof.processProof(proof, params.currentChainHash);
-
-        // Compute witness-specific typehash and signed hash
-        bytes32 typeHash = _getWitnessTypeHash(witnessTypeString);
-        bytes32 signedHash = keccak256(
-            abi.encode(
-                typeHash,
-                params.owner,
-                params.salt,
-                params.deadline,
-                params.timestamp,
-                params.merkleRoot,
-                params.witness
-            )
-        );
-
-        _useNonce(owner, salt);
-        _verifySignature(params.owner, signedHash, signature);
-        _processChainPermits(params.owner, params.timestamp, permits);
     }
 
     /**
@@ -347,6 +292,70 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
                 _processAllowanceOperation(owner, timestamp, p);
             }
         }
+    }
+
+    /**
+     * @dev Validates that a witness type string is properly formatted for EIP-712 compliance
+     * @dev Internal function used by both permitWitness variants
+     * @param witnessTypeString The EIP-712 type string to validate (e.g., "CustomData(uint256 value)")
+     * @notice This function ensures proper EIP-712 formatting by checking:
+     *         - The string is not empty (length > 0)
+     *         - The string ends with a closing parenthesis ')' for valid type definition
+     * @notice Reverts with InvalidWitnessTypeString() if any validation fails
+     */
+    function _validateWitnessTypeString(
+        string calldata witnessTypeString
+    ) internal pure {
+        // Validate minimum length
+        if (bytes(witnessTypeString).length == 0) {
+            revert InvalidWitnessTypeString(witnessTypeString);
+        }
+
+        // Validate proper ending with closing parenthesis
+        uint256 witnessTypeStringLength = bytes(witnessTypeString).length;
+        if (bytes(witnessTypeString)[witnessTypeStringLength - 1] != ")") {
+            revert InvalidWitnessTypeString(witnessTypeString);
+        }
+    }
+
+    /**
+     * @dev Constructs a complete witness type hash from type string and stub for EIP-712
+     * @dev Internal function that builds the full EIP-712 type string before hashing
+     * @param witnessTypeString The EIP-712 witness type string suffix to append (e.g., "CustomData(uint256 value)")
+     * @return typeHash The keccak256 hash of the complete EIP-712 type string
+     * @notice Combines PERMIT_WITNESS_TYPEHASH_STUB with witnessTypeString to create the full type definition
+     * @notice Example: stub + "CustomData(uint256 value)" becomes complete EIP-712 type string
+     */
+    function _getWitnessTypeHash(
+        string calldata witnessTypeString
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(PERMIT_WITNESS_TYPEHASH_STUB, witnessTypeString));
+    }
+
+    /**
+     * @dev Internal helper to compute tree witness hash context
+     * @return ctx TreeWitnessContext containing currentChainHash, permitNodeHash, and signedHash
+     */
+    function _processTreeWitnessHash(
+        IPermit3.Signature calldata sig,
+        IPermit3.PermitTree calldata tree,
+        IPermit3.Witness calldata witness
+    ) internal view returns (TreeWitnessContext memory ctx) {
+        ctx.currentChainHash = hashChainPermits(tree.currentChainPermits);
+        ctx.permitNodeHash =
+            TreeNodeLib.computeTreeHash(PERMIT_NODE_TYPEHASH, tree.proofStructure, tree.proof, ctx.currentChainHash);
+
+        ctx.signedHash = keccak256(
+            abi.encode(
+                _getWitnessTypeHash(witness.witnessTypeString),
+                sig.owner,
+                sig.salt,
+                sig.deadline,
+                sig.timestamp,
+                ctx.permitNodeHash,
+                witness.witness
+            )
+        );
     }
 
     /**
@@ -503,43 +512,5 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
         } else if (timestamp == allowed.timestamp && p.modeOrExpiration > allowed.expiration) {
             allowed.expiration = p.modeOrExpiration;
         }
-    }
-
-    /**
-     * @dev Validates that a witness type string is properly formatted for EIP-712 compliance
-     * @dev Internal function used by both permitWitness variants
-     * @param witnessTypeString The EIP-712 type string to validate (e.g., "CustomData(uint256 value)")
-     * @notice This function ensures proper EIP-712 formatting by checking:
-     *         - The string is not empty (length > 0)
-     *         - The string ends with a closing parenthesis ')' for valid type definition
-     * @notice Reverts with InvalidWitnessTypeString() if any validation fails
-     */
-    function _validateWitnessTypeString(
-        string calldata witnessTypeString
-    ) internal pure {
-        // Validate minimum length
-        if (bytes(witnessTypeString).length == 0) {
-            revert InvalidWitnessTypeString(witnessTypeString);
-        }
-
-        // Validate proper ending with closing parenthesis
-        uint256 witnessTypeStringLength = bytes(witnessTypeString).length;
-        if (bytes(witnessTypeString)[witnessTypeStringLength - 1] != ")") {
-            revert InvalidWitnessTypeString(witnessTypeString);
-        }
-    }
-
-    /**
-     * @dev Constructs a complete witness type hash from type string and stub for EIP-712
-     * @dev Internal function that builds the full EIP-712 type string before hashing
-     * @param witnessTypeString The EIP-712 witness type string suffix to append (e.g., "CustomData(uint256 value)")
-     * @return typeHash The keccak256 hash of the complete EIP-712 type string
-     * @notice Combines PERMIT_WITNESS_TYPEHASH_STUB with witnessTypeString to create the full type definition
-     * @notice Example: stub + "CustomData(uint256 value)" becomes complete EIP-712 type string
-     */
-    function _getWitnessTypeHash(
-        string calldata witnessTypeString
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(PERMIT_WITNESS_TYPEHASH_STUB, witnessTypeString));
     }
 }

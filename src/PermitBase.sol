@@ -48,38 +48,6 @@ contract PermitBase is IPermit {
     }
 
     /**
-     * @notice Internal function to validate approval parameters and check for locked allowances
-     * @param owner Token owner address
-     * @param tokenKey Token identifier key
-     * @param token Token contract address
-     * @param spender Spender address
-     * @param expiration Expiration timestamp
-     */
-    function _validateApproval(
-        address owner,
-        bytes32 tokenKey,
-        address token,
-        address spender,
-        uint48 expiration
-    ) internal view {
-        // Check if allowance is locked
-        if (allowances[owner][tokenKey][spender].expiration == LOCKED_ALLOWANCE) {
-            revert AllowanceLocked(owner, tokenKey, spender);
-        }
-
-        // Validate parameters
-        if (token == address(0)) {
-            revert ZeroToken();
-        }
-        if (spender == address(0)) {
-            revert ZeroSpender();
-        }
-        if (expiration != 0 && expiration <= block.timestamp) {
-            revert InvalidExpiration(expiration);
-        }
-    }
-
-    /**
      * @notice Direct allowance approval without signature
      * @dev Alternative to permit() for simple approvals
      * @param token ERC20 token address
@@ -171,6 +139,38 @@ contract PermitBase is IPermit {
                 Allowance({ amount: 0, expiration: LOCKED_ALLOWANCE, timestamp: uint48(block.timestamp) });
 
             emit Lockdown(msg.sender, token, spender);
+        }
+    }
+
+    /**
+     * @notice Internal function to validate approval parameters and check for locked allowances
+     * @param owner Token owner address
+     * @param tokenKey Token identifier key
+     * @param token Token contract address
+     * @param spender Spender address
+     * @param expiration Expiration timestamp
+     */
+    function _validateApproval(
+        address owner,
+        bytes32 tokenKey,
+        address token,
+        address spender,
+        uint48 expiration
+    ) internal view {
+        // Check if allowance is locked
+        if (allowances[owner][tokenKey][spender].expiration == LOCKED_ALLOWANCE) {
+            revert AllowanceLocked(owner, tokenKey, spender);
+        }
+
+        // Validate parameters
+        if (token == address(0)) {
+            revert ZeroToken();
+        }
+        if (spender == address(0)) {
+            revert ZeroSpender();
+        }
+        if (expiration != 0 && expiration <= block.timestamp) {
+            revert InvalidExpiration(expiration);
         }
     }
 

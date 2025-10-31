@@ -55,6 +55,27 @@ contract ERC7579ApproverModule is IERC7579Module {
     }
 
     /**
+     * @notice Get the type of the module
+     * @return moduleTypeId The module type identifier
+     */
+    function isModuleType(
+        uint256 moduleTypeId
+    ) external pure override returns (bool) {
+        return moduleTypeId == MODULE_TYPE;
+    }
+
+    /**
+     * @notice Check if a specific module type is supported
+     * @param interfaceId The interface identifier to check
+     * @return True if the interface is supported
+     */
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return interfaceId == type(IERC7579Module).interfaceId;
+    }
+
+    /**
      * @notice Initialize the module for an account
      * @dev No initialization data needed for this module
      * @param data Initialization data (unused)
@@ -74,16 +95,6 @@ contract ERC7579ApproverModule is IERC7579Module {
         bytes calldata data
     ) external override {
         // No cleanup needed
-    }
-
-    /**
-     * @notice Get the type of the module
-     * @return moduleTypeId The module type identifier
-     */
-    function isModuleType(
-        uint256 moduleTypeId
-    ) external pure override returns (bool) {
-        return moduleTypeId == MODULE_TYPE;
     }
 
     /**
@@ -157,16 +168,5 @@ contract ERC7579ApproverModule is IERC7579Module {
 
         // Call executeFromExecutor on the smart account
         IERC7579Execution(account).executeFromExecutor(Mode.unwrap(mode), executionCalldata);
-    }
-
-    /**
-     * @notice Check if a specific module type is supported
-     * @param interfaceId The interface identifier to check
-     * @return True if the interface is supported
-     */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external pure returns (bool) {
-        return interfaceId == type(IERC7579Module).interfaceId;
     }
 }

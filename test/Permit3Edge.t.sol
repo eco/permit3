@@ -110,7 +110,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
         bytes32 digest = _getDigest(signedHash);
@@ -120,7 +120,14 @@ contract Permit3EdgeTest is Test {
         // Execute permit with empty array - should revert with EmptyArray error
         vm.expectRevert(IPermit.EmptyArray.selector);
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
     }
 
@@ -153,14 +160,15 @@ contract Permit3EdgeTest is Test {
             abi.encodeWithSelector(INonceManager.InvalidWitnessTypeString.selector, params.witnessTypeString)
         );
         permit3.permitWitness(
-            owner,
-            params.salt,
-            params.deadline,
-            params.timestamp,
             inputs.chainPermits.permits,
-            params.witness,
-            params.witnessTypeString,
-            params.signature
+            IPermit3.Witness({ witness: params.witness, witnessTypeString: params.witnessTypeString }),
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
     }
 
@@ -222,135 +230,19 @@ contract Permit3EdgeTest is Test {
 
         // Execute unbalanced witness permit
         permit3.permitWitness(
-            owner,
-            params.salt,
-            params.deadline,
-            params.timestamp,
-            vars.chainPermits,
-            vars.permitProof,
-            params.witness,
-            params.witnessTypeString,
-            params.signature
-        );
-
-        // Verify the transfer happened
-        assertEq(token.balanceOf(recipient), AMOUNT);
-    }
-
-    function test_verifyUnbalancedProofInvalid() public {
-        // Test the _verifyUnbalancedProof function with invalid input
-        TestParams memory params;
-        params.salt = bytes32(uint256(0xabc));
-        params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp);
-
-        // Create basic transfer
-        PermitInputs memory inputs;
-        inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
-        inputs.permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: 0,
-            tokenKey: bytes32(uint256(uint160(address(token)))),
-            account: recipient,
-            amountDelta: AMOUNT
-        });
-
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
-
-        // Create invalid unbalanced proof with insufficient nodes for a valid tree
-        bytes32[] memory nodes = new bytes32[](0); // Empty proof is invalid for multi-chain permits
-
-        // Create a simple signature (won't reach validation)
-        params.signature = abi.encodePacked(bytes32(0), bytes32(0), uint8(0));
-
-        // Should revert when merkle proof verification fails
-        vm.expectRevert();
-        permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits, nodes, params.signature
-        );
-    }
-
-    // Additional struct to avoid stack-too-deep in test_zeroSubtreeProofCount
-    struct ZeroSubtreeProofVars {
-        bytes32 preHash;
-        bytes32[] subtreeProof;
-        bytes32[] followingHashes;
-        bytes32[] proof;
-        IPermit3.ChainPermits chainPermits;
-        bytes32[] permitProof;
-        bytes32 currentChainHash;
-        bytes32 merkleRoot;
-        bytes32 signedHash;
-        bytes32 digest;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-
-    function test_zeroSubtreeProofCount() public {
-        // Test with zero subtree proof count to exercise specific code paths
-        TestParams memory params;
-        params.salt = bytes32(uint256(0xdef));
-        params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp);
-
-        // Create basic transfer
-        PermitInputs memory inputs;
-        inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
-        inputs.permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: 0,
-            tokenKey: bytes32(uint256(uint160(address(token)))),
-            account: recipient,
-            amountDelta: AMOUNT
-        });
-
-        inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
-
-        // Move complex variable declarations to a struct to avoid stack-too-deep
-        ZeroSubtreeProofVars memory vars;
-
-        // Create valid unbalanced proof with zero subtree proof count but with preHash
-        vars.preHash = bytes32(uint256(42));
-        vars.subtreeProof = new bytes32[](0);
-        vars.followingHashes = new bytes32[](1);
-        vars.followingHashes[0] = bytes32(uint256(100));
-
-        // Create the nodes array manually
-        bytes32[] memory nodes = new bytes32[](2); // 1 for preHash, 1 for following hash
-        nodes[0] = vars.preHash;
-        nodes[1] = vars.followingHashes[0];
-
-        // Create the proof with explicit hasPreHash flag
-        vars.proof = nodes;
-
-        vars.chainPermits = inputs.chainPermits;
-        vars.permitProof = vars.proof;
-
-        // Calculate the unbalanced root
-        vars.currentChainHash = permit3Tester.hashChainPermits(inputs.chainPermits);
-        vars.merkleRoot = permit3Tester.calculateUnbalancedRoot(vars.currentChainHash, vars.proof);
-
-        // Create signature
-        vars.signedHash = keccak256(
-            abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
-                owner,
-                params.salt,
-                params.deadline,
-                params.timestamp,
-                vars.merkleRoot
-            )
-        );
-
-        vars.digest = _getDigest(vars.signedHash);
-        (vars.v, vars.r, vars.s) = vm.sign(ownerPrivateKey, vars.digest);
-        params.signature = abi.encodePacked(vars.r, vars.s, vars.v);
-
-        // Reset recipient balance
-        deal(address(token), recipient, 0);
-
-        // Execute unbalanced permit
-        permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, vars.chainPermits, vars.permitProof, params.signature
+            IPermit3.PermitTree({
+                proofStructure: bytes32(0), // Empty tree structure for single leaf
+                currentChainPermits: vars.chainPermits,
+                proof: vars.permitProof
+            }),
+            IPermit3.Witness({ witness: params.witness, witnessTypeString: params.witnessTypeString }),
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify the transfer happened
@@ -387,7 +279,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -397,7 +289,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the permit
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance - amount should stay the same, only expiration should update
@@ -432,7 +331,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -442,7 +341,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the permit
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance - amount should remain at MAX_ALLOWANCE
@@ -522,7 +428,7 @@ contract Permit3EdgeTest is Test {
         vars.olderDataHash = permit3Tester.hashChainPermits(olderInputs.chainPermits);
         vars.olderSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 olderParams.salt,
                 olderParams.deadline,
@@ -538,7 +444,7 @@ contract Permit3EdgeTest is Test {
         vars.newerDataHash = permit3Tester.hashChainPermits(newerInputs.chainPermits);
         vars.newerSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 newerParams.salt,
                 newerParams.deadline,
@@ -553,12 +459,14 @@ contract Permit3EdgeTest is Test {
 
         // First apply the newer permit
         permit3.permit(
-            owner,
-            newerParams.salt,
-            newerParams.deadline,
-            newerParams.timestamp,
             newerInputs.chainPermits.permits,
-            newerParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: newerParams.salt,
+                deadline: newerParams.deadline,
+                timestamp: newerParams.timestamp,
+                signature: newerParams.signature
+            })
         );
 
         // Check allowance - should be set by newer permit
@@ -569,12 +477,14 @@ contract Permit3EdgeTest is Test {
 
         // Now apply the older permit
         permit3.permit(
-            owner,
-            olderParams.salt,
-            olderParams.deadline,
-            olderParams.timestamp,
             olderInputs.chainPermits.permits,
-            olderParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: olderParams.salt,
+                deadline: olderParams.deadline,
+                timestamp: olderParams.timestamp,
+                signature: olderParams.signature
+            })
         );
 
         // Check allowance again - older permit should only update amount, not expiration or timestamp
@@ -637,7 +547,7 @@ contract Permit3EdgeTest is Test {
         bytes32 lockDataHash = permit3Tester.hashChainPermits(lockInputs.chainPermits);
         bytes32 lockSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 lockParams.salt,
                 lockParams.deadline,
@@ -652,12 +562,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the lock permit
         permit3.permit(
-            owner,
-            lockParams.salt,
-            lockParams.deadline,
-            lockParams.timestamp,
             lockInputs.chainPermits.permits,
-            lockParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: lockParams.salt,
+                deadline: lockParams.deadline,
+                timestamp: lockParams.timestamp,
+                signature: lockParams.signature
+            })
         );
 
         // Check allowance is now locked
@@ -687,7 +599,7 @@ contract Permit3EdgeTest is Test {
         bytes32 decreaseDataHash = permit3Tester.hashChainPermits(decreaseInputs.chainPermits);
         bytes32 decreaseSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 decreaseParams.salt,
                 decreaseParams.deadline,
@@ -703,12 +615,14 @@ contract Permit3EdgeTest is Test {
         // Should revert due to locked allowance
         vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, address(token), spender));
         permit3.permit(
-            owner,
-            decreaseParams.salt,
-            decreaseParams.deadline,
-            decreaseParams.timestamp,
             decreaseInputs.chainPermits.permits,
-            decreaseParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: decreaseParams.salt,
+                deadline: decreaseParams.deadline,
+                timestamp: decreaseParams.timestamp,
+                signature: decreaseParams.signature
+            })
         );
     }
 
@@ -738,7 +652,7 @@ contract Permit3EdgeTest is Test {
         bytes32 lockDataHash = permit3Tester.hashChainPermits(lockInputs.chainPermits);
         bytes32 lockSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 lockParams.salt,
                 lockParams.deadline,
@@ -753,12 +667,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the lock permit
         permit3.permit(
-            owner,
-            lockParams.salt,
-            lockParams.deadline,
-            lockParams.timestamp,
             lockInputs.chainPermits.permits,
-            lockParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: lockParams.salt,
+                deadline: lockParams.deadline,
+                timestamp: lockParams.timestamp,
+                signature: lockParams.signature
+            })
         );
 
         // Check allowance is now locked
@@ -789,7 +705,7 @@ contract Permit3EdgeTest is Test {
         bytes32 unlockDataHash = permit3Tester.hashChainPermits(unlockInputs.chainPermits);
         bytes32 unlockSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 unlockParams.salt,
                 unlockParams.deadline,
@@ -804,12 +720,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the unlock permit
         permit3.permit(
-            owner,
-            unlockParams.salt,
-            unlockParams.deadline,
-            unlockParams.timestamp,
             unlockInputs.chainPermits.permits,
-            unlockParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: unlockParams.salt,
+                deadline: unlockParams.deadline,
+                timestamp: unlockParams.timestamp,
+                signature: unlockParams.signature
+            })
         );
 
         // Check allowance is now unlocked
@@ -846,7 +764,7 @@ contract Permit3EdgeTest is Test {
         bytes32 lockDataHash = permit3Tester.hashChainPermits(lockInputs.chainPermits);
         bytes32 lockSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 lockParams.salt,
                 lockParams.deadline,
@@ -861,12 +779,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the lock permit
         permit3.permit(
-            owner,
-            lockParams.salt,
-            lockParams.deadline,
-            lockParams.timestamp,
             lockInputs.chainPermits.permits,
-            lockParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: lockParams.salt,
+                deadline: lockParams.deadline,
+                timestamp: lockParams.timestamp,
+                signature: lockParams.signature
+            })
         );
 
         // Now create a permit to unlock with an older timestamp - this should fail
@@ -891,7 +811,7 @@ contract Permit3EdgeTest is Test {
         bytes32 unlockDataHash = permit3Tester.hashChainPermits(unlockInputs.chainPermits);
         bytes32 unlockSignedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                permit3.PERMIT3_TYPEHASH(),
                 owner,
                 unlockParams.salt,
                 unlockParams.deadline,
@@ -907,12 +827,14 @@ contract Permit3EdgeTest is Test {
         // Should revert due to older timestamp
         vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, address(token), spender));
         permit3.permit(
-            owner,
-            unlockParams.salt,
-            unlockParams.deadline,
-            unlockParams.timestamp,
             unlockInputs.chainPermits.permits,
-            unlockParams.signature
+            IPermit3.Signature({
+                owner: owner,
+                salt: unlockParams.salt,
+                deadline: unlockParams.deadline,
+                timestamp: unlockParams.timestamp,
+                signature: unlockParams.signature
+            })
         );
     }
 
@@ -952,7 +874,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -962,7 +884,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the permit
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance was reduced to 0
@@ -996,7 +925,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1006,7 +935,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the permit
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance was reduced to 0
@@ -1043,7 +979,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1053,7 +989,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the permit
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance is set to MAX_ALLOWANCE
@@ -1087,7 +1030,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1097,7 +1040,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the permit
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance was reduced correctly
@@ -1170,7 +1120,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1183,7 +1133,14 @@ contract Permit3EdgeTest is Test {
 
         // Execute the permit
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify the operations:
@@ -1217,7 +1174,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1230,7 +1187,14 @@ contract Permit3EdgeTest is Test {
             abi.encodeWithSelector(INonceManager.SignatureExpired.selector, params.deadline, uint48(block.timestamp))
         );
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
     }
 
@@ -1259,7 +1223,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1268,7 +1232,14 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance is now zero
@@ -1310,7 +1281,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1319,7 +1290,14 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance is unlocked but amount remains unchanged
@@ -1353,7 +1331,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1362,7 +1340,14 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify allowance amount remains the same
@@ -1399,7 +1384,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1412,7 +1397,14 @@ contract Permit3EdgeTest is Test {
             abi.encodeWithSelector(IPermit.InvalidTimestamp.selector, params.timestamp, uint48(block.timestamp))
         );
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
     }
 
@@ -1452,7 +1444,7 @@ contract Permit3EdgeTest is Test {
         bytes32 permitDataHash = permit3Tester.hashChainPermits(inputs.chainPermits);
         bytes32 signedHash = keccak256(
             abi.encode(
-                permit3.SIGNED_PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
+                permit3.PERMIT3_TYPEHASH(), owner, params.salt, params.deadline, params.timestamp, permitDataHash
             )
         );
 
@@ -1461,7 +1453,14 @@ contract Permit3EdgeTest is Test {
         params.signature = abi.encodePacked(r, s, v);
 
         permit3.permit(
-            owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
+            inputs.chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner,
+                salt: params.salt,
+                deadline: params.deadline,
+                timestamp: params.timestamp,
+                signature: params.signature
+            })
         );
 
         // Verify the maximum expiration is enforced
