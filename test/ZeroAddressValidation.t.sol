@@ -39,8 +39,16 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
+        IPermit3.Signature memory sig = IPermit3.Signature({
+            owner: address(0),
+            salt: bytes32(0),
+            deadline: uint48(block.timestamp + 1),
+            timestamp: uint48(block.timestamp),
+            signature: ""
+        });
+
         vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
-        permit3.permit(address(0), bytes32(0), uint48(block.timestamp + 1), uint48(block.timestamp), permits, "");
+        permit3.permit(permits, sig);
     }
 
     function test_permitWitness_RejectsZeroOwner() public {
@@ -52,17 +60,21 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
+        IPermit3.Witness memory witness = IPermit3.Witness({
+            witness: bytes32(0),
+            witnessTypeString: "WitnessData witness)"
+        });
+
+        IPermit3.Signature memory sig = IPermit3.Signature({
+            owner: address(0),
+            salt: bytes32(0),
+            deadline: uint48(block.timestamp + 1),
+            timestamp: uint48(block.timestamp),
+            signature: ""
+        });
+
         vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
-        permit3.permitWitness(
-            address(0),
-            bytes32(0),
-            uint48(block.timestamp + 1),
-            uint48(block.timestamp),
-            permits,
-            bytes32(0),
-            "WitnessData witness)",
-            ""
-        );
+        permit3.permitWitness(permits, witness, sig);
     }
 
     function test_approve_RejectsZeroToken() public {
