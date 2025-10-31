@@ -8,7 +8,6 @@
 
 const { ethers } = require('ethers');
 const {
-    hashPermitNode,
     encodeProofStructure,
     buildOptimalPermitTree,
     validateProofStructure,
