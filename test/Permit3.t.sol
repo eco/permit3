@@ -26,7 +26,12 @@ contract Permit3Test is TestBase {
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
         // Execute permit
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
 
         // Verify transfer happened
         assertEq(token.balanceOf(recipient), AMOUNT);
@@ -47,7 +52,12 @@ contract Permit3Test is TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(INonceManager.SignatureExpired.selector, deadline, uint48(block.timestamp))
         );
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 
     function test_permitTransferFromInvalidSignature() public {
@@ -65,7 +75,12 @@ contract Permit3Test is TestBase {
         // When signature is invalid, the recovered signer will be different from owner
         // We can't predict the exact recovered address, so we use expectRevert without parameters
         vm.expectRevert();
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 
     function test_permitTransferFromReusedNonce() public {
@@ -77,11 +92,21 @@ contract Permit3Test is TestBase {
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
         // First permit should succeed
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
 
         // Second attempt with same nonce should fail
         vm.expectRevert(abi.encodeWithSelector(INonceManager.NonceAlreadyUsed.selector, owner, SALT));
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 
     function test_permitTransferFromWrongChainId() public {
@@ -110,7 +135,12 @@ contract Permit3Test is TestBase {
 
         // Should revert with InvalidSignature (signature was created for wrong chain ID)
         vm.expectRevert();
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 
     function test_permitAllowance() public {
@@ -131,7 +161,12 @@ contract Permit3Test is TestBase {
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
         // Execute permit
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
 
         // Verify allowance is set
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
@@ -173,7 +208,12 @@ contract Permit3Test is TestBase {
         bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
 
         // Execute permit
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
 
         // Verify allowance is set
         (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
@@ -190,95 +230,7 @@ contract Permit3Test is TestBase {
     // The witness test functionality is covered in Permit3Witness.t.sol
     // No need to duplicate it here
 
-    function test_unbalancedPermit() public {
-        // Test the unbalanced permit functionality
-
-        // Create a chain permit for the current chain
-        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
-
-        // Create a valid unbalanced proof (using preHash only, no subtreeProof - mutually exclusive)
-        bytes32[] memory nodes = new bytes32[](2);
-        nodes[0] = bytes32(uint256(0x1234)); // preHash
-        nodes[1] = bytes32(uint256(0x9abc)); // following hash
-
-        // Reset recipient balance
-        deal(address(token), recipient, 0);
-
-        uint48 deadline = uint48(block.timestamp + 1 hours);
-        uint48 timestamp = uint48(block.timestamp);
-
-        // Create signature
-        bytes memory signature = _signUnbalancedPermit(chainPermits, nodes, deadline, timestamp, SALT);
-
-        // Execute permit
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, nodes, signature);
-
-        // Verify transfer happened
-        assertEq(token.balanceOf(recipient), AMOUNT);
-
-        // Verify nonce is used
-        assertTrue(permit3.isNonceUsed(owner, SALT));
-    }
-
-    function test_invalidUnbalancedProof() public {
-        // Test the branch where unbalanced proof is invalid
-
-        // Create a chain permit for the current chain
-        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
-
-        // Create an invalid unbalanced proof with invalid structure
-        // Since we're testing the failure path, we'll make a fixed signature
-        // instead of using the _signUnbalancedPermit helper which is failing for invalid proofs
-
-        bytes32[] memory nodes = new bytes32[](1); // Just 1 node, invalid
-        nodes[0] = bytes32(uint256(0x1)); // preHash only
-
-        // Create invalid proof with insufficient nodes
-        uint48 deadline = uint48(block.timestamp + 1 hours);
-        uint48 timestamp = uint48(block.timestamp);
-
-        // Create a dummy signature
-        bytes memory signature = new bytes(65);
-
-        // Test that an invalid proof reverts
-        vm.expectRevert();
-        vm.prank(owner);
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, nodes, signature);
-    }
-
-    function test_permitUnbalancedProofErrors() public {
-        // Test errors in unbalanced permit processing
-
-        // Create a chain permit with wrong chain ID
-        IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({
-            chainId: 999, // Wrong chain ID
-            permits: new IPermit3.AllowanceOrTransfer[](0)
-        });
-
-        // Create a dummy proof
-        bytes32[] memory nodes = new bytes32[](1);
-        nodes[0] = bytes32(uint256(0x1));
-
-        uint48 deadline = uint48(block.timestamp + 1 hours);
-        uint48 timestamp = uint48(block.timestamp);
-
-        // Create a dummy signature
-        bytes memory signature = new bytes(65);
-
-        // Test that wrong chain ID reverts with WrongChainId error
-        vm.expectRevert(abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(block.chainid), 999));
-        vm.prank(owner);
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits, nodes, signature);
-
-        // Test that expired deadline reverts with SignatureExpired error
-        uint48 expiredDeadline = uint48(block.timestamp - 1);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(INonceManager.SignatureExpired.selector, expiredDeadline, uint48(block.timestamp))
-        );
-        vm.prank(owner);
-        permit3.permit(owner, SALT, expiredDeadline, timestamp, chainPermits, nodes, signature);
-    }
+    // Merkle-based permit tests removed - replaced with EIP-712 PermitNode structure
 
     // ============================================
     // Event Emission Tests for Signed Permits
@@ -306,7 +258,12 @@ contract Permit3Test is TestBase {
         emit IPermit.Permit(owner, address(token), spender, AMOUNT, EXPIRATION, timestamp);
 
         // Execute permit
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 
     function test_permit_emitsPermitMultiTokenEventForNFT() public {
@@ -319,7 +276,7 @@ contract Permit3Test is TestBase {
             tokenKey: tokenKey, // Hash for NFT+tokenId
             account: spender,
             amountDelta: 1 // NFT amount
-         });
+        });
 
         IPermit3.ChainPermits memory chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
@@ -333,7 +290,12 @@ contract Permit3Test is TestBase {
         emit IMultiTokenPermit.PermitMultiToken(owner, tokenKey, spender, 1, EXPIRATION, timestamp);
 
         // Execute permit
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 
     function test_permit_revertsInvalidTokenKeyForTransfer() public {
@@ -360,7 +322,12 @@ contract Permit3Test is TestBase {
 
         // Should revert with InvalidTokenKeyForTransfer
         vm.expectRevert(IPermit3.InvalidTokenKeyForTransfer.selector);
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 
     function test_permit_revertsZeroTokenKey() public {
@@ -382,6 +349,11 @@ contract Permit3Test is TestBase {
 
         // Should revert with ZeroToken
         vm.expectRevert(IPermit.ZeroToken.selector);
-        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+        permit3.permit(
+            chainPermits.permits,
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
+        );
     }
 }

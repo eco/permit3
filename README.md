@@ -232,6 +232,224 @@ const signature = signPermit3(owner, salt, deadline, timestamp, merkleRoot);
     - Use unique nonces
     - Monitor pending operations
 
+## Tree-Based Cross-Chain Permits
+
+Permit3 supports tree-based cross-chain permits that provide UI transparency through EIP-712 signatures. This allows users to see all chain permits they're signing while maintaining gas-efficient on-chain verification.
+
+### Overview
+
+When signing permits for multiple chains, users sign a complete `PermitNode` tree structure that shows:
+- All chains included in the permit
+- All token operations for each chain
+- The tree structure organizing the permits
+
+The on-chain contract receives:
+- A compact `bytes32 proofStructure` encoding (position + type flags)
+- A proof array (sibling hashes along the Merkle path)
+- The permits for the current chain
+
+### Key Concepts
+
+#### PermitNode Structure
+
+```solidity
+struct PermitNode {
+    PermitNode[] nodes;      // Child nodes (nested structures)
+    ChainPermits[] permits;  // Leaf nodes (actual chain permits)
+}
+```
+
+#### Three Combination Rules
+
+1. **Permit + Permit**: Two chain permit leaves are combined with alphabetical sorting
+2. **Node + Node**: Two nested structures are combined with alphabetical sorting
+3. **Node + Permit**: Mixed types use struct order (nodes first, no sorting)
+
+#### Tree Structure Encoding (bytes32)
+
+- **Byte 0**: Position index (reserved for future use)
+- **Bytes 1-31**: Type flags (one bit per proof element)
+  - 0 = Proof element is a Permit (ChainPermits leaf)
+  - 1 = Proof element is a Node (PermitNode)
+
+### JavaScript Usage Example
+
+```javascript
+const { buildOptimalPermitTree, encodeProofStructure, signPermitNodePermit } =
+    require('./utils/permitNodeHelpers');
+
+// Create permits for multiple chains
+const chainPermits = [
+    { chainId: 1, permits: [{ modeOrExpiration: 1000, tokenKey: '0x...', account: '0x...', amountDelta: 1000 }] },
+    { chainId: 42161, permits: [{ modeOrExpiration: 1000, tokenKey: '0x...', account: '0x...', amountDelta: 2000 }] },
+    { chainId: 10, permits: [{ modeOrExpiration: 1000, tokenKey: '0x...', account: '0x...', amountDelta: 3000 }] }
+];
+
+// Build optimal tree
+const tree = buildOptimalPermitTree(chainPermits);
+
+// Generate proof for specific chain (e.g., Ethereum mainnet)
+const encoding = encodeProofStructure(tree, 1);
+// Returns: { proofStructure: '0x...', proof: ['0x...'], currentChainPermits: {...} }
+
+// Sign the complete tree (user sees all chains)
+const signature = await signPermitNodePermit(tree, owner, salt, deadline, timestamp, signer, permit3Address);
+
+// Execute on Ethereum mainnet
+await permit3.permit(owner, salt, deadline, timestamp, encoding.proofStructure,
+    encoding.currentChainPermits, encoding.proof, signature);
+
+// Execute on other chains with same signature, different proof
+const arbEncoding = encodeProofStructure(tree, 42161);
+await arbitrumPermit3.permit(owner, salt, deadline, timestamp, arbEncoding.proofStructure,
+    arbEncoding.currentChainPermits, arbEncoding.proof, signature);
+```
+
+### Gas Costs
+
+Gas costs scale linearly with proof length. Benchmarks from `test/PermitTreeGasBenchmark.t.sol`:
+
+- **2 chains** (proof length 1): ~85,000 gas
+- **4 chains** (proof length 2, balanced): ~90,000 gas
+- **8 chains** (proof length 3, balanced): ~95,000 gas
+
+Each additional proof element adds approximately 3,000-5,000 gas. Balanced trees minimize proof length.
+
+### Security Model
+
+The tree structure provides:
+- **UI Transparency**: Users see complete permit structure when signing
+- **Cryptographic Proof**: Merkle-like reconstruction ensures integrity
+- **Replay Protection**: Nonce-based system prevents replay attacks
+- **Deadline Protection**: Time-limited signatures prevent stale permits
+
+For detailed documentation, see:
+- [Tree Permits Developer Guide](./docs/TREE_PERMITS_GUIDE.md)
+- [JavaScript Utilities README](./utils/README.md)
+- [Security Documentation](./docs/SECURITY.md)
+
+## Tree-Based Nonce Cancellation
+
+Permit3 supports batch nonce cancellation using a tree-based structure that provides UI transparency. Users can cancel multiple nonces across multiple operations with a single signature while seeing the complete list of nonces in their wallet.
+
+### Overview
+
+When cancelling nonces across multiple operations, users sign a complete `NonceNode` tree structure that shows:
+- All nonces being cancelled
+- The tree structure organizing the cancellations
+- Clear intent and scope of the cancellation
+
+The on-chain contract receives:
+- A compact `bytes32 proofStructure` encoding (position + type flags)
+- A proof array (sibling hashes along the Merkle path)
+- The nonces for the current operation
+
+### NonceNode Structure
+
+```solidity
+struct NonceNode {
+    NonceNode[] nodes;   // Child nodes (nested structures)
+    bytes32[] nonces;    // Leaf nonces (salts) to cancel
+}
+```
+
+### Three Combination Rules
+
+The NonceNode tree follows the same pattern as PermitNode with three combination rules:
+
+1. **Nonce + Nonce**: Two nonce leaves are combined with alphabetical sorting
+2. **Node + Node**: Two nested structures are combined with alphabetical sorting
+3. **Node + Nonce**: Mixed types use struct order (nodes first, no sorting)
+
+### Usage Example
+
+```solidity
+// Solidity - Execute nonce cancellation with tree proof
+function cancelNonces(
+    address owner,
+    uint48 deadline,
+    bytes32 proofStructure,
+    bytes32[] calldata currentNonces,
+    bytes32[] calldata proof,
+    bytes calldata signature
+) external;
+```
+
+### Benefits
+
+- **UI Transparency**: Users see all nonces being cancelled in wallet UI
+- **Batch Operations**: Cancel multiple nonces with one signature
+- **Gas Efficient**: Compact proof encoding reduces calldata costs
+- **Cross-Operation**: Same signature can be used for multiple cancellation calls
+- **Security**: EIP-712 signature ensures user consent for all cancellations
+
+### Comparison: NonceNode vs Traditional Nonce Cancellation
+
+| Feature | Traditional Merkle | NonceNode Tree |
+|---------|-------------------|----------------|
+| **UI Transparency** | Opaque merkle root | Complete tree structure visible |
+| **Batch Cancellation** | Multiple nonces | Multiple nonces |
+| **Cross-Operation** | New signature each time | Reuse signature for tree |
+| **Gas Cost** | ~60k + 6k per proof | ~65k + 6k per proof |
+| **Proof Size** | O(log n) | O(log n) |
+| **User Experience** | Poor (blind signing) | Excellent (full visibility) |
+
+### How It Works
+
+**Before (Traditional Merkle - Opaque):**
+```solidity
+// User signs merkle root - cannot see what nonces are being cancelled
+await permit3.invalidateNonces(salts, { owner, deadline, signature });
+// Wallet shows: "Sign to cancel nonces: 0x1234..." (opaque hash)
+```
+
+**After (NonceNode - Transparent):**
+```solidity
+// User signs NonceNode tree - sees complete list in wallet
+await permit3.invalidateNonces(
+    { currentChainInvalidations: nonces, proofStructure, proof },
+    { owner, deadline, signature }
+);
+// Wallet shows: "Sign to cancel nonces:
+//   - 0x1111...
+//   - 0x2222...
+//   - 0x3333..." (clear list)
+```
+
+### Tree Structure Encoding
+
+The `proofStructure` parameter uses the same compact encoding as PermitNode:
+- **Byte 0**: Position index (reserved for future use)
+- **Bytes 1-31**: Type flags (one bit per proof element)
+  - 0 = Proof element is a Nonce (bytes32 leaf)
+  - 1 = Proof element is a Node (NonceNode)
+
+### Security Model
+
+The NonceNode tree structure provides:
+- **UI Transparency**: Users see complete nonce list when signing
+- **Cryptographic Proof**: Merkle-like reconstruction ensures integrity
+- **Replay Protection**: Deadline-based system prevents replay attacks
+- **Batch Security**: All nonces validated in single signature
+
+### Implementation Reference
+
+For implementation details, see:
+- **On-chain library**: `src/libraries/NonceNodeLib.sol` - Hash reconstruction and combination rules
+- **Contract function**: `src/NonceManager.sol` - `cancelNonces()` function
+- **Interface**: `src/interfaces/INonceManager.sol` - NonceNode struct definition
+
+### JavaScript Utilities
+
+Complete NonceNode utilities available in `utils/permitNodeHelpers.js`:
+- `hashNonceNode()` - Hash NonceNode structures for EIP-712
+- `buildOptimalNonceTree()` - Build balanced binary trees
+- `encodeNonceProofStructure()` - Generate compact proofs
+- `signNonceTreeCancellation()` - EIP-712 signing
+- `validateNonceProofStructure()` - Tree validation
+
+See `utils/README.md` for complete API documentation and examples.
+
 ## Development
 
 ```bash

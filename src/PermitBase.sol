@@ -48,38 +48,6 @@ contract PermitBase is IPermit {
     }
 
     /**
-     * @notice Internal function to validate approval parameters and check for locked allowances
-     * @param owner Token owner address
-     * @param tokenKey Token identifier key
-     * @param token Token contract address
-     * @param spender Spender address
-     * @param expiration Expiration timestamp
-     */
-    function _validateApproval(
-        address owner,
-        bytes32 tokenKey,
-        address token,
-        address spender,
-        uint48 expiration
-    ) internal view {
-        // Check if allowance is locked
-        if (allowances[owner][tokenKey][spender].expiration == LOCKED_ALLOWANCE) {
-            revert AllowanceLocked(owner, tokenKey, spender);
-        }
-
-        // Validate parameters
-        if (token == address(0)) {
-            revert ZeroToken();
-        }
-        if (spender == address(0)) {
-            revert ZeroSpender();
-        }
-        if (expiration != 0 && expiration <= block.timestamp) {
-            revert InvalidExpiration(expiration);
-        }
-    }
-
-    /**
      * @notice Direct allowance approval without signature
      * @dev Alternative to permit() for simple approvals
      * @param token ERC20 token address
@@ -87,7 +55,12 @@ contract PermitBase is IPermit {
      * @param amount Approval amount
      * @param expiration Optional expiration timestamp
      */
-    function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
+    function approve(
+        address token,
+        address spender,
+        uint160 amount,
+        uint48 expiration
+    ) external override {
         bytes32 tokenKey = bytes32(uint256(uint160(token)));
         _validateApproval(msg.sender, tokenKey, token, spender, expiration);
 
@@ -105,7 +78,12 @@ contract PermitBase is IPermit {
      * @param amount Transfer amount (max 2^160-1)
      * @param token ERC20 token contract address
      */
-    function transferFrom(address from, address to, uint160 amount, address token) public {
+    function transferFrom(
+        address from,
+        address to,
+        uint160 amount,
+        address token
+    ) public {
         bytes32 tokenKey = bytes32(uint256(uint160(token)));
         (, bytes memory revertData) = _updateAllowance(from, tokenKey, msg.sender, amount);
         if (revertData.length > 0) {
@@ -161,6 +139,38 @@ contract PermitBase is IPermit {
                 Allowance({ amount: 0, expiration: LOCKED_ALLOWANCE, timestamp: uint48(block.timestamp) });
 
             emit Lockdown(msg.sender, token, spender);
+        }
+    }
+
+    /**
+     * @notice Internal function to validate approval parameters and check for locked allowances
+     * @param owner Token owner address
+     * @param tokenKey Token identifier key
+     * @param token Token contract address
+     * @param spender Spender address
+     * @param expiration Expiration timestamp
+     */
+    function _validateApproval(
+        address owner,
+        bytes32 tokenKey,
+        address token,
+        address spender,
+        uint48 expiration
+    ) internal view {
+        // Check if allowance is locked
+        if (allowances[owner][tokenKey][spender].expiration == LOCKED_ALLOWANCE) {
+            revert AllowanceLocked(owner, tokenKey, spender);
+        }
+
+        // Validate parameters
+        if (token == address(0)) {
+            revert ZeroToken();
+        }
+        if (spender == address(0)) {
+            revert ZeroSpender();
+        }
+        if (expiration != 0 && expiration <= block.timestamp) {
+            revert InvalidExpiration(expiration);
         }
     }
 
@@ -241,7 +251,12 @@ contract PermitBase is IPermit {
      * @notice This function handles tokens that don't return boolean values or return false on failure
      * @notice Assumes the caller has already verified allowances and will revert on transfer failure
      */
-    function _transferFrom(address from, address to, uint160 amount, address token) internal {
+    function _transferFrom(
+        address from,
+        address to,
+        uint160 amount,
+        address token
+    ) internal {
         IERC20(token).safeTransferFrom(from, to, amount);
     }
 }

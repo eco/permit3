@@ -55,6 +55,27 @@ contract ERC7579ApproverModule is IERC7579Module {
     }
 
     /**
+     * @notice Get the type of the module
+     * @return moduleTypeId The module type identifier
+     */
+    function isModuleType(
+        uint256 moduleTypeId
+    ) external pure override returns (bool) {
+        return moduleTypeId == MODULE_TYPE;
+    }
+
+    /**
+     * @notice Check if a specific module type is supported
+     * @param interfaceId The interface identifier to check
+     * @return True if the interface is supported
+     */
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure returns (bool) {
+        return interfaceId == type(IERC7579Module).interfaceId;
+    }
+
+    /**
      * @notice Initialize the module for an account
      * @dev No initialization data needed for this module
      * @param data Initialization data (unused)
@@ -77,16 +98,6 @@ contract ERC7579ApproverModule is IERC7579Module {
     }
 
     /**
-     * @notice Get the type of the module
-     * @return moduleTypeId The module type identifier
-     */
-    function isModuleType(
-        uint256 moduleTypeId
-    ) external pure override returns (bool) {
-        return moduleTypeId == MODULE_TYPE;
-    }
-
-    /**
      * @notice Execute approval of multiple token types to Permit3
      * @dev Implements ERC-7579 Executor behavior by calling executeFromExecutor
      *      - ERC20 tokens: Uses approve(permit3, type(uint256).max)
@@ -95,7 +106,10 @@ contract ERC7579ApproverModule is IERC7579Module {
      * @param account The smart account executing the approvals
      * @param data Encoded arrays of token addresses for each token type
      */
-    function execute(address account, bytes calldata data) external {
+    function execute(
+        address account,
+        bytes calldata data
+    ) external {
         // Decode the token addresses for each type
         (address[] memory erc20Tokens, address[] memory erc721Tokens, address[] memory erc1155Tokens) =
             abi.decode(data, (address[], address[], address[]));
@@ -115,9 +129,7 @@ contract ERC7579ApproverModule is IERC7579Module {
                 revert ZeroAddress();
             }
             executions[executionIndex++] = Execution({
-                target: erc20Tokens[i],
-                value: 0,
-                callData: abi.encodeCall(IERC20.approve, (PERMIT3, type(uint256).max))
+                target: erc20Tokens[i], value: 0, callData: abi.encodeCall(IERC20.approve, (PERMIT3, type(uint256).max))
             });
         }
 
@@ -127,9 +139,7 @@ contract ERC7579ApproverModule is IERC7579Module {
                 revert ZeroAddress();
             }
             executions[executionIndex++] = Execution({
-                target: erc721Tokens[i],
-                value: 0,
-                callData: abi.encodeCall(IERC721.setApprovalForAll, (PERMIT3, true))
+                target: erc721Tokens[i], value: 0, callData: abi.encodeCall(IERC721.setApprovalForAll, (PERMIT3, true))
             });
         }
 
@@ -158,16 +168,5 @@ contract ERC7579ApproverModule is IERC7579Module {
 
         // Call executeFromExecutor on the smart account
         IERC7579Execution(account).executeFromExecutor(Mode.unwrap(mode), executionCalldata);
-    }
-
-    /**
-     * @notice Check if a specific module type is supported
-     * @param interfaceId The interface identifier to check
-     * @return True if the interface is supported
-     */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external pure returns (bool) {
-        return interfaceId == type(IERC7579Module).interfaceId;
     }
 }

@@ -31,4 +31,13 @@ contract Permit3Tester is Permit3 {
      * @notice Exposes the internal hashChainPermits function for testing
      */
     // Function removed as it's now directly available from Permit3
+
+    /**
+     * @notice Exposes the PERMIT_NODE_TYPEHASH for testing
+     */
+    function getPermitNodeTypehash() external pure returns (bytes32) {
+        return keccak256(
+            "PermitNode(PermitNode[] nodes,ChainPermits[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)"
+        );
+    }
 }

@@ -1,0 +1,23 @@
+{
+  "name": "@permit3/utils",
+  "version": "1.0.0",
+  "description": "JavaScript utilities for Permit3 Merkle tree operations and nested structures",
+  "main": "merkle-helpers.js",
+  "dependencies": {
+    "merkletreejs": "^0.3.0",
+    "ethers": "^5.7.0",
+    "keccak256": "^1.0.6"
+  },
+  "keywords": [
+    "permit3",
+    "merkle-tree",
+    "cross-chain",
+    "ethereum",
+    "eip-712"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eco/permit3"
+  }
+}

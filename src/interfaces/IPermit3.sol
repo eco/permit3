@@ -64,19 +64,59 @@ interface IPermit3 is IPermit, INonceManager {
     }
 
     /**
-     * @notice Returns the witness typehash stub for EIP-712 signature verification
-     * @return The stub string for witness permit typehash
+     * @notice Reusable struct for permit signature data
+     * @param owner Token owner address
+     * @param salt Unique salt for replay protection
+     * @param deadline Signature expiration timestamp
+     * @param timestamp Timestamp of the permit
+     * @param signature EIP-712 signature bytes
      */
-    function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
+    struct Signature {
+        address owner;
+        bytes32 salt;
+        uint48 deadline;
+        uint48 timestamp;
+        bytes signature;
+    }
 
     /**
-     * @notice Hashes chain permits data for cross-chain operations
-     * @param chainPermits Chain-specific permit data
-     * @return bytes32 Combined hash of all permit parameters
+     * @notice Nested structure for UI-readable tree representation
+     * @dev Used in EIP-712 signatures to provide transparency to users about what they're signing
+     * @dev Can represent either leaf nodes (ChainPermits) or internal tree nodes (nested levels)
+     * @dev Both arrays should be ordered by hash value as merkle tree construction requires
+     * @param levels Child tree nodes for internal nodes (ordered by hash value)
+     * @param permits Leaf nodes showing actual chain permits for user visibility (ordered by hash value)
      */
-    function hashChainPermits(
-        ChainPermits memory chainPermits
-    ) external pure returns (bytes32);
+    struct PermitNode {
+        PermitNode[] nodes;
+        ChainPermits[] permits;
+    }
+
+    /**
+     * @notice Input struct for tree-based permits containing tree structure data
+     * @param proofStructure Compact tree encoding
+     * @param currentChainPermits Permit operations for the current chain
+     * @param proof Array of hashes for proof reconstruction
+     */
+    struct PermitTree {
+        ChainPermits currentChainPermits;
+        bytes32 proofStructure;
+        bytes32[] proof;
+    }
+
+    /**
+     * @notice Witness data for permit operations
+     * @param witness Additional witness data hash
+     * @param witnessTypeString EIP-712 type definition for witness data
+     */
+    struct Witness {
+        bytes32 witness;
+        string witnessTypeString;
+    }
+
+    // ============================================
+    // FUNCTIONS
+    // ============================================
 
     /**
      * @notice Direct permit execution for ERC-7702 integration
@@ -89,85 +129,55 @@ interface IPermit3 is IPermit, INonceManager {
 
     /**
      * @notice Process permit for single chain token approvals
-     * @param owner Token owner address
-     * @param salt Unique salt for replay protection
-     * @param deadline Signature expiration timestamp
-     * @param timestamp Timestamp of the permit
      * @param permits Array of permit operations to execute
-     * @param signature EIP-712 signature authorizing the permits
+     * @param sig Permit signature data containing owner, salt, deadline, timestamp, and signature
      */
     function permit(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
         AllowanceOrTransfer[] calldata permits,
-        bytes calldata signature
+        Signature calldata sig
     ) external;
 
     /**
-     * @notice Process permit for multi-chain token approvals using Merkle Tree
-     * @param owner Token owner address
-     * @param salt Unique salt for replay protection
-     * @param deadline Signature expiration timestamp
-     * @param timestamp Timestamp of the permit
-     * @param permits Permit operations for the current chain
-     * @param proof Merkle proof array for verification
-     * @param signature EIP-712 signature authorizing the batch
+     * @notice Process permit for multi-chain token approvals using tree structure encoding
+     * @dev Uses compact proofStructure encoding to reconstruct merkle tree and validate permits
+     * @param tree Tree permit data containing proofStructure, currentChainPermits, and proof
+     * @param sig Permit signature data (owner, salt, deadline, timestamp, signature)
      */
     function permit(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
-        ChainPermits calldata permits,
-        bytes32[] calldata proof,
-        bytes calldata signature
+        PermitTree calldata tree,
+        Signature calldata sig
     ) external;
 
     /**
      * @notice Process permit with additional witness data for single chain operations
-     * @param owner Token owner address
-     * @param salt Unique salt for replay protection
-     * @param deadline Signature expiration timestamp
-     * @param timestamp Timestamp of the permit
      * @param permits Array of permit operations to execute
-     * @param witness Additional data to include in signature verification
-     * @param witnessTypeString EIP-712 type definition for witness data
-     * @param signature EIP-712 signature authorizing the permits
+     * @param witness Witness data containing witness hash and type string
+     * @param sig Permit signature data (owner, salt, deadline, timestamp, signature)
      */
     function permitWitness(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
         AllowanceOrTransfer[] calldata permits,
-        bytes32 witness,
-        string calldata witnessTypeString,
-        bytes calldata signature
+        Witness calldata witness,
+        Signature calldata sig
     ) external;
 
     /**
-     * @notice Process permit with additional witness data for cross-chain operations
-     * @param owner Token owner address
-     * @param salt Unique salt for replay protection
-     * @param deadline Signature expiration timestamp
-     * @param timestamp Timestamp of the permit
-     * @param permits Permit operations for the current chain
-     * @param proof Merkle proof array for verification
-     * @param witness Additional data to include in signature verification
-     * @param witnessTypeString EIP-712 type definition for witness data
-     * @param signature EIP-712 signature authorizing the batch
+     * @notice Process permit with additional witness data for multi-chain operations using tree structure
+     * @param tree Tree permit data containing proofStructure, permits, and proof
+     * @param witness Witness data containing witness hash and type string
+     * @param sig Permit signature data (owner, salt, deadline, timestamp, signature)
      */
     function permitWitness(
-        address owner,
-        bytes32 salt,
-        uint48 deadline,
-        uint48 timestamp,
-        ChainPermits calldata permits,
-        bytes32[] calldata proof,
-        bytes32 witness,
-        string calldata witnessTypeString,
-        bytes calldata signature
+        PermitTree calldata tree,
+        Witness calldata witness,
+        Signature calldata sig
     ) external;
+
+    /**
+     * @notice Hashes chain permits data for cross-chain operations
+     * @param chainPermits Chain-specific permit data
+     * @return bytes32 Combined hash of all permit parameters
+     */
+    function hashChainPermits(
+        ChainPermits memory chainPermits
+    ) external pure returns (bytes32);
 }

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Test } from "forge-std/Test.sol";
+import { TestBase } from "./utils/TestBase.sol";
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 import "../src/Permit3.sol";
+import "../src/lib/TreeNodeLib.sol";
 
 import "../src/interfaces/INonceManager.sol";
 import "../src/interfaces/IPermit3.sol";
@@ -23,21 +24,8 @@ contract MockToken is ERC20 {
  * @title Permit3WitnessTest
  * @notice Tests for Permit3 witness functionality
  */
-contract Permit3WitnessTest is Test {
+contract Permit3WitnessTest is TestBase {
     using ECDSA for bytes32;
-
-    Permit3 permit3;
-    MockToken token;
-
-    uint256 ownerPrivateKey;
-    address owner;
-    address spender;
-    address recipient;
-
-    bytes32 constant SALT = bytes32(uint256(0));
-    uint160 constant AMOUNT = 1000;
-    uint48 constant EXPIRATION = 1000;
-    uint48 constant NOW = 1000;
 
     // Witness data for testing
     bytes32 constant WITNESS = bytes32(uint256(0xDEADBEEF));
@@ -48,19 +36,8 @@ contract Permit3WitnessTest is Test {
         "SignedPermit3Witness(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 permitHash,bytes32 witnessTypeHash,bytes32 witness)"
     );
 
-    function setUp() public {
-        vm.warp(NOW);
-        permit3 = new Permit3();
-        token = new MockToken();
-
-        ownerPrivateKey = 0x1234;
-        owner = vm.addr(ownerPrivateKey);
-        spender = address(0x2);
-        recipient = address(0x3);
-
-        deal(address(token), owner, 10_000);
-        vm.prank(owner);
-        token.approve(address(permit3), type(uint256).max);
+    function setUp() public override {
+        super.setUp(); // Call TestBase setUp which initializes variables
     }
 
     function test_validateWitnessTypeString() public {
@@ -69,14 +46,15 @@ contract Permit3WitnessTest is Test {
             abi.encodeWithSelector(INonceManager.InvalidWitnessTypeString.selector, INVALID_WITNESS_TYPE_STRING)
         );
         permit3.permitWitness(
-            owner,
-            SALT,
-            uint48(block.timestamp + 1 hours),
-            uint48(block.timestamp),
             _createBasicTransferPermit().permits,
-            WITNESS,
-            INVALID_WITNESS_TYPE_STRING,
-            new bytes(65)
+            IPermit3.Witness({ witness: WITNESS, witnessTypeString: INVALID_WITNESS_TYPE_STRING }),
+            IPermit3.Signature({
+                owner: owner,
+                salt: SALT,
+                deadline: uint48(block.timestamp + 1 hours),
+                timestamp: uint48(block.timestamp),
+                signature: new bytes(65)
+            })
         );
     }
 
@@ -94,7 +72,11 @@ contract Permit3WitnessTest is Test {
 
         // Execute permit
         permit3.permitWitness(
-            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
+            chainPermits.permits,
+            IPermit3.Witness({ witness: WITNESS, witnessTypeString: WITNESS_TYPE_STRING }),
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
         );
 
         // Verify transfer happened
@@ -118,7 +100,11 @@ contract Permit3WitnessTest is Test {
             abi.encodeWithSelector(INonceManager.SignatureExpired.selector, deadline, uint48(block.timestamp))
         );
         permit3.permitWitness(
-            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
+            chainPermits.permits,
+            IPermit3.Witness({ witness: WITNESS, witnessTypeString: WITNESS_TYPE_STRING }),
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
         );
     }
 
@@ -134,7 +120,11 @@ contract Permit3WitnessTest is Test {
         // Should revert with InvalidSignature (signature was created for wrong chain ID)
         vm.expectRevert();
         permit3.permitWitness(
-            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
+            chainPermits.permits,
+            IPermit3.Witness({ witness: WITNESS, witnessTypeString: WITNESS_TYPE_STRING }),
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
         );
     }
 
@@ -184,14 +174,11 @@ contract Permit3WitnessTest is Test {
         // When signature is from wrong private key, the recovered signer will be different
         vm.expectRevert();
         permit3.permitWitness(
-            owner,
-            SALT,
-            vars.deadline,
-            vars.timestamp,
             vars.chainPermits.permits,
-            WITNESS,
-            WITNESS_TYPE_STRING,
-            vars.signature
+            IPermit3.Witness({ witness: WITNESS, witnessTypeString: WITNESS_TYPE_STRING }),
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: vars.deadline, timestamp: vars.timestamp, signature: vars.signature
+            })
         );
     }
 
@@ -205,7 +192,11 @@ contract Permit3WitnessTest is Test {
             _signWitnessPermit(chainPermits, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
 
         permit3.permitWitness(
-            owner, SALT, deadline, timestamp, chainPermits.permits, WITNESS, WITNESS_TYPE_STRING, signature
+            chainPermits.permits,
+            IPermit3.Witness({ witness: WITNESS, witnessTypeString: WITNESS_TYPE_STRING }),
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
         );
 
         // Verify allowance was set
@@ -235,7 +226,11 @@ contract Permit3WitnessTest is Test {
                 _signWitnessPermit(chainPermits, deadline, timestamp, salt, witness, WITNESS_TYPE_STRING);
 
             permit3.permitWitness(
-                owner, salt, deadline, timestamp, chainPermits.permits, witness, WITNESS_TYPE_STRING, signature
+                chainPermits.permits,
+                IPermit3.Witness({ witness: witness, witnessTypeString: WITNESS_TYPE_STRING }),
+                IPermit3.Signature({
+                    owner: owner, salt: salt, deadline: deadline, timestamp: timestamp, signature: signature
+                })
             );
         }
 
@@ -251,7 +246,11 @@ contract Permit3WitnessTest is Test {
                 _signWitnessPermit(chainPermits, deadline, timestamp, salt, witness, WITNESS_TYPE_STRING);
 
             permit3.permitWitness(
-                owner, salt, deadline, timestamp, chainPermits.permits, witness, WITNESS_TYPE_STRING, signature
+                chainPermits.permits,
+                IPermit3.Witness({ witness: witness, witnessTypeString: WITNESS_TYPE_STRING }),
+                IPermit3.Signature({
+                    owner: owner, salt: salt, deadline: deadline, timestamp: timestamp, signature: signature
+                })
             );
         }
 
@@ -259,26 +258,50 @@ contract Permit3WitnessTest is Test {
         assertEq(token.balanceOf(recipient), AMOUNT * 2);
     }
 
-    // Test cross-chain witness functionality with UnbalancedProofs
+    // Test cross-chain witness functionality with tree structure
     function test_permitWitnessCrossChain() public {
-        // Set specific values to ensure consistent calculation
         vm.warp(1000); // Set specific timestamp for reproducible results
 
-        // Create unbalanced permit proof
-        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
-        bytes32[] memory nodes = new bytes32[](2);
-        nodes[0] = bytes32(uint256(0x1234));
-        nodes[1] = bytes32(uint256(0x9abc));
+        // Create permits for 2 chains (realistic cross-chain scenario)
+        IPermit3.ChainPermits memory chain1 = _createBasicTransferPermit(); // Current chain
+
+        // Create second chain permit (Arbitrum)
+        IPermit3.ChainPermits memory chain2 = IPermit3.ChainPermits({
+            chainId: 42_161, // Arbitrum
+            permits: new IPermit3.AllowanceOrTransfer[](1)
+        });
+        chain2.permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: 0, // Immediate transfer
+            tokenKey: bytes32(uint256(uint160(address(token)))),
+            account: recipient,
+            amountDelta: AMOUNT
+        });
+
+        // Build proper PermitNode tree (flat structure with 2 chain permits)
+        IPermit3.ChainPermits[] memory permits = new IPermit3.ChainPermits[](2);
+        permits[0] = chain1;
+        permits[1] = chain2;
+        IPermit3.PermitNode memory tree = IPermit3.PermitNode({ nodes: new IPermit3.PermitNode[](0), permits: permits });
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
         uint48 timestamp = uint48(block.timestamp);
-        // Use our proper signing function for unbalanced proofs
-        bytes memory signature =
-            _signWitnessUnbalancedPermit(chainPermits, nodes, deadline, timestamp, SALT, WITNESS, WITNESS_TYPE_STRING);
+
+        // Sign using proven helper that uses TestBase's _hashPermitNode
+        bytes memory signature = _signWitnessTreePermit(tree, WITNESS, WITNESS_TYPE_STRING, SALT, deadline, timestamp);
+
+        // Build proof for executing chain1 (current chain)
+        // Proof contains the sibling (chain2) that needs to be combined
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = permit3.hashChainPermits(chain2); // Sibling chain permit hash
+        bytes32 proofStructure = bytes32(0); // Both elements are leaves (no nodes)
 
         // Execute cross-chain permit
         permit3.permitWitness(
-            owner, SALT, deadline, timestamp, chainPermits, nodes, WITNESS, WITNESS_TYPE_STRING, signature
+            IPermit3.PermitTree({ proofStructure: proofStructure, currentChainPermits: chain1, proof: proof }),
+            IPermit3.Witness({ witness: WITNESS, witnessTypeString: WITNESS_TYPE_STRING }),
+            IPermit3.Signature({
+                owner: owner, salt: SALT, deadline: deadline, timestamp: timestamp, signature: signature
+            })
         );
 
         // Verify transfer happened
@@ -288,19 +311,159 @@ contract Permit3WitnessTest is Test {
         assertTrue(permit3.isNonceUsed(owner, SALT));
     }
 
-    // Helper Functions
+    /**
+     * @notice Test deep tree (3+ levels) witness functionality
+     * @dev Tree structure:
+     *                      Root
+     *                     /    \
+     *                   N1      N2
+     *                  /  \    /  \
+     *                C1  C2  C3  C4
+     *           (Eth)  (Arb) (Op) (Poly)
+     *
+     * Where C2 (Arbitrum, current chain) is executed with proof containing sibling C1 and uncle N2.
+     */
+    function test_permitWitnessDeepTree_ThreeLevels() public {
+        vm.warp(1000); // Set specific timestamp for reproducibility
 
-    function _createBasicTransferPermit() internal view returns (IPermit3.ChainPermits memory) {
-        IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
-        permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: 0, // Immediate transfer
-            tokenKey: bytes32(uint256(uint160(address(token)))),
-            account: recipient,
-            amountDelta: AMOUNT
-        });
+        address token2Addr;
 
-        return IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+        // Setup tokens in block to limit scope
+        {
+            MockToken token2 = new MockToken();
+            MockToken token3 = new MockToken();
+            MockToken token4 = new MockToken();
+
+            token2Addr = address(token2);
+
+            deal(token2Addr, owner, 10_000);
+            deal(address(token3), owner, 10_000);
+            deal(address(token4), owner, 10_000);
+
+            vm.startPrank(owner);
+            token2.approve(address(permit3), type(uint256).max);
+            token3.approve(address(permit3), type(uint256).max);
+            token4.approve(address(permit3), type(uint256).max);
+            vm.stopPrank();
+        }
+
+        // Build tree structure with minimal stack usage
+        IPermit3.PermitNode memory root;
+        IPermit3.ChainPermits memory c1;
+        IPermit3.ChainPermits memory c2;
+        bytes32 c1Hash;
+        bytes32 n2Hash;
+
+        {
+            // Reusable permits array
+            IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
+
+            // C1: Ethereum mainnet
+            permits[0] = IPermit3.AllowanceOrTransfer({
+                modeOrExpiration: 0,
+                tokenKey: bytes32(uint256(uint160(address(token)))),
+                account: recipient,
+                amountDelta: 1000
+            });
+            c1 = IPermit3.ChainPermits({ chainId: 1, permits: permits });
+            c1Hash = permit3.hashChainPermits(c1);
+
+            // C2: Current chain (will be executed)
+            permits = new IPermit3.AllowanceOrTransfer[](1);
+            permits[0] = IPermit3.AllowanceOrTransfer({
+                modeOrExpiration: 0,
+                tokenKey: bytes32(uint256(uint160(token2Addr))),
+                account: recipient,
+                amountDelta: 2000
+            });
+            c2 = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });
+
+            // Build N1 with C1 and C2
+            IPermit3.ChainPermits[] memory n1Permits = new IPermit3.ChainPermits[](2);
+            n1Permits[0] = c1;
+            n1Permits[1] = c2;
+            IPermit3.PermitNode memory n1 =
+                IPermit3.PermitNode({ nodes: new IPermit3.PermitNode[](0), permits: n1Permits });
+
+            // Build N2 with C3 and C4 in nested block
+            IPermit3.PermitNode memory n2;
+            {
+                permits = new IPermit3.AllowanceOrTransfer[](1);
+                // C3: Optimism
+                permits[0] = IPermit3.AllowanceOrTransfer({
+                    modeOrExpiration: 0,
+                    tokenKey: bytes32(uint256(uint160(address(0xC3)))),
+                    account: recipient,
+                    amountDelta: 3000
+                });
+                IPermit3.ChainPermits memory c3 = IPermit3.ChainPermits({ chainId: 10, permits: permits });
+
+                permits = new IPermit3.AllowanceOrTransfer[](1);
+                // C4: Polygon
+                permits[0] = IPermit3.AllowanceOrTransfer({
+                    modeOrExpiration: 0,
+                    tokenKey: bytes32(uint256(uint160(address(0xC4)))),
+                    account: recipient,
+                    amountDelta: 4000
+                });
+                IPermit3.ChainPermits memory c4 = IPermit3.ChainPermits({ chainId: 137, permits: permits });
+
+                IPermit3.ChainPermits[] memory n2Permits = new IPermit3.ChainPermits[](2);
+                n2Permits[0] = c3;
+                n2Permits[1] = c4;
+                n2 = IPermit3.PermitNode({ nodes: new IPermit3.PermitNode[](0), permits: n2Permits });
+            }
+
+            n2Hash = _hashPermitNode(n2);
+
+            // Build root
+            IPermit3.PermitNode[] memory rootNodes = new IPermit3.PermitNode[](2);
+            rootNodes[0] = n1;
+            rootNodes[1] = n2;
+            root = IPermit3.PermitNode({ nodes: rootNodes, permits: new IPermit3.ChainPermits[](0) });
+        }
+
+        // Sign and execute in separate block
+        {
+            bytes32 witness = bytes32(uint256(0xDEEF7EEE));
+            string memory witnessTypeString = "bytes32 witnessData)";
+
+            uint48 deadline = uint48(block.timestamp + 1 hours);
+            uint48 timestamp = uint48(block.timestamp);
+            bytes32 salt = bytes32(uint256(0x123456));
+
+            bytes memory signature = _signWitnessTreePermit(root, witness, witnessTypeString, salt, deadline, timestamp);
+
+            // Build proof: [c1Hash, n2Hash]
+            bytes32[] memory proof = new bytes32[](2);
+            proof[0] = c1Hash;
+            proof[1] = n2Hash;
+
+            // ProofStructure: position=1, proof[0]=Leaf, proof[1]=Node
+            bytes32 proofStructure = bytes32(uint256((1 << 248) | (1 << 246)));
+
+            uint256 balanceBefore = ERC20(token2Addr).balanceOf(recipient);
+
+            // Execute permitWitness
+            permit3.permitWitness(
+                IPermit3.PermitTree({ proofStructure: proofStructure, currentChainPermits: c2, proof: proof }),
+                IPermit3.Witness({ witness: witness, witnessTypeString: witnessTypeString }),
+                IPermit3.Signature({
+                    owner: owner, salt: salt, deadline: deadline, timestamp: timestamp, signature: signature
+                })
+            );
+
+            // Verify results
+            assertEq(
+                ERC20(token2Addr).balanceOf(recipient),
+                balanceBefore + 2000,
+                "Deep tree witness: recipient should receive 2000 tokens from C2"
+            );
+            assertTrue(permit3.isNonceUsed(owner, salt), "Deep tree witness: salt should be marked as used");
+        }
     }
+
+    // Helper Functions
 
     function _createWrongChainTransferPermit() internal pure returns (IPermit3.ChainPermits memory) {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -368,76 +531,31 @@ contract Permit3WitnessTest is Test {
         return abi.encodePacked(vars.r, vars.s, vars.v);
     }
 
-    // Helper struct to avoid stack too deep errors
-    struct UnbalancedWitnessVars {
-        bytes32 currentChainHash;
-        bytes32 merkleRoot;
-        bytes32 typeHash;
-        bytes32 structHash;
-        bytes32 digest;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-
-    function _signWitnessUnbalancedPermit(
-        IPermit3.ChainPermits memory permits,
-        bytes32[] memory proof,
-        uint48 deadline,
-        uint48 timestamp,
-        bytes32 salt,
+    /// @notice Sign a PermitNode tree with witness data using proven TestBase helpers
+    /// @dev Uses _hashPermitNode() from TestBase for correct tree hashing with sorting
+    function _signWitnessTreePermit(
+        IPermit3.PermitNode memory permitNode,
         bytes32 witness,
-        string memory witnessTypeString
+        string memory witnessTypeString,
+        bytes32 salt,
+        uint48 deadline,
+        uint48 timestamp
     ) internal view returns (bytes memory) {
-        UnbalancedWitnessVars memory vars;
-
-        // Calculate the unbalanced root the same way the contract would
-        vars.currentChainHash = _hashChainPermits(permits);
-
-        // In the new simple structure, calculate merkle root using the proof
-        // Using OpenZeppelin's MerkleProof directly
-        vars.merkleRoot = MerkleProof.processProof(proof, vars.currentChainHash);
+        // Use TestBase's proven tree hashing (includes sorting)
+        bytes32 permitNodeHash = _hashPermitNode(permitNode);
 
         // Compute witness-specific typehash
-        vars.typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));
+        bytes32 typeHash = keccak256(abi.encodePacked(permit3.PERMIT_WITNESS_TYPEHASH_STUB(), witnessTypeString));
 
-        // Compute the structured hash exactly as the contract would
-        vars.structHash =
-            keccak256(abi.encode(vars.typeHash, owner, salt, deadline, timestamp, vars.merkleRoot, witness));
+        // Create signed hash matching contract's _processTreeWitnessHash
+        bytes32 signedHash = keccak256(abi.encode(typeHash, owner, salt, deadline, timestamp, permitNodeHash, witness));
 
-        // Get the EIP-712 digest
-        vars.digest = _hashTypedDataV4(vars.structHash);
+        // Create EIP-712 digest
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", permit3.DOMAIN_SEPARATOR(), signedHash));
 
-        // Sign the digest
-        (vars.v, vars.r, vars.s) = vm.sign(ownerPrivateKey, vars.digest);
-        return abi.encodePacked(vars.r, vars.s, vars.v);
-    }
-
-    function _hashChainPermits(
-        IPermit3.ChainPermits memory chainPermits
-    ) internal pure returns (bytes32) {
-        bytes32[] memory permitHashes = new bytes32[](chainPermits.permits.length);
-
-        for (uint256 i = 0; i < chainPermits.permits.length; i++) {
-            permitHashes[i] = keccak256(
-                abi.encode(
-                    chainPermits.permits[i].modeOrExpiration,
-                    chainPermits.permits[i].tokenKey,
-                    chainPermits.permits[i].account,
-                    chainPermits.permits[i].amountDelta
-                )
-            );
-        }
-
-        return keccak256(
-            abi.encode(
-                keccak256(
-                    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)"
-                ),
-                chainPermits.chainId,
-                keccak256(abi.encodePacked(permitHashes))
-            )
-        );
+        // Sign
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        return abi.encodePacked(r, s, v);
     }
 
     function _hashTypedDataV4(

@@ -82,7 +82,7 @@ contract TestBase is Test {
         bytes32 permitDataHash = IPermit3(address(permit3)).hashChainPermits(chainPermits);
 
         bytes32 signedHash =
-            keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, permitDataHash));
+            keccak256(abi.encode(permit3.PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, permitDataHash));
 
         bytes32 digest = _getDigest(signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -116,7 +116,7 @@ contract TestBase is Test {
 
         // Create the signature
         bytes32 signedHash =
-            keccak256(abi.encode(permit3.SIGNED_PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, merkleRoot));
+            keccak256(abi.encode(permit3.PERMIT3_TYPEHASH(), owner, salt, deadline, timestamp, merkleRoot));
 
         bytes32 digest = _getDigest(signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
@@ -128,6 +128,31 @@ contract TestBase is Test {
         bytes32 structHash
     ) internal view returns (bytes32) {
         return _getDigest(structHash);
+    }
+
+    // Helper struct for witness tests
+    struct WitnessTestParams {
+        bytes32 salt;
+        uint48 deadline;
+        uint48 timestamp;
+        IPermit3.ChainPermits chainPermits;
+        bytes32 witness;
+        string witnessTypeString;
+        bytes signature;
+    }
+
+    // Helper struct for nonce invalidation tests to avoid stack too deep
+    struct WithProofParams {
+        bytes32 testSalt;
+        bytes32[] salts;
+        INonceManager.NoncesToInvalidate invalidations;
+        bytes32 merkleRoot;
+        bytes32[] proof;
+        uint48 deadline;
+        bytes32 invalidationsHash;
+        bytes32 signedHash;
+        bytes32 digest;
+        bytes signature;
     }
 
     // Helper for nonce invalidation struct hash
@@ -166,31 +191,6 @@ contract TestBase is Test {
         return keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), ownerAddress, deadline, merkleRoot));
     }
 
-    // Helper struct for witness tests
-    struct WitnessTestParams {
-        bytes32 salt;
-        uint48 deadline;
-        uint48 timestamp;
-        IPermit3.ChainPermits chainPermits;
-        bytes32 witness;
-        string witnessTypeString;
-        bytes signature;
-    }
-
-    // Helper struct for nonce invalidation tests to avoid stack too deep
-    struct WithProofParams {
-        bytes32 testSalt;
-        bytes32[] salts;
-        INonceManager.NoncesToInvalidate invalidations;
-        bytes32 merkleRoot;
-        bytes32[] proof;
-        uint48 deadline;
-        bytes32 invalidationsHash;
-        bytes32 signedHash;
-        bytes32 digest;
-        bytes signature;
-    }
-
     // Helper function for witness signing
     function _signWitnessPermit(
         IPermit3.ChainPermits memory chainPermits,
@@ -211,5 +211,60 @@ contract TestBase is Test {
         bytes32 digest = _getDigest(signedHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         return abi.encodePacked(r, s, v);
+    }
+
+    /**
+     * @dev Helper to hash a PermitNode tree structure
+     * @dev Recursively computes EIP-712 hash with proper sorting
+     */
+    function _hashPermitNode(
+        IPermit3.PermitNode memory permitNode
+    ) internal view returns (bytes32) {
+        bytes32 nodesArrayHash;
+        bytes32 permitsArrayHash;
+
+        {
+            bytes32[] memory nodeHashes = new bytes32[](permitNode.nodes.length);
+            for (uint256 i = 0; i < permitNode.nodes.length; i++) {
+                nodeHashes[i] = _hashPermitNode(permitNode.nodes[i]);
+            }
+            // Sort node hashes to match TreeNodeLib.combineNodeAndNode behavior
+            _sortBytes32Array(nodeHashes);
+            nodesArrayHash = keccak256(abi.encodePacked(nodeHashes));
+        }
+
+        {
+            bytes32[] memory permitHashes = new bytes32[](permitNode.permits.length);
+            for (uint256 i = 0; i < permitNode.permits.length; i++) {
+                permitHashes[i] = IPermit3(address(permit3)).hashChainPermits(permitNode.permits[i]);
+            }
+            // Sort permit hashes to match TreeNodeLib.combineLeafAndLeaf behavior
+            _sortBytes32Array(permitHashes);
+            permitsArrayHash = keccak256(abi.encodePacked(permitHashes));
+        }
+
+        bytes32 PERMIT_NODE_TYPEHASH = keccak256(
+            "PermitNode(PermitNode[] nodes,ChainPermits[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)"
+        );
+
+        return keccak256(abi.encode(PERMIT_NODE_TYPEHASH, nodesArrayHash, permitsArrayHash));
+    }
+
+    /**
+     * @dev Helper to sort an array of bytes32 values (bubble sort for simplicity)
+     */
+    function _sortBytes32Array(
+        bytes32[] memory arr
+    ) internal pure {
+        uint256 n = arr.length;
+        for (uint256 i = 0; i < n; i++) {
+            for (uint256 j = i + 1; j < n; j++) {
+                if (arr[i] > arr[j]) {
+                    bytes32 temp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = temp;
+                }
+            }
+        }
     }
 }
