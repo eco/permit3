@@ -13,21 +13,31 @@ contract MockToken is ERC20 {
 
     constructor() ERC20("Mock Token", "MOCK") { }
 
-    function approve(address spender, uint256 amount) public override returns (bool) {
+    function approve(
+        address spender,
+        uint256 amount
+    ) public override returns (bool) {
         if (shouldFailApproval) {
             return false;
         }
         return super.approve(spender, amount);
     }
 
-    function transfer(address to, uint256 amount) public override returns (bool) {
+    function transfer(
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
         if (shouldFailTransfer) {
             return false;
         }
         return super.transfer(to, amount);
     }
 
-    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
         if (shouldFailTransfer) {
             return false;
         }
@@ -46,11 +56,17 @@ contract MockToken is ERC20 {
         shouldFailTransfer = _shouldFail;
     }
 
-    function mint(address to, uint256 amount) external {
+    function mint(
+        address to,
+        uint256 amount
+    ) external {
         _mint(to, amount);
     }
 
-    function burn(address from, uint256 amount) external {
+    function burn(
+        address from,
+        uint256 amount
+    ) external {
         _burn(from, amount);
     }
 }

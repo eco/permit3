@@ -164,7 +164,12 @@ interface IPermit {
      * @param amount The amount of tokens to approve
      * @param expiration The timestamp when the approval expires
      */
-    function approve(address token, address spender, uint160 amount, uint48 expiration) external;
+    function approve(
+        address token,
+        address spender,
+        uint160 amount,
+        uint48 expiration
+    ) external;
 
     /**
      * @notice Transfers tokens from an approved address
@@ -174,7 +179,12 @@ interface IPermit {
      * @param token The token contract address
      * @dev Requires prior approval from the owner to the caller (msg.sender)
      */
-    function transferFrom(address from, address to, uint160 amount, address token) external;
+    function transferFrom(
+        address from,
+        address to,
+        uint160 amount,
+        address token
+    ) external;
 
     /**
      * @notice Executes multiple token transfers in a single transaction

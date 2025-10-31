@@ -52,7 +52,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @param name Contract name for EIP-712 domain
      * @param version Contract version for EIP-712 domain
      */
-    constructor(string memory name, string memory version) EIP712(name, version) { }
+    constructor(
+        string memory name,
+        string memory version
+    ) EIP712(name, version) { }
 
     /**
      * @dev Returns the domain separator for the current chain.
@@ -67,7 +70,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @param salt The salt value to verify
      * @return True if nonce has been used, false otherwise
      */
-    function isNonceUsed(address owner, bytes32 salt) external view returns (bool) {
+    function isNonceUsed(
+        address owner,
+        bytes32 salt
+    ) external view returns (bool) {
         return usedNonces[owner][salt];
     }
 
@@ -162,7 +168,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice This is an internal helper used by the public invalidateNonces functions
      *         to process the actual invalidation after signature verification
      */
-    function _processNonceInvalidation(address owner, bytes32[] memory salts) internal {
+    function _processNonceInvalidation(
+        address owner,
+        bytes32[] memory salts
+    ) internal {
         uint256 saltsLength = salts.length;
 
         require(saltsLength != 0, EmptyArray());
@@ -184,7 +193,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice This is called before processing permits to ensure each signature
      *         can only be used once per salt value
      */
-    function _useNonce(address owner, bytes32 salt) internal {
+    function _useNonce(
+        address owner,
+        bytes32 salt
+    ) internal {
         if (usedNonces[owner][salt]) {
             revert NonceAlreadyUsed(owner, salt);
         }
@@ -204,7 +216,11 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice Reverts with InvalidSignature() if the signature is invalid or
      *         the recovered signer doesn't match the expected owner
      */
-    function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
+    function _verifySignature(
+        address owner,
+        bytes32 structHash,
+        bytes calldata signature
+    ) internal view {
         bytes32 digest = _hashTypedDataV4(structHash);
 
         // For signatures == 65 bytes ECDSA first then falling back to ERC-1271
