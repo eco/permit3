@@ -186,7 +186,7 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice Generate EIP-712 hash for NoncesToInvalidate struct
      * @dev Hashes the struct for use as a leaf in tree reconstruction
      * @dev Uses single-nonce optimization for gas efficiency
-     * @dev Sorts salts before hashing for consistency
+     * @dev Preserves salt order - no sorting (order matters for hash)
      * @param invalidations Struct containing chain ID and nonces to invalidate
      * @return bytes32 Hash suitable for tree leaf
      */

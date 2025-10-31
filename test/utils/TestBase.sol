@@ -268,18 +268,12 @@ contract TestBase is Test {
                 if (nonceNode.nonces[i].salts.length == 1) {
                     nonceHashes[i] = nonceNode.nonces[i].salts[0];
                 } else {
-                    // Multiple nonces - sort and hash as NoncesToInvalidate struct
-                    bytes32[] memory sortedSalts = new bytes32[](nonceNode.nonces[i].salts.length);
-                    for (uint256 j = 0; j < nonceNode.nonces[i].salts.length; j++) {
-                        sortedSalts[j] = nonceNode.nonces[i].salts[j];
-                    }
-                    _sortBytes32Array(sortedSalts);
-
+                    // Multiple nonces - hash as NoncesToInvalidate struct (no sorting, preserve order)
                     nonceHashes[i] = keccak256(
                         abi.encode(
                             permit3.NONCES_TO_INVALIDATE_TYPEHASH(),
                             nonceNode.nonces[i].chainId,
-                            keccak256(abi.encodePacked(sortedSalts))
+                            keccak256(abi.encodePacked(nonceNode.nonces[i].salts))
                         )
                     );
                 }
