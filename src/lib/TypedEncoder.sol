@@ -192,21 +192,88 @@ library TypedEncoder {
         }
         // Create encoding computes contract address from CREATE opcode
         if (s.encodingType == EncodingType.Create) {
+            // Validate Create encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCreateEncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 2 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+                revert InvalidCreateEncodingStructure();
+            }
+            if (
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
+                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
+            ) {
+                revert InvalidCreateEncodingStructure();
+            }
             return abi.encodePacked(_encodeCreate(s));
         }
         // Create2 encoding computes contract address from CREATE2 opcode
         if (s.encodingType == EncodingType.Create2) {
+            // Validate Create2 encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCreate2EncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+                revert InvalidCreate2EncodingStructure();
+            }
+            if (
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
+                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
+                    || chunk.primitives[2].isDynamic || chunk.primitives[2].data.length != 32
+            ) {
+                revert InvalidCreate2EncodingStructure();
+            }
             return abi.encodePacked(_encodeCreate2(s));
         }
         // Create3 encoding computes contract address from CREATE3 pattern
         if (s.encodingType == EncodingType.Create3) {
+            // Validate Create3 encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCreate3EncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+                revert InvalidCreate3EncodingStructure();
+            }
+            if (
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
+                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
+                    || chunk.primitives[2].isDynamic || chunk.primitives[2].data.length != 32
+            ) {
+                revert InvalidCreate3EncodingStructure();
+            }
             return abi.encodePacked(_encodeCreate3(s));
         }
         // CallWithSelector and CallWithSignature return raw calldata (selector + params)
         if (s.encodingType == EncodingType.CallWithSelector) {
+            // Validate CallWithSelector encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCallEncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 1 || chunk.structs.length != 1 || chunk.arrays.length != 0) {
+                revert InvalidCallEncodingStructure();
+            }
+            Primitive memory selectorPrim = chunk.primitives[0];
+            if (selectorPrim.isDynamic || selectorPrim.data.length != 4) {
+                revert InvalidCallEncodingStructure();
+            }
             return _encodeCallWithSelector(s);
         }
         if (s.encodingType == EncodingType.CallWithSignature) {
+            // Validate CallWithSignature encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCallEncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 1 || chunk.structs.length != 1 || chunk.arrays.length != 0) {
+                revert InvalidCallEncodingStructure();
+            }
+            if (!chunk.primitives[0].isDynamic) {
+                revert InvalidCallEncodingStructure();
+            }
             return _encodeCallWithSignature(s);
         }
         // ABI encoding type returns raw struct encoding without offset wrapper
@@ -217,6 +284,14 @@ library TypedEncoder {
         // For Array and Struct types, encode and add offset wrapper if dynamic
         bytes memory encoded;
         if (s.encodingType == EncodingType.Array) {
+            // Validate array encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert UnsupportedArrayType();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length > 0 || chunk.arrays.length > 0) {
+                revert UnsupportedArrayType();
+            }
             encoded = _encodeAsArray(s);
         } else {
             // Default Struct type uses _encodeAbi
@@ -238,17 +313,8 @@ library TypedEncoder {
     function _encodeAsArray(
         Struct memory s
     ) private pure returns (bytes memory) {
-        // Array encoding must use exactly 1 chunk (chunks are for field ordering, not array elements)
-        if (s.chunks.length != 1) {
-            revert UnsupportedArrayType();
-        }
-
+        // Validation is performed in encode() function before calling this private function
         Chunk memory chunk = s.chunks[0];
-
-        // Only struct fields allowed in array encoding (primitives and arrays not supported)
-        if (chunk.primitives.length > 0 || chunk.arrays.length > 0) {
-            revert UnsupportedArrayType();
-        }
 
         uint256 totalStructs = chunk.structs.length;
 
@@ -290,22 +356,9 @@ library TypedEncoder {
     function _encodeCallWithSelector(
         Struct memory s
     ) private pure returns (bytes memory) {
-        // Validate structure: exactly 1 chunk with 1 primitive (selector) and 1 struct (params)
-        if (s.chunks.length != 1) {
-            revert InvalidCallEncodingStructure();
-        }
-
+        // Validation is performed in encode() function before calling this private function
         Chunk memory chunk = s.chunks[0];
-        if (chunk.primitives.length != 1 || chunk.structs.length != 1 || chunk.arrays.length != 0) {
-            revert InvalidCallEncodingStructure();
-        }
-
         Primitive memory selectorPrimitive = chunk.primitives[0];
-
-        // Selector must be static (not dynamic) and exactly 4 bytes
-        if (selectorPrimitive.isDynamic || selectorPrimitive.data.length != 4) {
-            revert InvalidCallEncodingStructure();
-        }
 
         // Extract the 4-byte selector directly from the 4-byte data
         bytes memory selectorData = selectorPrimitive.data;
@@ -354,22 +407,9 @@ library TypedEncoder {
     function _encodeCallWithSignature(
         Struct memory s
     ) private pure returns (bytes memory) {
-        // Validate structure: exactly 1 chunk with 1 primitive (signature) and 1 struct (params)
-        if (s.chunks.length != 1) {
-            revert InvalidCallEncodingStructure();
-        }
-
+        // Validation is performed in encode() function before calling this private function
         Chunk memory chunk = s.chunks[0];
-        if (chunk.primitives.length != 1 || chunk.structs.length != 1 || chunk.arrays.length != 0) {
-            revert InvalidCallEncodingStructure();
-        }
-
         Primitive memory signaturePrimitive = chunk.primitives[0];
-
-        // Signature must be dynamic (string/bytes)
-        if (!signaturePrimitive.isDynamic) {
-            revert InvalidCallEncodingStructure();
-        }
 
         // Compute selector from signature: bytes4(keccak256(signature))
         bytes4 selector = bytes4(keccak256(signaturePrimitive.data));
@@ -527,34 +567,15 @@ library TypedEncoder {
     function _encodeCreate(
         Struct memory s
     ) private pure returns (address) {
-        // Validate: exactly 1 chunk
-        if (s.chunks.length != 1) {
-            revert InvalidCreateEncodingStructure();
-        }
-
+        // Validation is performed in encode() function before calling this private function
         Chunk memory chunk = s.chunks[0];
-
-        // Validate: exactly 2 primitives, 0 structs, 0 arrays
-        if (chunk.primitives.length != 2 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
-            revert InvalidCreateEncodingStructure();
-        }
-
-        // Extract deployer (address, 20 bytes)
         Primitive memory deployerPrimitive = chunk.primitives[0];
-        if (deployerPrimitive.isDynamic || deployerPrimitive.data.length != 32) {
-            revert InvalidCreateEncodingStructure();
-        }
+        Primitive memory noncePrimitive = chunk.primitives[1];
 
         bytes memory deployerData = deployerPrimitive.data;
         address deployer;
         assembly {
             deployer := mload(add(deployerData, 32))
-        }
-
-        // Extract nonce (uint256)
-        Primitive memory noncePrimitive = chunk.primitives[1];
-        if (noncePrimitive.isDynamic || noncePrimitive.data.length != 32) {
-            revert InvalidCreateEncodingStructure();
         }
 
         bytes memory nonceData = noncePrimitive.data;
@@ -614,23 +635,11 @@ library TypedEncoder {
     function _encodeCreate2(
         Struct memory s
     ) private pure returns (address) {
-        // Validate: exactly 1 chunk
-        if (s.chunks.length != 1) {
-            revert InvalidCreate2EncodingStructure();
-        }
-
+        // Validation is performed in encode() function before calling this private function
         Chunk memory chunk = s.chunks[0];
-
-        // Validate: exactly 3 primitives, 0 structs, 0 arrays
-        if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
-            revert InvalidCreate2EncodingStructure();
-        }
-
-        // Extract deployer (address, 20 bytes)
         Primitive memory deployerPrimitive = chunk.primitives[0];
-        if (deployerPrimitive.isDynamic || deployerPrimitive.data.length != 32) {
-            revert InvalidCreate2EncodingStructure();
-        }
+        Primitive memory saltPrimitive = chunk.primitives[1];
+        Primitive memory initCodeHashPrimitive = chunk.primitives[2];
 
         bytes memory deployerData = deployerPrimitive.data;
         address deployer;
@@ -638,22 +647,10 @@ library TypedEncoder {
             deployer := mload(add(deployerData, 32))
         }
 
-        // Extract salt (bytes32)
-        Primitive memory saltPrimitive = chunk.primitives[1];
-        if (saltPrimitive.isDynamic || saltPrimitive.data.length != 32) {
-            revert InvalidCreate2EncodingStructure();
-        }
-
         bytes memory saltData = saltPrimitive.data;
         bytes32 salt;
         assembly {
             salt := mload(add(saltData, 32))
-        }
-
-        // Extract initCodeHash (bytes32)
-        Primitive memory initCodeHashPrimitive = chunk.primitives[2];
-        if (initCodeHashPrimitive.isDynamic || initCodeHashPrimitive.data.length != 32) {
-            revert InvalidCreate2EncodingStructure();
         }
 
         bytes memory initCodeHashData = initCodeHashPrimitive.data;
@@ -683,23 +680,11 @@ library TypedEncoder {
     function _encodeCreate3(
         Struct memory s
     ) private pure returns (address) {
-        // Validate: exactly 1 chunk
-        if (s.chunks.length != 1) {
-            revert InvalidCreate3EncodingStructure();
-        }
-
+        // Validation is performed in encode() function before calling this private function
         Chunk memory chunk = s.chunks[0];
-
-        // Validate: exactly 3 primitives, 0 structs, 0 arrays
-        if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
-            revert InvalidCreate3EncodingStructure();
-        }
-
-        // Extract deployer (address, 20 bytes)
         Primitive memory deployerPrimitive = chunk.primitives[0];
-        if (deployerPrimitive.isDynamic || deployerPrimitive.data.length != 32) {
-            revert InvalidCreate3EncodingStructure();
-        }
+        Primitive memory saltPrimitive = chunk.primitives[1];
+        Primitive memory createDeployCodeHashPrimitive = chunk.primitives[2];
 
         bytes memory deployerData = deployerPrimitive.data;
         address deployer;
@@ -707,22 +692,10 @@ library TypedEncoder {
             deployer := mload(add(deployerData, 32))
         }
 
-        // Extract salt (bytes32)
-        Primitive memory saltPrimitive = chunk.primitives[1];
-        if (saltPrimitive.isDynamic || saltPrimitive.data.length != 32) {
-            revert InvalidCreate3EncodingStructure();
-        }
-
         bytes memory saltData = saltPrimitive.data;
         bytes32 salt;
         assembly {
             salt := mload(add(saltData, 32))
-        }
-
-        // Extract createDeployCodeHash (bytes32) - hash of intermediary deployer bytecode
-        Primitive memory createDeployCodeHashPrimitive = chunk.primitives[2];
-        if (createDeployCodeHashPrimitive.isDynamic || createDeployCodeHashPrimitive.data.length != 32) {
-            revert InvalidCreate3EncodingStructure();
         }
 
         bytes memory createDeployCodeHashData = createDeployCodeHashPrimitive.data;
