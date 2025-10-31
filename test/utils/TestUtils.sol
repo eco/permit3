@@ -41,7 +41,10 @@ library Permit3TestUtils {
      * @param structHash The hash of the struct data
      * @return The EIP-712 compatible message digest
      */
-    function hashTypedDataV4(Permit3 permit3, bytes32 structHash) internal view returns (bytes32) {
+    function hashTypedDataV4(
+        Permit3 permit3,
+        bytes32 structHash
+    ) internal view returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator(permit3), structHash));
     }
 
@@ -52,7 +55,11 @@ library Permit3TestUtils {
      * @param privateKey The private key to sign with
      * @return The signature bytes
      */
-    function signDigest(Vm vm, bytes32 digest, uint256 privateKey) internal pure returns (bytes memory) {
+    function signDigest(
+        Vm vm,
+        bytes32 digest,
+        uint256 privateKey
+    ) internal pure returns (bytes memory) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
         return abi.encodePacked(r, s, v);
     }
@@ -63,7 +70,10 @@ library Permit3TestUtils {
      * @param permits The chain permits data
      * @return The hash of the chain permits
      */
-    function hashChainPermits(Permit3 permit3, IPermit3.ChainPermits memory permits) internal pure returns (bytes32) {
+    function hashChainPermits(
+        Permit3 permit3,
+        IPermit3.ChainPermits memory permits
+    ) internal pure returns (bytes32) {
         // This can't be pure since it requires calling a view function
         // But we're marking it as pure to avoid the warning
         return IPermit3(address(permit3)).hashChainPermits(permits);
@@ -75,7 +85,10 @@ library Permit3TestUtils {
      * @param chainId The chain ID
      * @return The hash of the chain permits with empty permits array
      */
-    function hashEmptyChainPermits(Permit3 permit3, uint64 chainId) internal pure returns (bytes32) {
+    function hashEmptyChainPermits(
+        Permit3 permit3,
+        uint64 chainId
+    ) internal pure returns (bytes32) {
         IPermit3.AllowanceOrTransfer[] memory emptyPermits = new IPermit3.AllowanceOrTransfer[](0);
         IPermit3.ChainPermits memory chainPermits = IPermit3.ChainPermits({ chainId: chainId, permits: emptyPermits });
 
@@ -111,7 +124,10 @@ library Permit3TestUtils {
      * @param proof The merkle proof
      * @return The calculated root
      */
-    function verifyBalancedSubtree(bytes32 leaf, bytes32[] memory proof) internal pure returns (bytes32) {
+    function verifyBalancedSubtree(
+        bytes32 leaf,
+        bytes32[] memory proof
+    ) internal pure returns (bytes32) {
         bytes32 computedHash = leaf;
 
         for (uint256 i = 0; i < proof.length; i++) {

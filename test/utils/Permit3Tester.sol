@@ -12,7 +12,10 @@ contract Permit3Tester is Permit3 {
     /**
      * @notice Exposes the MerkleProof.processProof function for testing
      */
-    function calculateUnbalancedRoot(bytes32 leaf, bytes32[] calldata proof) external pure returns (bytes32) {
+    function calculateUnbalancedRoot(
+        bytes32 leaf,
+        bytes32[] calldata proof
+    ) external pure returns (bytes32) {
         return MerkleProof.processProof(proof, leaf);
     }
 
