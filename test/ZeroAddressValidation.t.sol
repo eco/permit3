@@ -60,10 +60,8 @@ contract ZeroAddressValidationTest is Test {
             amountDelta: 100
         });
 
-        IPermit3.Witness memory witness = IPermit3.Witness({
-            witness: bytes32(0),
-            witnessTypeString: "WitnessData witness)"
-        });
+        IPermit3.Witness memory witness =
+            IPermit3.Witness({ witness: bytes32(0), witnessTypeString: "WitnessData witness)" });
 
         IPermit3.Signature memory sig = IPermit3.Signature({
             owner: address(0),
