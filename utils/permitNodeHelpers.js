@@ -229,25 +229,6 @@ function findMerklePathToRoot(permitNode, targetChainId, depth = 0) {
         }
     }
 
-    // Also check if target is in permits when there are nodes present
-    // This handles the case where we have both nodes and permits at the same level
-    if (permitNode.nodes.length > 0 && permitNode.permits.length > 0) {
-        for (let i = 0; i < permitNode.permits.length; i++) {
-            if (permitNode.permits[i].chainId === targetChainId) {
-                // Found it! The sibling is the node
-                const proof = [hashPermitNode(permitNode.nodes[0])];
-                const typeFlags = [1]; // Sibling is a Node
-
-                return {
-                    proof,
-                    typeFlags,
-                    chainPermits: permitNode.permits[i],
-                    position: i
-                };
-            }
-        }
-    }
-
     // Not found in this subtree
     return null;
 }
