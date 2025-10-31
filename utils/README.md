@@ -235,7 +235,7 @@ If you're using the old `flatten()` implementation from the original `permitNode
 
 ## Dependencies
 
-- `ethers` (v6.x) - For Ethereum interactions and EIP-712 signing
+- `ethers` (v5.x) - For Ethereum interactions and EIP-712 signing
 
 ## References
 
