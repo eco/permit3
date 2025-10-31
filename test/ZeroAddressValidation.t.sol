@@ -40,7 +40,16 @@ contract ZeroAddressValidationTest is Test {
         });
 
         vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
-        permit3.permit(address(0), bytes32(0), uint48(block.timestamp + 1), uint48(block.timestamp), permits, "");
+        permit3.permit(
+            permits,
+            IPermit3.Signature({
+                owner: address(0),
+                salt: bytes32(0),
+                deadline: uint48(block.timestamp + 1),
+                timestamp: uint48(block.timestamp),
+                signature: ""
+            })
+        );
     }
 
     function test_permitWitness_RejectsZeroOwner() public {
@@ -54,14 +63,15 @@ contract ZeroAddressValidationTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
         permit3.permitWitness(
-            address(0),
-            bytes32(0),
-            uint48(block.timestamp + 1),
-            uint48(block.timestamp),
             permits,
-            bytes32(0),
-            "WitnessData witness)",
-            ""
+            IPermit3.Witness({ witness: bytes32(0), witnessTypeString: "WitnessData witness)" }),
+            IPermit3.Signature({
+                owner: address(0),
+                salt: bytes32(0),
+                deadline: uint48(block.timestamp + 1),
+                timestamp: uint48(block.timestamp),
+                signature: ""
+            })
         );
     }
 
@@ -123,10 +133,7 @@ contract ZeroAddressValidationTest is Test {
     function test_processAllowanceOperation_RejectsZeroToken() public {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(100),
-            tokenKey: bytes32(0),
-            account: bob,
-            amountDelta: 100
+            modeOrExpiration: uint48(100), tokenKey: bytes32(0), account: bob, amountDelta: 100
         });
 
         vm.startPrank(alice);
@@ -168,6 +175,6 @@ contract ZeroAddressValidationTest is Test {
         salts[0] = bytes32(uint256(1));
 
         vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, address(0)));
-        permit3.invalidateNonces(address(0), uint48(block.timestamp + 100), salts, "");
+        permit3.invalidateNonces(salts, INonceManager.NonceSignature(address(0), uint48(block.timestamp + 100), ""));
     }
 }

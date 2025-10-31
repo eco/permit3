@@ -67,6 +67,44 @@ interface INonceManager is IPermit {
     }
 
     /**
+     * @notice Nested structure for batch nonce invalidation with UI transparency
+     * @dev Similar to PermitNode - enables tree-based nonce invalidation
+     * @dev Binary tree structure where leaves are NoncesToInvalidate (chain-specific nonce lists)
+     * @param nodes Child nonce tree nodes (nested structures)
+     * @param nonces Leaf invalidations (NoncesToInvalidate for each chain)
+     */
+    struct NonceNode {
+        NonceNode[] nodes;
+        NoncesToInvalidate[] nonces;
+    }
+
+    /**
+     * @notice Signature data for nonce invalidation operations
+     * @dev Parallel to IPermit3.Signature but without salt and timestamp fields
+     * @param owner Address that owns the nonces being invalidated
+     * @param deadline Timestamp after which signature expires
+     * @param signature EIP-712 signature bytes
+     */
+    struct NonceSignature {
+        address owner;
+        uint48 deadline;
+        bytes signature;
+    }
+
+    /**
+     * @notice Input struct for tree-based nonce invalidation containing tree structure data
+     * @dev Parallel to IPermit3.PermitTree struct
+     * @param currentChainInvalidations Nonces to invalidate for the current chain
+     * @param proofStructure Compact tree encoding (position + type flags)
+     * @param proof Array of sibling hashes for tree reconstruction
+     */
+    struct NonceTree {
+        NoncesToInvalidate currentChainInvalidations;
+        bytes32 proofStructure;
+        bytes32[] proof;
+    }
+
+    /**
      * @notice Export EIP-712 domain separator
      * @return bytes32 domain separator hash
      */
@@ -78,7 +116,10 @@ interface INonceManager is IPermit {
      * @param salt Salt value to check
      * @return true if nonce has been used
      */
-    function isNonceUsed(address owner, bytes32 salt) external view returns (bool);
+    function isNonceUsed(
+        address owner,
+        bytes32 salt
+    ) external view returns (bool);
 
     /**
      * @notice Mark multiple nonces as used
@@ -90,32 +131,23 @@ interface INonceManager is IPermit {
 
     /**
      * @notice Mark nonces as used with signature authorization
-     * @param owner Token owner address
-     * @param deadline Signature expiration timestamp
      * @param salts Array of nonce salts to invalidate
-     * @param signature EIP-712 signature authorizing the invalidation
+     * @param sig Signature data (owner, deadline, signature)
      */
     function invalidateNonces(
-        address owner,
-        uint48 deadline,
         bytes32[] calldata salts,
-        bytes calldata signature
+        NonceSignature calldata sig
     ) external;
 
     /**
-     * @notice Cross-chain nonce invalidation using Merkle Tree
-     * @param owner Token owner address
-     * @param deadline Signature expiration timestamp
-     * @param invalidations Current chain invalidation data
-     * @param proof Merkle proof array for verification
-     * @param signature EIP-712 signature authorizing the invalidation
+     * @notice Invalidate multiple nonces using tree structure with UI transparency
+     * @dev User signs complete NonceNode showing all nonces being invalidated
+     * @param tree NonceTree containing proofStructure, currentChainInvalidations, and proof
+     * @param sig Signature data (owner, deadline, signature)
      */
     function invalidateNonces(
-        address owner,
-        uint48 deadline,
-        NoncesToInvalidate memory invalidations,
-        bytes32[] memory proof,
-        bytes calldata signature
+        NonceTree calldata tree,
+        NonceSignature calldata sig
     ) external;
 
     /**

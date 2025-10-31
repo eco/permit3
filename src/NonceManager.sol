@@ -6,7 +6,8 @@ import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/Sig
 
 import { INonceManager } from "./interfaces/INonceManager.sol";
 import { EIP712 } from "./lib/EIP712.sol";
-import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
+import { TreeNodeLib } from "./lib/TreeNodeLib.sol";
 
 /**
  * @title NonceManager
@@ -34,6 +35,34 @@ abstract contract NonceManager is INonceManager, EIP712 {
     mapping(address => mapping(bytes32 => bool)) internal usedNonces;
 
     /**
+     * @notice EIP-712 typehash for single-chain signed nonce invalidation
+     * @dev Includes owner, deadline, and NoncesToInvalidate struct for single-chain invalidation
+     * @dev Parallel to PERMIT3_TYPEHASH pattern
+     */
+    bytes32 public constant INVALIDATE_NONCES_TYPEHASH = keccak256(
+        "InvalidateNonces(address owner,uint48 deadline,NoncesToInvalidate noncesToInvalidate)NoncesToInvalidate(uint64 chainId,bytes32[] salts)"
+    );
+
+    /**
+     * @notice EIP-712 typehash for tree-based multi-chain nonce invalidation
+     * @dev Includes owner, deadline, and NonceNode tree for UI transparency and cross-chain invalidation
+     * @dev Binary tree structure where leaves are NoncesToInvalidate (chain-specific nonce lists)
+     * @dev Parallel to MULTICHAIN_PERMIT3_TYPEHASH pattern
+     */
+    bytes32 public constant MULTICHAIN_INVALIDATE_NONCES_TYPEHASH = keccak256(
+        "InvalidateNonces(address owner,uint48 deadline,NonceNode nonceTree)NonceNode(NonceNode[] nodes,NoncesToInvalidate[] nonces)NoncesToInvalidate(uint64 chainId,bytes32[] salts)"
+    );
+
+    /**
+     * @notice EIP-712 typehash for NonceNode structure
+     * @dev Used for hashing NonceNode in tree reconstruction with MULTICHAIN_INVALIDATE_NONCES_TYPEHASH
+     * @dev Binary tree where leaves are NoncesToInvalidate structs, not raw bytes32 nonces
+     */
+    bytes32 internal constant NONCE_NODE_TYPEHASH = keccak256(
+        "NonceNode(NonceNode[] nodes,NoncesToInvalidate[] nonces)NoncesToInvalidate(uint64 chainId,bytes32[] salts)"
+    );
+
+    /**
      * @notice EIP-712 typehash for nonce invalidation
      * @dev Includes chainId for cross-chain replay protection
      */
@@ -41,18 +70,14 @@ abstract contract NonceManager is INonceManager, EIP712 {
         keccak256("NoncesToInvalidate(uint64 chainId,bytes32[] salts)");
 
     /**
-     * @notice EIP-712 typehash for invalidation signatures
-     * @dev Includes owner, deadline, and unbalanced root for batch operations
-     */
-    bytes32 public constant CANCEL_PERMIT3_TYPEHASH =
-        keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 merkleRoot)");
-
-    /**
      * @notice Initialize EIP-712 domain separator
      * @param name Contract name for EIP-712 domain
      * @param version Contract version for EIP-712 domain
      */
-    constructor(string memory name, string memory version) EIP712(name, version) { }
+    constructor(
+        string memory name,
+        string memory version
+    ) EIP712(name, version) { }
 
     /**
      * @dev Returns the domain separator for the current chain.
@@ -67,7 +92,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @param salt The salt value to verify
      * @return True if nonce has been used, false otherwise
      */
-    function isNonceUsed(address owner, bytes32 salt) external view returns (bool) {
+    function isNonceUsed(
+        address owner,
+        bytes32 salt
+    ) external view returns (bool) {
         return usedNonces[owner][salt];
     }
 
@@ -83,73 +111,103 @@ abstract contract NonceManager is INonceManager, EIP712 {
 
     /**
      * @notice Invalidate nonces using a signed message
-     * @param owner Address that signed the invalidation
-     * @param deadline Timestamp after which signature is invalid
      * @param salts Array of nonce salts to invalidate
-     * @param signature EIP-712 signature authorizing invalidation
+     * @param sig Signature data (owner, deadline, signature)
      */
     function invalidateNonces(
-        address owner,
-        uint48 deadline,
         bytes32[] calldata salts,
-        bytes calldata signature
+        NonceSignature calldata sig
     ) external {
-        if (block.timestamp > deadline) {
-            revert SignatureExpired(deadline, uint48(block.timestamp));
+        if (block.timestamp > sig.deadline) {
+            revert SignatureExpired(sig.deadline, uint48(block.timestamp));
         }
 
         NoncesToInvalidate memory invalidations = NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
 
+        // Hash the NoncesToInvalidate struct according to EIP-712
+        bytes32 invalidationsHash = keccak256(
+            abi.encode(
+                NONCES_TO_INVALIDATE_TYPEHASH, invalidations.chainId, keccak256(abi.encodePacked(invalidations.salts))
+            )
+        );
+
         bytes32 signedHash =
-            keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, hashNoncesToInvalidate(invalidations)));
+            keccak256(abi.encode(INVALIDATE_NONCES_TYPEHASH, sig.owner, sig.deadline, invalidationsHash));
 
-        _verifySignature(owner, signedHash, signature);
+        _verifySignature(sig.owner, signedHash, sig.signature);
 
-        _processNonceInvalidation(owner, salts);
+        _processNonceInvalidation(sig.owner, salts);
     }
 
     /**
-     * @notice Cross-chain nonce invalidation using the Unbalanced Merkle Tree approach
-     * @param owner Token owner
-     * @param deadline Signature expiration
-     * @param proof Unbalanced Merkle Tree invalidation proof
-     * @param signature Authorization signature
+     * @notice Invalidate multiple nonces using tree structure with UI transparency
+     * @dev User signs complete NonceNode showing all nonces being invalidated
+     * @dev Reconstructs NonceNode hash from compact encoding for signature verification
+     * @param tree NonceTree containing proofStructure, currentChainInvalidations, and proof
+     * @param sig Signature data (owner, deadline, signature)
      */
     function invalidateNonces(
-        address owner,
-        uint48 deadline,
-        NoncesToInvalidate calldata invalidations,
-        bytes32[] calldata proof,
-        bytes calldata signature
+        NonceTree calldata tree,
+        NonceSignature calldata sig
     ) external {
-        if (block.timestamp > deadline) {
-            revert SignatureExpired(deadline, uint48(block.timestamp));
-        }
-        if (invalidations.chainId != uint64(block.chainid)) {
-            revert WrongChainId(uint64(block.chainid), invalidations.chainId);
+        // Validate deadline
+        if (block.timestamp > sig.deadline) {
+            revert SignatureExpired(sig.deadline, uint48(block.timestamp));
         }
 
-        // Calculate the root from the invalidations and proof
-        // processProof performs validation internally and provides granular error messages
-        bytes32 invalidationsHash = hashNoncesToInvalidate(invalidations);
-        bytes32 merkleRoot = MerkleProof.processProof(proof, invalidationsHash);
+        // Validate chain ID matches current chain
+        if (tree.currentChainInvalidations.chainId != uint64(block.chainid)) {
+            revert WrongChainId(uint64(block.chainid), tree.currentChainInvalidations.chainId);
+        }
 
-        bytes32 signedHash = keccak256(abi.encode(CANCEL_PERMIT3_TYPEHASH, owner, deadline, merkleRoot));
+        // Validate that at least one nonce is being cancelled
+        if (tree.currentChainInvalidations.salts.length == 0) {
+            revert EmptyArray();
+        }
 
-        _verifySignature(owner, signedHash, signature);
+        // Hash the current chain's NoncesToInvalidate as a leaf
+        bytes32 currentChainHash = hashNoncesToInvalidate(tree.currentChainInvalidations);
 
-        _processNonceInvalidation(owner, invalidations.salts);
+        // Reconstruct the NonceNode hash from the proof and tree structure
+        bytes32 nonceNodeHash =
+            TreeNodeLib.computeTreeHash(NONCE_NODE_TYPEHASH, tree.proofStructure, tree.proof, currentChainHash);
+
+        // Verify signature with MULTICHAIN_INVALIDATE_NONCES_TYPEHASH
+        bytes32 signedHash =
+            keccak256(abi.encode(MULTICHAIN_INVALIDATE_NONCES_TYPEHASH, sig.owner, sig.deadline, nonceNodeHash));
+
+        _verifySignature(sig.owner, signedHash, sig.signature);
+
+        // Process nonce cancellation
+        _processNonceInvalidation(sig.owner, tree.currentChainInvalidations.salts);
     }
 
     /**
-     * @notice Generate EIP-712 hash for nonce invalidation data
-     * @param invalidations Struct containing chain ID and nonces
-     * @return bytes32 Hash of the invalidation data
+     * @notice Generate EIP-712 hash for NoncesToInvalidate struct
+     * @dev Hashes the struct for use as a leaf in tree reconstruction
+     * @dev Uses single-nonce optimization for gas efficiency
+     * @dev Sorts salts before hashing for consistency
+     * @param invalidations Struct containing chain ID and nonces to invalidate
+     * @return bytes32 Hash suitable for tree leaf
      */
     function hashNoncesToInvalidate(
         NoncesToInvalidate memory invalidations
     ) public pure returns (bytes32) {
-        return keccak256(abi.encode(NONCES_TO_INVALIDATE_TYPEHASH, invalidations.chainId, invalidations.salts));
+        if (invalidations.salts.length == 0) {
+            return bytes32(0);
+        }
+
+        // Single nonce optimization - use the nonce directly as hash
+        if (invalidations.salts.length == 1) {
+            return invalidations.salts[0];
+        }
+
+        // Multiple nonces - hash as EIP-712 NoncesToInvalidate struct
+        return keccak256(
+            abi.encode(
+                NONCES_TO_INVALIDATE_TYPEHASH, invalidations.chainId, keccak256(abi.encodePacked(invalidations.salts))
+            )
+        );
     }
 
     /**
@@ -162,7 +220,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice This is an internal helper used by the public invalidateNonces functions
      *         to process the actual invalidation after signature verification
      */
-    function _processNonceInvalidation(address owner, bytes32[] memory salts) internal {
+    function _processNonceInvalidation(
+        address owner,
+        bytes32[] memory salts
+    ) internal {
         uint256 saltsLength = salts.length;
 
         require(saltsLength != 0, EmptyArray());
@@ -184,7 +245,10 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice This is called before processing permits to ensure each signature
      *         can only be used once per salt value
      */
-    function _useNonce(address owner, bytes32 salt) internal {
+    function _useNonce(
+        address owner,
+        bytes32 salt
+    ) internal {
         if (usedNonces[owner][salt]) {
             revert NonceAlreadyUsed(owner, salt);
         }
@@ -204,7 +268,11 @@ abstract contract NonceManager is INonceManager, EIP712 {
      * @notice Reverts with InvalidSignature() if the signature is invalid or
      *         the recovered signer doesn't match the expected owner
      */
-    function _verifySignature(address owner, bytes32 structHash, bytes calldata signature) internal view {
+    function _verifySignature(
+        address owner,
+        bytes32 structHash,
+        bytes calldata signature
+    ) internal view {
         bytes32 digest = _hashTypedDataV4(structHash);
 
         // For signatures == 65 bytes ECDSA first then falling back to ERC-1271
@@ -219,6 +287,77 @@ abstract contract NonceManager is INonceManager, EIP712 {
         // For longer signatures or when ECDSA failed use ERC-1271 validation
         if (owner.code.length == 0 || !owner.isValidERC1271SignatureNow(digest, signature)) {
             revert InvalidSignature(owner);
+        }
+    }
+
+    /**
+     * @dev Hash a NonceNode structure for EIP-712 signing
+     * @dev Recursively hashes the complete tree structure for UI transparency
+     * @dev Mirrors hashPermitNode implementation for consistency
+     * @dev Binary tree where leaves are NoncesToInvalidate structs (chain-specific nonce lists)
+     * @dev Sorts hashes to match TreeNodeLib reconstruction behavior
+     * @param nonceNode The nonce node tree structure to hash
+     * @return bytes32 The EIP-712 hash of the complete nonce node structure
+     */
+    function hashNonceNode(
+        NonceNode memory nonceNode
+    ) internal pure returns (bytes32) {
+        bytes32 nodesArrayHash;
+        bytes32 noncesArrayHash;
+
+        // Hash child nodes in separate block (stack management)
+        {
+            bytes32[] memory nodeHashes = new bytes32[](nonceNode.nodes.length);
+            for (uint256 i = 0; i < nonceNode.nodes.length; i++) {
+                nodeHashes[i] = hashNonceNode(nonceNode.nodes[i]);
+            }
+            // Sort to match TreeNodeLib.combineNodeAndNode behavior
+            _sortBytes32Array(nodeHashes);
+            nodesArrayHash = keccak256(abi.encodePacked(nodeHashes));
+        }
+
+        // Hash NoncesToInvalidate array in separate block (stack management)
+        {
+            bytes32[] memory nonceInvalidationHashes = new bytes32[](nonceNode.nonces.length);
+            for (uint256 i = 0; i < nonceNode.nonces.length; i++) {
+                // For single nonce, use the nonce directly (matches hashNoncesToInvalidate logic)
+                if (nonceNode.nonces[i].salts.length == 1) {
+                    nonceInvalidationHashes[i] = nonceNode.nonces[i].salts[0];
+                } else {
+                    // Multiple nonces - hash as NoncesToInvalidate struct (no sorting, preserve order)
+                    nonceInvalidationHashes[i] = keccak256(
+                        abi.encode(
+                            NONCES_TO_INVALIDATE_TYPEHASH,
+                            nonceNode.nonces[i].chainId,
+                            keccak256(abi.encodePacked(nonceNode.nonces[i].salts))
+                        )
+                    );
+                }
+            }
+            // Sort to match TreeNodeLib.combineLeafAndLeaf behavior
+            _sortBytes32Array(nonceInvalidationHashes);
+            noncesArrayHash = keccak256(abi.encodePacked(nonceInvalidationHashes));
+        }
+
+        return keccak256(abi.encode(NONCE_NODE_TYPEHASH, nodesArrayHash, noncesArrayHash));
+    }
+
+    /**
+     * @dev Helper function to sort bytes32 array in place (bubble sort)
+     * @param arr Array to sort
+     */
+    function _sortBytes32Array(
+        bytes32[] memory arr
+    ) private pure {
+        uint256 n = arr.length;
+        for (uint256 i = 0; i < n; i++) {
+            for (uint256 j = i + 1; j < n; j++) {
+                if (uint256(arr[i]) > uint256(arr[j])) {
+                    bytes32 temp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = temp;
+                }
+            }
         }
     }
 }
