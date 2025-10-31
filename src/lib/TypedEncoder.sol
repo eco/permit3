@@ -229,12 +229,61 @@ library TypedEncoder {
             }
             return _encodeCallWithSignature(s);
         }
-        // Encoding types implemented in later commits
-        if (
-            s.encodingType == EncodingType.Create || s.encodingType == EncodingType.Create2
-                || s.encodingType == EncodingType.Create3
-        ) {
-            revert EncodingTypeNotImplemented();
+        // Create encoding computes contract address from CREATE opcode
+        if (s.encodingType == EncodingType.Create) {
+            // Validate Create encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCreateEncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 2 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+                revert InvalidCreateEncodingStructure();
+            }
+            if (
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
+                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
+            ) {
+                revert InvalidCreateEncodingStructure();
+            }
+            return abi.encodePacked(_encodeCreate(s));
+        }
+        // Create2 encoding computes contract address from CREATE2 opcode
+        if (s.encodingType == EncodingType.Create2) {
+            // Validate Create2 encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCreate2EncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+                revert InvalidCreate2EncodingStructure();
+            }
+            if (
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
+                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
+                    || chunk.primitives[2].isDynamic || chunk.primitives[2].data.length != 32
+            ) {
+                revert InvalidCreate2EncodingStructure();
+            }
+            return abi.encodePacked(_encodeCreate2(s));
+        }
+        // Create3 encoding computes contract address from CREATE3 pattern
+        if (s.encodingType == EncodingType.Create3) {
+            // Validate Create3 encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCreate3EncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 3 || chunk.structs.length != 0 || chunk.arrays.length != 0) {
+                revert InvalidCreate3EncodingStructure();
+            }
+            if (
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
+                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
+                    || chunk.primitives[2].isDynamic || chunk.primitives[2].data.length != 32
+            ) {
+                revert InvalidCreate3EncodingStructure();
+            }
+            return abi.encodePacked(_encodeCreate3(s));
         }
 
         // For Array and Struct types, encode and add offset wrapper if dynamic
