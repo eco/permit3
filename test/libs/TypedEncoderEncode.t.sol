@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import { TypedEncoder } from "../../src/libs/TypedEncoder.sol";
+import { TypedEncoder } from "../../src/lib/TypedEncoder.sol";
 import "../utils/TestBase.sol";
 
 contract TypedEncoderAbiEncodeTest is TestBase {
