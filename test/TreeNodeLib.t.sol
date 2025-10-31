@@ -555,7 +555,7 @@ contract TreeNodeLibTest is Test {
     }
 
     // ============================================
-    // Category 5: reconstructTreeHash Tests (24 tests)
+    // Category 5: computeTreeHash Tests (24 tests)
     // ============================================
 
     /**
