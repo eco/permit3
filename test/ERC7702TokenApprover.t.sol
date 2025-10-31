@@ -19,12 +19,18 @@ contract MockERC20 {
 
     bool public shouldFailApproval = false;
 
-    constructor(string memory _name, string memory _symbol) {
+    constructor(
+        string memory _name,
+        string memory _symbol
+    ) {
         name = _name;
         symbol = _symbol;
     }
 
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(
+        address spender,
+        uint256 amount
+    ) external returns (bool) {
         if (shouldFailApproval) {
             return false;
         }

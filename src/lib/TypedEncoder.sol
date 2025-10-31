@@ -240,8 +240,8 @@ library TypedEncoder {
                 revert InvalidCreateEncodingStructure();
             }
             if (
-                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
-                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32 || chunk.primitives[1].isDynamic
+                    || chunk.primitives[1].data.length != 32
             ) {
                 revert InvalidCreateEncodingStructure();
             }
@@ -258,9 +258,9 @@ library TypedEncoder {
                 revert InvalidCreate2EncodingStructure();
             }
             if (
-                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
-                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
-                    || chunk.primitives[2].isDynamic || chunk.primitives[2].data.length != 32
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32 || chunk.primitives[1].isDynamic
+                    || chunk.primitives[1].data.length != 32 || chunk.primitives[2].isDynamic
+                    || chunk.primitives[2].data.length != 32
             ) {
                 revert InvalidCreate2EncodingStructure();
             }
@@ -277,9 +277,9 @@ library TypedEncoder {
                 revert InvalidCreate3EncodingStructure();
             }
             if (
-                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32
-                    || chunk.primitives[1].isDynamic || chunk.primitives[1].data.length != 32
-                    || chunk.primitives[2].isDynamic || chunk.primitives[2].data.length != 32
+                chunk.primitives[0].isDynamic || chunk.primitives[0].data.length != 32 || chunk.primitives[1].isDynamic
+                    || chunk.primitives[1].data.length != 32 || chunk.primitives[2].isDynamic
+                    || chunk.primitives[2].data.length != 32
             ) {
                 revert InvalidCreate3EncodingStructure();
             }
