@@ -713,22 +713,4 @@ contract TestBase is Test {
 
         return keccak256(abi.encode(PERMIT_NODE_TYPEHASH, nodesArrayHash, permitsArrayHash));
     }
-
-    /**
-     * @dev Helper to sort an array of bytes32 values (bubble sort for simplicity)
-     */
-    function _sortBytes32Array(
-        bytes32[] memory arr
-    ) internal pure {
-        uint256 n = arr.length;
-        for (uint256 i = 0; i < n; i++) {
-            for (uint256 j = i + 1; j < n; j++) {
-                if (arr[i] > arr[j]) {
-                    bytes32 temp = arr[i];
-                    arr[i] = arr[j];
-                    arr[j] = temp;
-                }
-            }
-        }
-    }
 }
