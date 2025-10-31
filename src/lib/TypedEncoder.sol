@@ -195,10 +195,39 @@ library TypedEncoder {
         if (s.encodingType == EncodingType.ABI) {
             return _encodeAbi(s);
         }
+        // CallWithSelector and CallWithSignature return raw calldata (selector + params)
+        if (s.encodingType == EncodingType.CallWithSelector) {
+            // Validate CallWithSelector encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCallEncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 1 || chunk.structs.length != 1 || chunk.arrays.length != 0) {
+                revert InvalidCallEncodingStructure();
+            }
+            Primitive memory selectorPrim = chunk.primitives[0];
+            if (selectorPrim.isDynamic || selectorPrim.data.length != 4) {
+                revert InvalidCallEncodingStructure();
+            }
+            return _encodeCallWithSelector(s);
+        }
+        if (s.encodingType == EncodingType.CallWithSignature) {
+            // Validate CallWithSignature encoding structure before forwarding
+            if (s.chunks.length != 1) {
+                revert InvalidCallEncodingStructure();
+            }
+            Chunk memory chunk = s.chunks[0];
+            if (chunk.primitives.length != 1 || chunk.structs.length != 1 || chunk.arrays.length != 0) {
+                revert InvalidCallEncodingStructure();
+            }
+            if (!chunk.primitives[0].isDynamic) {
+                revert InvalidCallEncodingStructure();
+            }
+            return _encodeCallWithSignature(s);
+        }
         // Encoding types implemented in later commits
         if (
-            s.encodingType == EncodingType.CallWithSelector || s.encodingType == EncodingType.CallWithSignature
-                || s.encodingType == EncodingType.Hash || s.encodingType == EncodingType.Create
+            s.encodingType == EncodingType.Hash || s.encodingType == EncodingType.Create
                 || s.encodingType == EncodingType.Create2 || s.encodingType == EncodingType.Create3
         ) {
             revert EncodingTypeNotImplemented();
