@@ -187,6 +187,10 @@ library TypedEncoder {
     function encode(
         Struct memory s
     ) internal pure returns (bytes memory) {
+        // Hash encoding returns keccak256(abi.encodePacked(all_fields)) as 32-byte hash
+        if (s.encodingType == EncodingType.Hash) {
+            return abi.encodePacked(_encodeHash(s));
+        }
         // Packed encoding returns abi.encodePacked(all_fields) without hashing
         if (s.encodingType == EncodingType.Packed) {
             return _encodePacked(s);
@@ -227,8 +231,8 @@ library TypedEncoder {
         }
         // Encoding types implemented in later commits
         if (
-            s.encodingType == EncodingType.Hash || s.encodingType == EncodingType.Create
-                || s.encodingType == EncodingType.Create2 || s.encodingType == EncodingType.Create3
+            s.encodingType == EncodingType.Create || s.encodingType == EncodingType.Create2
+                || s.encodingType == EncodingType.Create3
         ) {
             revert EncodingTypeNotImplemented();
         }
