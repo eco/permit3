@@ -29,7 +29,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testArrayEncodingWithPrimitives() public {
-
         // Create Array-encoded struct with primitive field (violates structs-only rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
             typeHash: keccak256("InvalidArray(uint256 value)"),
@@ -57,7 +56,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testArrayEncodingWithArrays() public {
-
         // Create Array-encoded struct with array field (violates structs-only rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
             typeHash: keccak256("InvalidArray(uint256[] values)"),
@@ -90,7 +88,6 @@ contract TypedEncoderErrorsTest is Test {
      *      single chunk. This validation ensures proper array structure.
      */
     function testArrayEncodingWithMultipleChunks() public {
-
         // Create Array-encoded struct with 2 chunks (violates exactly-1-chunk rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
             typeHash: keccak256("InvalidArray(SimpleStruct s1,SimpleStruct s2)"),
@@ -134,7 +131,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testArrayEncodingWithMixedFields() public {
-
         // Create Array-encoded struct with mixed fields (violates structs-only rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
             typeHash: keccak256("InvalidArray(uint256 value,SimpleStruct s)"),
@@ -173,7 +169,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorInvalidSelector() public {
-
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
             typeHash: keccak256("TransferParams(address to,uint256 amount)"),
@@ -214,7 +209,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorDynamicSelector() public {
-
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
             typeHash: keccak256("TransferParams(address to,uint256 amount)"),
@@ -256,7 +250,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorMultipleChunks() public {
-
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
             typeHash: keccak256("TransferParams(address to,uint256 amount)"),
@@ -300,7 +293,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorWrongFieldCount() public {
-
         // Test Case A: 2 primitives + 1 struct (should be 1 + 1)
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
             typeHash: keccak256("Params(uint256 value)"),
@@ -381,7 +373,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSignatureStaticSignature() public {
-
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
             typeHash: keccak256("TransferParams(address to,uint256 amount)"),
@@ -423,7 +414,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSignatureInvalidStructure() public {
-
         // Test Case A: Multiple chunks (should be exactly 1)
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
             typeHash: keccak256("Params(uint256 value)"),
