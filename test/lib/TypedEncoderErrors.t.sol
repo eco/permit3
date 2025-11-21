@@ -29,9 +29,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testArrayEncodingWithPrimitives() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create Array-encoded struct with primitive field (violates structs-only rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
@@ -60,9 +57,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testArrayEncodingWithArrays() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create Array-encoded struct with array field (violates structs-only rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
@@ -96,9 +90,6 @@ contract TypedEncoderErrorsTest is Test {
      *      single chunk. This validation ensures proper array structure.
      */
     function testArrayEncodingWithMultipleChunks() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create Array-encoded struct with 2 chunks (violates exactly-1-chunk rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
@@ -143,9 +134,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testArrayEncodingWithMixedFields() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create Array-encoded struct with mixed fields (violates structs-only rule)
         TypedEncoder.Struct memory invalidArray = TypedEncoder.Struct({
@@ -185,9 +173,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorInvalidSelector() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
@@ -229,9 +214,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorDynamicSelector() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
@@ -274,9 +256,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorMultipleChunks() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
@@ -321,9 +300,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSelectorWrongFieldCount() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Test Case A: 2 primitives + 1 struct (should be 1 + 1)
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
@@ -405,9 +381,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSignatureStaticSignature() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Create params struct
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({
@@ -450,9 +423,6 @@ contract TypedEncoderErrorsTest is Test {
      * TODO: Implement test
      */
     function testCallWithSignatureInvalidStructure() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
 
         // Test Case A: Multiple chunks (should be exactly 1)
         TypedEncoder.Struct memory paramsStruct = TypedEncoder.Struct({

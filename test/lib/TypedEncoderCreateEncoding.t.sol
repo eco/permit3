@@ -651,10 +651,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreateEncodingStructure
      */
     function testCreateInvalidStructure() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](1),
@@ -675,10 +671,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreateEncodingStructure
      */
     function testCreateWithDynamicField() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid(address deployer,uint256 nonce)"),
             chunks: new TypedEncoder.Chunk[](1),
@@ -699,10 +691,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreateEncodingStructure
      */
     function testCreateWithNestedStruct() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](1),
@@ -724,10 +712,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreate2EncodingStructure
      */
     function testCreate2InvalidStructure() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](1),
@@ -749,10 +733,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreate2EncodingStructure
      */
     function testCreate2MultipleChunks() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](2), // Wrong: 2 chunks
@@ -768,10 +748,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreate2EncodingStructure
      */
     function testCreate2WithArray() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](1),
@@ -795,10 +771,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreate3EncodingStructure
      */
     function testCreate3InvalidStructure() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](1),
@@ -819,10 +791,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreate3EncodingStructure
      */
     function testCreate3TooManyPrimitives() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](1),
@@ -847,10 +815,6 @@ contract TypedEncoderCreateEncodingTest is TestBase {
      * @dev Should revert with InvalidCreate3EncodingStructure
      */
     function testCreate3InvalidDataLength() public {
-        vm.skip(true);
-        // Skip until revert expectations can be validated
-        return;
-
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
             typeHash: keccak256("Invalid()"),
             chunks: new TypedEncoder.Chunk[](1),
