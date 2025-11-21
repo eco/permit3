@@ -84,7 +84,7 @@ interface IPermit3 is IPermit, INonceManager {
      * @dev Used in EIP-712 signatures to provide transparency to users about what they're signing
      * @dev Can represent either leaf nodes (ChainPermits) or internal tree nodes (nested levels)
      * @dev Both arrays should be ordered by hash value as merkle tree construction requires
-     * @param levels Child tree nodes for internal nodes (ordered by hash value)
+     * @param nodes Child tree nodes for internal nodes (ordered by hash value)
      * @param permits Leaf nodes showing actual chain permits for user visibility (ordered by hash value)
      */
     struct PermitNode {
@@ -94,8 +94,8 @@ interface IPermit3 is IPermit, INonceManager {
 
     /**
      * @notice Input struct for tree-based permits containing tree structure data
-     * @param proofStructure Compact tree encoding
      * @param currentChainPermits Permit operations for the current chain
+     * @param proofStructure Compact tree encoding
      * @param proof Array of hashes for proof reconstruction
      */
     struct PermitTree {
