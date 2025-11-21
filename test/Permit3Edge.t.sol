@@ -734,7 +734,7 @@ contract Permit3EdgeTest is Test {
         (amount, expiration, ts) = permit3.allowance(owner, address(token), spender);
         assertEq(amount, 0); // Amount remains unchanged by unlock operation
         assertEq(expiration, 0); // No expiration (unlocked)
-            // Note: timestamp should remain from lock operation since unlock only changes expiration
+        // Note: timestamp should remain from lock operation since unlock only changes expiration
         assertEq(ts, uint48(block.timestamp)); // Timestamp remains from lock operation
     }
 
