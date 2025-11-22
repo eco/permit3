@@ -160,11 +160,6 @@ abstract contract NonceManager is INonceManager, EIP712 {
             revert WrongChainId(uint64(block.chainid), tree.currentChainInvalidations.chainId);
         }
 
-        // Validate that at least one nonce is being cancelled
-        if (tree.currentChainInvalidations.salts.length == 0) {
-            revert EmptyArray();
-        }
-
         // Hash the current chain's NoncesToInvalidate as a leaf
         bytes32 currentChainHash = hashNoncesToInvalidate(tree.currentChainInvalidations);
 
@@ -287,77 +282,6 @@ abstract contract NonceManager is INonceManager, EIP712 {
         // For longer signatures or when ECDSA failed use ERC-1271 validation
         if (owner.code.length == 0 || !owner.isValidERC1271SignatureNow(digest, signature)) {
             revert InvalidSignature(owner);
-        }
-    }
-
-    /**
-     * @dev Hash a NonceNode structure for EIP-712 signing
-     * @dev Recursively hashes the complete tree structure for UI transparency
-     * @dev Mirrors hashPermitNode implementation for consistency
-     * @dev Binary tree where leaves are NoncesToInvalidate structs (chain-specific nonce lists)
-     * @dev Sorts hashes to match TreeNodeLib reconstruction behavior
-     * @param nonceNode The nonce node tree structure to hash
-     * @return bytes32 The EIP-712 hash of the complete nonce node structure
-     */
-    function hashNonceNode(
-        NonceNode memory nonceNode
-    ) internal pure returns (bytes32) {
-        bytes32 nodesArrayHash;
-        bytes32 noncesArrayHash;
-
-        // Hash child nodes in separate block (stack management)
-        {
-            bytes32[] memory nodeHashes = new bytes32[](nonceNode.nodes.length);
-            for (uint256 i = 0; i < nonceNode.nodes.length; i++) {
-                nodeHashes[i] = hashNonceNode(nonceNode.nodes[i]);
-            }
-            // Sort to match TreeNodeLib.combineNodeAndNode behavior
-            _sortBytes32Array(nodeHashes);
-            nodesArrayHash = keccak256(abi.encodePacked(nodeHashes));
-        }
-
-        // Hash NoncesToInvalidate array in separate block (stack management)
-        {
-            bytes32[] memory nonceInvalidationHashes = new bytes32[](nonceNode.nonces.length);
-            for (uint256 i = 0; i < nonceNode.nonces.length; i++) {
-                // For single nonce, use the nonce directly (matches hashNoncesToInvalidate logic)
-                if (nonceNode.nonces[i].salts.length == 1) {
-                    nonceInvalidationHashes[i] = nonceNode.nonces[i].salts[0];
-                } else {
-                    // Multiple nonces - hash as NoncesToInvalidate struct (no sorting, preserve order)
-                    nonceInvalidationHashes[i] = keccak256(
-                        abi.encode(
-                            NONCES_TO_INVALIDATE_TYPEHASH,
-                            nonceNode.nonces[i].chainId,
-                            keccak256(abi.encodePacked(nonceNode.nonces[i].salts))
-                        )
-                    );
-                }
-            }
-            // Sort to match TreeNodeLib.combineLeafAndLeaf behavior
-            _sortBytes32Array(nonceInvalidationHashes);
-            noncesArrayHash = keccak256(abi.encodePacked(nonceInvalidationHashes));
-        }
-
-        return keccak256(abi.encode(NONCE_NODE_TYPEHASH, nodesArrayHash, noncesArrayHash));
-    }
-
-    /**
-     * @dev Helper function to sort bytes32 array in place (bubble sort)
-     * @param arr Array to sort
-     */
-    function _sortBytes32Array(
-        bytes32[] memory arr
-    ) private pure {
-        uint256 n = arr.length;
-        for (uint256 i = 0; i < n; i++) {
-            for (uint256 j = i + 1; j < n; j++) {
-                if (uint256(arr[i]) > uint256(arr[j])) {
-                    bytes32 temp = arr[i];
-                    arr[i] = arr[j];
-                    arr[j] = temp;
-                }
-            }
         }
     }
 }
