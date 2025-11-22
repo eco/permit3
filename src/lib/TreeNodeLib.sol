@@ -105,9 +105,29 @@ library TreeNodeLib {
         // Type flags occupy bits 247 down to (247 - proof.length + 1)
         // This validates that bits (247 - proof.length) down to 0 are all zero
         if (proof.length < 247) {
+            // --- Bit manipulation explanation for unused type flags ---
+            // proofStructure layout (bytes32, 256 bits):
+            //   - Bits 255-248: Position index (8 bits, currently unused)
+            //   - Bits 247-0:   Type flags (1 bit per proof element, up to 247 bits)
+            //
+            // For proof.length = N:
+            //   - Type flags use bits 247 down to (247 - N + 1)
+            //   - Unused type flag bits are (247 - N) down to 0, and must be zero
+            //
+            // Example: proof.length = 2
+            //   - mask = 0xFF00000000000000000000000000000000000000000000000000000000000000
+            //           (keeps bits 255-248 position index, plus bits 247-246 for 2 type flags)
+            //   - flagBits extracts bits 247-0 (all type flag bits)
+            //   - unusedMask = 0x0000000000000000000000000000000000000000000000000000003FFFFFFFFFFF
+            //           (checks bits 245-0 are zero, since bits 247-246 are used)
+            //
+            // Step 1: Create mask to keep position index and used type flag bits
             uint256 mask = type(uint256).max << (256 - 8 - proof.length);
+            // Step 2: Extract only the type flag bits (bits 247-0)
             uint256 flagBits = uint256(proofStructure) & ~mask;
+            // Step 3: Create mask for unused type flag bits (bits below used flags)
             uint256 unusedMask = type(uint256).max >> (8 + proof.length);
+            // Step 4: Require that all unused type flag bits are zero
             require((flagBits & unusedMask) == 0, "Unused type flags must be zero");
         }
 
@@ -132,12 +152,11 @@ library TreeNodeLib {
                 currentHash = combineLeafAndLeaf(typehash, currentHash, proof[i]);
             } else if (currentIsNode && proofIsNode) {
                 currentHash = combineNodeAndNode(typehash, currentHash, proof[i]);
+            } else if (currentIsNode && !proofIsNode) {
+                currentHash = combineNodeAndLeaf(typehash, currentHash, proof[i]);
             } else {
-                if (currentIsNode) {
-                    currentHash = combineNodeAndLeaf(typehash, currentHash, proof[i]);
-                } else {
-                    currentHash = combineNodeAndLeaf(typehash, proof[i], currentHash);
-                }
+                // !currentIsNode && proofIsNode
+                currentHash = combineNodeAndLeaf(typehash, proof[i], currentHash);
             }
 
             // After first combine, result is always a Node
