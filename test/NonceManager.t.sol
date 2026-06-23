@@ -273,4 +273,87 @@ contract NonceManagerTest is TestBase {
         // Verify salt is now used
         assertTrue(permit3.isNonceUsed(owner, p.testSalt));
     }
+
+    /**
+     * @notice Regression test pinning the EIP-712-compliant struct hash of NoncesToInvalidate.
+     * @dev Computes the expected digest independently of the contract (building it inline the way a
+     *      standards-compliant EIP-712 implementation does: the dynamic bytes32[] salts member is
+     *      encoded as keccak256 of the concatenated element encodings), and asserts it matches the
+     *      contract. Also asserts the OLD buggy form (array inlined via abi.encode) does NOT match,
+     *      so this test would have caught the original non-compliance bug.
+     */
+    function test_hashNoncesToInvalidate_matchesEip712AndRejectsBuggyForm() public view {
+        bytes32[] memory salts = new bytes32[](3);
+        salts[0] = bytes32(uint256(0xAA));
+        salts[1] = bytes32(uint256(0xBB));
+        salts[2] = bytes32(uint256(0xCC));
+
+        uint64 chainId = uint64(block.chainid);
+        INonceManager.NoncesToInvalidate memory invalidations =
+            INonceManager.NoncesToInvalidate({ chainId: chainId, salts: salts });
+
+        bytes32 typeHash = permit3.NONCES_TO_INVALIDATE_TYPEHASH();
+
+        // Correct EIP-712 encoding: dynamic array hashed via keccak256(encodings of elements).
+        bytes32 expected = keccak256(abi.encode(typeHash, chainId, keccak256(abi.encodePacked(salts))));
+
+        // Old buggy encoding: the dynamic array inlined directly via abi.encode.
+        bytes32 buggy = keccak256(abi.encode(typeHash, chainId, salts));
+
+        bytes32 actual = permit3.hashNoncesToInvalidate(invalidations);
+
+        assertEq(actual, expected, "hashNoncesToInvalidate must match standard EIP-712 struct hash");
+        assertTrue(buggy != expected, "buggy inline-array encoding must differ from EIP-712 hash");
+        assertTrue(actual != buggy, "contract must not produce the old buggy hash");
+    }
+
+    /**
+     * @notice End-to-end acceptance test: a signature produced from a STANDARD, contract-independent
+     *         EIP-712 digest is accepted by the signed invalidateNonces overload.
+     * @dev Builds the full digest the way a compliant wallet (eth_signTypedData_v4) would, using only
+     *      public typehashes and DOMAIN_SEPARATOR, without calling any of the contract's hashing
+     *      helpers. This proves the fix lets standard wallet tooling produce valid invalidations.
+     */
+    function test_signedInvalidation_acceptsStandardEip712Signature() public {
+        bytes32[] memory salts = new bytes32[](3);
+        salts[0] = bytes32(uint256(0x111));
+        salts[1] = bytes32(uint256(0x222));
+        salts[2] = bytes32(uint256(0x333));
+
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+
+        // Build the NoncesToInvalidate struct hash independently of the contract (standard EIP-712).
+        bytes32 noncesStructHash = keccak256(
+            abi.encode(permit3.NONCES_TO_INVALIDATE_TYPEHASH(), uint64(block.chainid), keccak256(abi.encodePacked(salts)))
+        );
+
+        // Build the top-level CancelPermit3 struct hash, again independently.
+        bytes32 cancelStructHash =
+            keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), owner, deadline, noncesStructHash));
+
+        // Compose the final EIP-712 digest via the \x19\x01 prefix and the domain separator.
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", permit3.DOMAIN_SEPARATOR(), cancelStructHash));
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Sanity: nonces start unused.
+        for (uint256 i = 0; i < salts.length; i++) {
+            assertFalse(permit3.isNonceUsed(owner, salts[i]));
+        }
+
+        // Expect a NonceInvalidated event for each salt.
+        for (uint256 i = 0; i < salts.length; i++) {
+            vm.expectEmit(true, true, false, false, address(permit3));
+            emit INonceManager.NonceInvalidated(owner, salts[i]);
+        }
+
+        // A standard-EIP-712-derived signature must be accepted.
+        permit3.invalidateNonces(owner, deadline, salts, signature);
+
+        // Every salt is now invalidated.
+        for (uint256 i = 0; i < salts.length; i++) {
+            assertTrue(permit3.isNonceUsed(owner, salts[i]), "salt should be invalidated");
+        }
+    }
 }
