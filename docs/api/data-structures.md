@@ -82,7 +82,7 @@ struct Allowance {
 
 - **amount**: The quantity of tokens approved for spending
 - **expiration**: Unix timestamp when the allowance becomes invalid
-- **timestamp**: Last update timestamp, used for ordering operations across chains
+- **timestamp**: Timestamp of the last update; used for cross-chain precedence on the `expiration` field only (the most recent timestamp wins). It does not order amount changes — amount deltas apply unconditionally per operation.
 
 ### NoncesToInvalidate
 
