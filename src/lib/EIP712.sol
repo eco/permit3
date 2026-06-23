@@ -22,10 +22,10 @@ abstract contract EIP712 is IERC5267 {
     /// @dev Value of 1 enables signatures to work across all chains
     uint256 private constant CROSS_CHAIN_ID = 1;
 
-    // Cache the domain separator as an immutable value, but also store the chain id that it corresponds to, in order to
-    // invalidate the cached domain separator if the chain id changes.
+    // Cache the domain separator as an immutable value, keyed only on `address(this)` so it can be invalidated if the
+    // contract address changes (e.g. via proxy). The chain id is intentionally NOT part of the cache key: the domain
+    // deliberately uses a constant chain id (CROSS_CHAIN_ID = 1) for cross-chain signature compatibility.
     bytes32 private immutable _cachedDomainSeparator;
-    uint256 private immutable _cachedChainId;
     address private immutable _cachedThis;
 
     bytes32 private immutable _hashedName;
@@ -54,7 +54,6 @@ abstract contract EIP712 is IERC5267 {
         _hashedName = keccak256(bytes(name));
         _hashedVersion = keccak256(bytes(version));
 
-        _cachedChainId = CROSS_CHAIN_ID;
         _cachedDomainSeparator = _buildDomainSeparator();
         _cachedThis = address(this);
     }
