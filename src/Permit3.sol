@@ -369,6 +369,11 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
             revert ZeroAccount();
         }
 
+        // Prevent setting timestamps in the future for all timestamp-storing modes
+        if (block.timestamp < timestamp) {
+            revert InvalidTimestamp(timestamp, uint48(block.timestamp));
+        }
+
         Allowance memory allowed = allowances[owner][p.tokenKey][p.account];
 
         // Validate lock status before processing
@@ -479,7 +484,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
         Allowance memory allowed,
         AllowanceOrTransfer memory p,
         uint48 timestamp
-    ) private view {
+    ) private pure {
         // Handle amount increase if specified
         if (p.amountDelta > 0) {
             if (allowed.amount != MAX_ALLOWANCE) {
@@ -489,11 +494,6 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
                     allowed.amount += p.amountDelta;
                 }
             }
-        }
-
-        // Prevent setting timestamps in the future
-        if (block.timestamp < timestamp) {
-            revert InvalidTimestamp(timestamp, uint48(block.timestamp));
         }
 
         // Update expiration and timestamp based on precedence rules
