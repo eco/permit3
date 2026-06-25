@@ -155,7 +155,11 @@ abstract contract NonceManager is INonceManager, EIP712 {
     function hashNoncesToInvalidate(
         NoncesToInvalidate memory invalidations
     ) public pure returns (bytes32) {
-        return keccak256(abi.encode(NONCES_TO_INVALIDATE_TYPEHASH, invalidations.chainId, invalidations.salts));
+        return keccak256(
+            abi.encode(
+                NONCES_TO_INVALIDATE_TYPEHASH, invalidations.chainId, keccak256(abi.encodePacked(invalidations.salts))
+            )
+        );
     }
 
     /**
