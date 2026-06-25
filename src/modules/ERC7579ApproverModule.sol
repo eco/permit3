@@ -95,7 +95,10 @@ contract ERC7579ApproverModule is IERC7579Module {
      * @param account The smart account executing the approvals
      * @param data Encoded arrays of token addresses for each token type
      */
-    function execute(address account, bytes calldata data) external {
+    function execute(
+        address account,
+        bytes calldata data
+    ) external {
         // Decode the token addresses for each type
         (address[] memory erc20Tokens, address[] memory erc721Tokens, address[] memory erc1155Tokens) =
             abi.decode(data, (address[], address[], address[]));
@@ -115,9 +118,7 @@ contract ERC7579ApproverModule is IERC7579Module {
                 revert ZeroAddress();
             }
             executions[executionIndex++] = Execution({
-                target: erc20Tokens[i],
-                value: 0,
-                callData: abi.encodeCall(IERC20.approve, (PERMIT3, type(uint256).max))
+                target: erc20Tokens[i], value: 0, callData: abi.encodeCall(IERC20.approve, (PERMIT3, type(uint256).max))
             });
         }
 
@@ -127,9 +128,7 @@ contract ERC7579ApproverModule is IERC7579Module {
                 revert ZeroAddress();
             }
             executions[executionIndex++] = Execution({
-                target: erc721Tokens[i],
-                value: 0,
-                callData: abi.encodeCall(IERC721.setApprovalForAll, (PERMIT3, true))
+                target: erc721Tokens[i], value: 0, callData: abi.encodeCall(IERC721.setApprovalForAll, (PERMIT3, true))
             });
         }
 

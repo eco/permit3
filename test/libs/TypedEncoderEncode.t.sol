@@ -20,14 +20,12 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testStaticFieldsOnly() public pure {
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("Static(uint256 value,address addr)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("Static(uint256 value,address addr)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
         encoded.chunks[0].primitives[1] = TypedEncoder.Primitive({
-            isDynamic: false,
-            data: abi.encode(address(0x1234567890123456789012345678901234567890))
+            isDynamic: false, data: abi.encode(address(0x1234567890123456789012345678901234567890))
         });
 
         bytes memory expected =
@@ -60,8 +58,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testMixedStaticDynamic() public pure {
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("Mixed(uint256 id,string name)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("Mixed(uint256 id,string name)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(123)) });
@@ -80,8 +77,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testFixedBytes() public pure {
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("FixedBytes(bytes32 hash,uint256 value)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("FixedBytes(bytes32 hash,uint256 value)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({
@@ -105,8 +101,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testEmptyDynamic() public pure {
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("EmptyDynamic(string text,bytes data)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("EmptyDynamic(string text,bytes data)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("") });
@@ -158,8 +153,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         }
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("StaticArray(uint256[3] values)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("StaticArray(uint256[3] values)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: false, data: arrayElements });
@@ -182,8 +176,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         arrayElements[1].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("bob") });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("StaticArrayOfDynamic(string[2] names)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("StaticArrayOfDynamic(string[2] names)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: false, data: arrayElements });
@@ -208,8 +201,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         arrayElements[2].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(30)) });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("DynamicArray(uint256[] values)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("DynamicArray(uint256[] values)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: arrayElements });
@@ -236,8 +228,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         arrayElements[1].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("bar") });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("DynamicStringArray(string[] items)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("DynamicStringArray(string[] items)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: arrayElements });
@@ -257,8 +248,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testEmptyArray() public pure {
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("EmptyArray(string[] items)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("EmptyArray(string[] items)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: new TypedEncoder.Chunk[](0) });
@@ -279,8 +269,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         arrayElements[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(42)) });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("SingleElementArray(uint256[] values)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("SingleElementArray(uint256[] values)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: arrayElements });
@@ -317,8 +306,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         outerArray[1].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: row1 });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("NestedArrays(string[][] matrix)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("NestedArrays(string[][] matrix)"), chunks: new TypedEncoder.Chunk[](1)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: outerArray });
@@ -354,8 +342,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         nameElements[1].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("bob") });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("MultipleArrays(uint256[] numbers,string[] names)"),
-            chunks: new TypedEncoder.Chunk[](2)
+            typeHash: keccak256("MultipleArrays(uint256[] numbers,string[] names)"), chunks: new TypedEncoder.Chunk[](2)
         });
         encoded.chunks[0].arrays = new TypedEncoder.Array[](1);
         encoded.chunks[0].arrays[0] = TypedEncoder.Array({ isDynamic: true, data: numElements });
@@ -393,8 +380,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
             TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(100)) });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("Nested(Inner inner,uint256 y)Inner(uint256 x)"),
-            chunks: new TypedEncoder.Chunk[](2)
+            typeHash: keccak256("Nested(Inner inner,uint256 y)Inner(uint256 x)"), chunks: new TypedEncoder.Chunk[](2)
         });
         encoded.chunks[0].structs = new TypedEncoder.Struct[](1);
         encoded.chunks[0].structs[0] = innerEncoded;
@@ -420,8 +406,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
         tagElements[1].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("tag2") });
 
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("StructWithArray(uint256 id,string[] tags)"),
-            chunks: new TypedEncoder.Chunk[](2)
+            typeHash: keccak256("StructWithArray(uint256 id,string[] tags)"), chunks: new TypedEncoder.Chunk[](2)
         });
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](1);
         encoded.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(123)) });
@@ -450,16 +435,14 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testArrayOfStructs() public pure {
         TypedEncoder.Struct memory point0 = TypedEncoder.Struct({
-            typeHash: keccak256("Point(uint256 x,uint256 y)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("Point(uint256 x,uint256 y)"), chunks: new TypedEncoder.Chunk[](1)
         });
         point0.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         point0.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(1)) });
         point0.chunks[0].primitives[1] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(2)) });
 
         TypedEncoder.Struct memory point1 = TypedEncoder.Struct({
-            typeHash: keccak256("Point(uint256 x,uint256 y)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("Point(uint256 x,uint256 y)"), chunks: new TypedEncoder.Chunk[](1)
         });
         point1.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         point1.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(3)) });
@@ -498,16 +481,14 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testArrayOfDynamicStructs() public pure {
         TypedEncoder.Struct memory record0 = TypedEncoder.Struct({
-            typeHash: keccak256("Record(string name,uint256 value)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("Record(string name,uint256 value)"), chunks: new TypedEncoder.Chunk[](1)
         });
         record0.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         record0.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("alice") });
         record0.chunks[0].primitives[1] = TypedEncoder.Primitive({ isDynamic: false, data: abi.encode(uint256(100)) });
 
         TypedEncoder.Struct memory record1 = TypedEncoder.Struct({
-            typeHash: keccak256("Record(string name,uint256 value)"),
-            chunks: new TypedEncoder.Chunk[](1)
+            typeHash: keccak256("Record(string name,uint256 value)"), chunks: new TypedEncoder.Chunk[](1)
         });
         record1.chunks[0].primitives = new TypedEncoder.Primitive[](2);
         record1.chunks[0].primitives[0] = TypedEncoder.Primitive({ isDynamic: true, data: abi.encodePacked("bob") });
@@ -545,8 +526,7 @@ contract TypedEncoderAbiEncodeTest is TestBase {
 
     function testMultipleChunks() public pure {
         TypedEncoder.Struct memory encoded = TypedEncoder.Struct({
-            typeHash: keccak256("MultiChunk(uint256 a,string b,uint256 c)"),
-            chunks: new TypedEncoder.Chunk[](3)
+            typeHash: keccak256("MultiChunk(uint256 a,string b,uint256 c)"), chunks: new TypedEncoder.Chunk[](3)
         });
 
         encoded.chunks[0].primitives = new TypedEncoder.Primitive[](1);

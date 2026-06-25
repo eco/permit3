@@ -4,6 +4,21 @@
 
 Permit3 is an approval system that enables **cross-chain token approvals and transfers with a single signature**. It unlocks a one-signature cross-chain future through Unbalanced Merkle Trees and non-sequential nonces, while maintaining Permit2 compatibility.
 
+## Security
+
+The contracts in this repository are **deployed on-chain and custody user funds.** A
+vulnerability that becomes public before it is fixed can be exploited immediately and
+irreversibly — public disclosure of an unpatched bug is itself the attack.
+
+**If you find a security vulnerability, report it privately. Do not open a public pull
+request, push a branch, or open a public issue.** Report it through the
+[**Security tab → "Report a vulnerability"**](https://github.com/eco/permit3/security),
+which opens a private advisory visible only to you and the maintainers. Permit3 is
+deployed at a deterministic address on all supported chains — treat all contracts as
+live unless a maintainer explicitly confirms otherwise.
+
+See [`SECURITY.md`](./SECURITY.md) for the full policy, including specific instructions
+for AI coding agents. This applies to humans and automated tools alike.
 
 ## Overview
 

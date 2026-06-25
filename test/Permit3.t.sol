@@ -319,7 +319,7 @@ contract Permit3Test is TestBase {
             tokenKey: tokenKey, // Hash for NFT+tokenId
             account: spender,
             amountDelta: 1 // NFT amount
-         });
+        });
 
         IPermit3.ChainPermits memory chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: permits });

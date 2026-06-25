@@ -379,7 +379,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Zero amount delta
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
@@ -424,7 +424,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 1000 // Additional amount (should be ignored)
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
@@ -498,7 +498,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 5000 // Higher amount
-         });
+        });
 
         olderInputs.chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: olderInputs.permits });
@@ -510,7 +510,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 3000 // Lower amount
-         });
+        });
 
         newerInputs.chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: newerInputs.permits });
@@ -624,7 +624,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Not used for lock
-         });
+        });
 
         lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
 
@@ -673,7 +673,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 100 // Value to decrease by
-         });
+        });
 
         decreaseInputs.chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: decreaseInputs.permits });
@@ -725,7 +725,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Not used for lock
-         });
+        });
 
         lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
 
@@ -775,7 +775,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 3000 // New amount after unlock
-         });
+        });
 
         unlockInputs.chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: unlockInputs.permits });
@@ -833,7 +833,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Not used for lock
-         });
+        });
 
         lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
 
@@ -877,7 +877,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 3000 // New amount after unlock
-         });
+        });
 
         unlockInputs.chainPermits =
             IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: unlockInputs.permits });
@@ -944,7 +944,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: type(uint160).max // Try to decrease by MAX_ALLOWANCE
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
@@ -988,7 +988,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: type(uint160).max // Decrease by MAX_ALLOWANCE
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
@@ -1035,7 +1035,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: type(uint160).max // Set to MAX_ALLOWANCE
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
@@ -1079,7 +1079,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 500 // Decrease by 500 (from 1000)
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
@@ -1137,7 +1137,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: recipient,
             amountDelta: 100 // Transfer 100
-         });
+        });
 
         // 2. Decrease
         inputs.permits[1] = IPermit3.AllowanceOrTransfer({
@@ -1145,7 +1145,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 50 // Decrease by 50
-         });
+        });
 
         // 3. Increase allowance with expiration
         inputs.permits[2] = IPermit3.AllowanceOrTransfer({
@@ -1153,7 +1153,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 200 // Increase by 200
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
@@ -1341,7 +1341,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Zero delta
-         });
+        });
 
         inputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: inputs.permits });
 
