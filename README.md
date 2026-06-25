@@ -116,10 +116,10 @@ struct Allowance {
 }
 ```
 
-- Timestamps order operations across chains
-- Most recent timestamp takes precedence in expiration updates
-- Prevents cross-chain race conditions
-- Critical for async allowance updates
+- Timestamp precedence governs the `expiration` field only: the most recent signed timestamp wins, so an out-of-order expiration update cannot overwrite a newer one
+- Amount changes are NOT ordered by timestamp. Each Increase adds its `amountDelta` unconditionally, and each Decrease subtracts unconditionally, regardless of timestamp order
+- Replay protection comes from the per-salt (non-sequential) nonce, not from timestamps — a given signed operation can only be executed once
+- Critical for keeping expiration consistent across chains during async allowance updates
 
 ### Account Locking
 

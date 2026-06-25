@@ -361,7 +361,7 @@ Sophisticated nonce handling prevents replay attacks:
 
 ### 4. **Additional Security Best Practices**
 - **Deadline Validation**: Set reasonable deadlines to limit the window of vulnerability
-- **Timestamp Ordering**: Be aware of timestamp-based operation ordering across chains
+- **Timestamp Ordering**: Be aware that timestamp precedence orders `expiration` updates across chains only — amount changes apply unconditionally and replay is prevented by per-salt nonces
 - **Proof Verification**: Ensure proofs correctly link chain-specific permits to the root hash
 - **Witness validation**: When using witness data, ensure proper validation on each chain
 
