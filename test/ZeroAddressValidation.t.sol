@@ -123,10 +123,7 @@ contract ZeroAddressValidationTest is Test {
     function test_processAllowanceOperation_RejectsZeroToken() public {
         IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
         permits[0] = IPermit3.AllowanceOrTransfer({
-            modeOrExpiration: uint48(100),
-            tokenKey: bytes32(0),
-            account: bob,
-            amountDelta: 100
+            modeOrExpiration: uint48(100), tokenKey: bytes32(0), account: bob, amountDelta: 100
         });
 
         vm.startPrank(alice);

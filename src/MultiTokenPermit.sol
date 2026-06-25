@@ -73,7 +73,12 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param token ERC721 contract address
      * @param tokenId The unique NFT token ID to transfer
      */
-    function transferFromERC721(address from, address to, address token, uint256 tokenId) public override {
+    function transferFromERC721(
+        address from,
+        address to,
+        address token,
+        uint256 tokenId
+    ) public override {
         // Check and update dual-allowance
         _updateDualAllowance(from, token, tokenId, 1);
 
@@ -166,9 +171,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
         }
 
         // Execute the batch transfer after all allowances are verified
-        IERC1155(transfer.token).safeBatchTransferFrom(
-            transfer.from, transfer.to, transfer.tokenIds, transfer.amounts, ""
-        );
+        IERC1155(transfer.token)
+            .safeBatchTransferFrom(transfer.from, transfer.to, transfer.tokenIds, transfer.amounts, "");
     }
 
     /**
@@ -204,9 +208,8 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
                 // Check and update dual-allowance
                 _updateDualAllowance(transfer.from, transfer.token, transfer.tokenId, transfer.amount);
                 // Execute the ERC1155 transfer
-                IERC1155(transfer.token).safeTransferFrom(
-                    transfer.from, transfer.to, transfer.tokenId, transfer.amount, ""
-                );
+                IERC1155(transfer.token)
+                    .safeTransferFrom(transfer.from, transfer.to, transfer.tokenId, transfer.amount, "");
             }
         }
     }
@@ -217,7 +220,10 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @return Storage key for allowance mapping
      */
 
-    function _getTokenKey(address token, uint256 tokenId) internal pure returns (bytes32) {
+    function _getTokenKey(
+        address token,
+        uint256 tokenId
+    ) internal pure returns (bytes32) {
         // Hash token and tokenId together to ensure unique keys
         return keccak256(abi.encodePacked(token, tokenId));
     }
@@ -229,7 +235,12 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param tokenId The specific token ID
      * @param amount The amount to transfer (1 for ERC721, variable for ERC1155)
      */
-    function _updateDualAllowance(address from, address token, uint256 tokenId, uint160 amount) internal {
+    function _updateDualAllowance(
+        address from,
+        address token,
+        uint256 tokenId,
+        uint160 amount
+    ) internal {
         bytes32 encodedId = _getTokenKey(token, tokenId);
 
         // First, try to update allowance for the specific token ID
@@ -259,7 +270,10 @@ abstract contract MultiTokenPermit is PermitBase, IMultiTokenPermit {
      * @param revertDataPerId Revert data from specific token ID allowance check
      * @param revertDataWildcard Revert data from collection-wide allowance check
      */
-    function _handleAllowanceError(bytes memory revertDataPerId, bytes memory revertDataWildcard) internal pure {
+    function _handleAllowanceError(
+        bytes memory revertDataPerId,
+        bytes memory revertDataWildcard
+    ) internal pure {
         if (revertDataPerId.length == 0 || revertDataWildcard.length == 0) {
             // If any allowance succeeded, no error to handle
             return;
