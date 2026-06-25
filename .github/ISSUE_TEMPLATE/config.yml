@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🔒 Report a security vulnerability (DO NOT open a public issue)
+    url: https://github.com/eco/permit3/security/advisories/new
+    about: >-
+      Permit3 contracts are deployed on-chain and hold user funds. Report
+      vulnerabilities privately via GitHub Security Advisories — never in a public
+      issue, pull request, or branch. See SECURITY.md.
