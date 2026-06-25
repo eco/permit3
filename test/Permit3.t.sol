@@ -35,6 +35,47 @@ contract Permit3Test is TestBase {
         assertTrue(permit3.isNonceUsed(owner, SALT));
     }
 
+    function test_permitTransferFrom_blockedByLockdownOnRecipient() public {
+        // Cantina 3.1.2: an owner blocks a signed transfer to a given recipient by
+        // calling lockdown(token, recipient), which locks the owner->token->recipient slot.
+        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
+
+        deal(address(token), recipient, 0);
+
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+        uint48 timestamp = uint48(block.timestamp);
+        bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
+
+        // Owner locks down transfers to the recipient.
+        IPermit.TokenSpenderPair[] memory approvals = new IPermit.TokenSpenderPair[](1);
+        approvals[0] = IPermit.TokenSpenderPair({ token: address(token), spender: recipient });
+        vm.prank(owner);
+        permit3.lockdown(approvals);
+
+        // Submitting the signed transfer permit must now revert.
+        bytes32 tokenKey = bytes32(uint256(uint160(address(token))));
+        vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, tokenKey, recipient));
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+
+        // Recipient balance unchanged.
+        assertEq(token.balanceOf(recipient), 0);
+    }
+
+    function test_permitTransferFrom_succeedsWithoutLockdown() public {
+        // Happy path with no lockdown still transfers successfully.
+        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
+
+        deal(address(token), recipient, 0);
+
+        uint48 deadline = uint48(block.timestamp + 1 hours);
+        uint48 timestamp = uint48(block.timestamp);
+        bytes memory signature = _signPermit(chainPermits, deadline, timestamp, SALT);
+
+        permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
+
+        assertEq(token.balanceOf(recipient), AMOUNT);
+    }
+
     function test_permitTransferFromExpired() public {
         // Create the permit
         IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();

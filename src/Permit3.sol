@@ -342,6 +342,15 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
                 require(uint256(p.tokenKey) >> 160 == 0, InvalidTokenKeyForTransfer());
 
                 address token = address(uint160(uint256(p.tokenKey)));
+
+                // Gate signed transfers with the existing allowance lock mechanism (Cantina 3.1.2).
+                // The recipient (p.account) is the only counterparty committed in the signature, so an
+                // owner blocks a signed transfer to a given recipient via lockdown(token, recipient),
+                // which writes the same owner->tokenKey->recipient allowance slot read here.
+                if (allowances[owner][p.tokenKey][p.account].expiration == LOCKED_ALLOWANCE) {
+                    revert AllowanceLocked(owner, p.tokenKey, p.account);
+                }
+
                 _transferFrom(owner, p.account, p.amountDelta, token);
             } else {
                 _processAllowanceOperation(owner, timestamp, p);
