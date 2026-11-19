@@ -725,7 +725,7 @@ contract Permit3EdgeTest is Test {
             tokenKey: bytes32(uint256(uint160(address(token)))),
             account: spender,
             amountDelta: 0 // Not used for lock
-         });
+        });
 
         lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
 
