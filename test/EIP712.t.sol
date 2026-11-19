@@ -7,7 +7,10 @@ import { EIP712 } from "../src/lib/EIP712.sol";
 
 // Test contract for EIP712 functionality
 contract EIP712TestContract is EIP712 {
-    constructor(string memory name, string memory version) EIP712(name, version) { }
+    constructor(
+        string memory name,
+        string memory version
+    ) EIP712(name, version) { }
 
     // Expose internal methods for testing
     function domainSeparatorV4() external view returns (bytes32) {
@@ -276,7 +279,10 @@ contract EIP712Test is Test {
 
 // Special contract that overrides internal method to force execution of the missing line
 contract AlternativeEIP712 is EIP712 {
-    constructor(string memory name, string memory version) EIP712(name, version) { }
+    constructor(
+        string memory name,
+        string memory version
+    ) EIP712(name, version) { }
 
     // Expose the domain separator method - this always returns the non-cached version
     function domainSeparatorV4() external view returns (bytes32) {

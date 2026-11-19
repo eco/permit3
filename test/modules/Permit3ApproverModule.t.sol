@@ -13,20 +13,30 @@ contract MockERC20 is IERC20 {
     mapping(address => mapping(address => uint256)) public allowance;
     uint256 public totalSupply;
 
-    function transfer(address to, uint256 amount) external returns (bool) {
+    function transfer(
+        address to,
+        uint256 amount
+    ) external returns (bool) {
         balanceOf[msg.sender] -= amount;
         balanceOf[to] += amount;
         return true;
     }
 
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool) {
         allowance[from][msg.sender] -= amount;
         balanceOf[from] -= amount;
         balanceOf[to] += amount;
         return true;
     }
 
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(
+        address spender,
+        uint256 amount
+    ) external returns (bool) {
         allowance[msg.sender][spender] = amount;
         return true;
     }
@@ -35,17 +45,28 @@ contract MockERC20 is IERC20 {
 contract MockSmartAccount is IERC7579Execution {
     mapping(address => bool) public installedModules;
 
-    function installModule(uint256, address module, bytes calldata data) external {
+    function installModule(
+        uint256,
+        address module,
+        bytes calldata data
+    ) external {
         installedModules[module] = true;
         IERC7579Module(module).onInstall(data);
     }
 
-    function uninstallModule(uint256, address module, bytes calldata data) external {
+    function uninstallModule(
+        uint256,
+        address module,
+        bytes calldata data
+    ) external {
         installedModules[module] = false;
         IERC7579Module(module).onUninstall(data);
     }
 
-    function execute(bytes32, bytes calldata) external payable {
+    function execute(
+        bytes32,
+        bytes calldata
+    ) external payable {
         revert("Not implemented - use executeFromExecutor");
     }
 

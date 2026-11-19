@@ -53,7 +53,10 @@ contract DeployModule is Script {
      * @param salt Unique salt for deterministic address generation
      * @return moduleAddress The address of the deployed module
      */
-    function deployWithCreate2(address permit3, bytes32 salt) internal returns (address moduleAddress) {
+    function deployWithCreate2(
+        address permit3,
+        bytes32 salt
+    ) internal returns (address moduleAddress) {
         bytes memory initCode = abi.encodePacked(type(ERC7579ApproverModule).creationCode, abi.encode(permit3));
 
         // Call CREATE2 factory
@@ -72,7 +75,10 @@ contract DeployModule is Script {
      * @param salt Deployment salt
      * @return The computed address
      */
-    function computeAddress(address permit3, bytes32 salt) external pure returns (address) {
+    function computeAddress(
+        address permit3,
+        bytes32 salt
+    ) external pure returns (address) {
         bytes memory initCode = abi.encodePacked(type(ERC7579ApproverModule).creationCode, abi.encode(permit3));
 
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), CREATE2_FACTORY, salt, keccak256(initCode)));

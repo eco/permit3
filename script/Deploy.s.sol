@@ -36,7 +36,10 @@ contract Deploy is Script {
      * @param salt Unique salt for deterministic address generation
      * @return The address of the deployed contract
      */
-    function deploy(bytes memory initCode, bytes32 salt) public returns (address) {
+    function deploy(
+        bytes memory initCode,
+        bytes32 salt
+    ) public returns (address) {
         bytes4 selector = bytes4(keccak256("deploy(bytes,bytes32)"));
         bytes memory args = abi.encode(initCode, salt);
         bytes memory data = abi.encodePacked(selector, args);

@@ -87,7 +87,12 @@ contract PermitBase is IPermit {
      * @param amount Approval amount
      * @param expiration Optional expiration timestamp
      */
-    function approve(address token, address spender, uint160 amount, uint48 expiration) external override {
+    function approve(
+        address token,
+        address spender,
+        uint160 amount,
+        uint48 expiration
+    ) external override {
         bytes32 tokenKey = bytes32(uint256(uint160(token)));
         _validateApproval(msg.sender, tokenKey, token, spender, expiration);
 
@@ -105,7 +110,12 @@ contract PermitBase is IPermit {
      * @param amount Transfer amount (max 2^160-1)
      * @param token ERC20 token contract address
      */
-    function transferFrom(address from, address to, uint160 amount, address token) public {
+    function transferFrom(
+        address from,
+        address to,
+        uint160 amount,
+        address token
+    ) public {
         bytes32 tokenKey = bytes32(uint256(uint160(token)));
         (, bytes memory revertData) = _updateAllowance(from, tokenKey, msg.sender, amount);
         if (revertData.length > 0) {
@@ -241,7 +251,12 @@ contract PermitBase is IPermit {
      * @notice This function handles tokens that don't return boolean values or return false on failure
      * @notice Assumes the caller has already verified allowances and will revert on transfer failure
      */
-    function _transferFrom(address from, address to, uint160 amount, address token) internal {
+    function _transferFrom(
+        address from,
+        address to,
+        uint160 amount,
+        address token
+    ) internal {
         IERC20(token).safeTransferFrom(from, to, amount);
     }
 }

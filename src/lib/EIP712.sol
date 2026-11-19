@@ -48,7 +48,10 @@ abstract contract EIP712 is IERC5267 {
      * NOTE: These parameters cannot be changed except through a xref:learn::upgrading-smart-contracts.adoc[smart
      * contract upgrade].
      */
-    constructor(string memory name, string memory version) {
+    constructor(
+        string memory name,
+        string memory version
+    ) {
         _name = name.toShortStringWithFallback(_nameFallback);
         _version = version.toShortStringWithFallback(_versionFallback);
         _hashedName = keccak256(bytes(name));
@@ -134,9 +137,16 @@ abstract contract EIP712 is IERC5267 {
         /// @dev 0x0f = 0b01111 indicates: name (bit 0), version (bit 1), chainId (bit 2), verifyingContract (bit 3)
         bytes1 EIP712_FIELDS = hex"0f";
 
-        return (
-            EIP712_FIELDS, _EIP712Name(), _EIP712Version(), CROSS_CHAIN_ID, address(this), bytes32(0), new uint256[](0)
-        );
+        return
+            (
+                EIP712_FIELDS,
+                _EIP712Name(),
+                _EIP712Version(),
+                CROSS_CHAIN_ID,
+                address(this),
+                bytes32(0),
+                new uint256[](0)
+            );
     }
 
     /**
