@@ -78,7 +78,10 @@ interface INonceManager is IPermit {
      * @param salt Salt value to check
      * @return true if nonce has been used
      */
-    function isNonceUsed(address owner, bytes32 salt) external view returns (bool);
+    function isNonceUsed(
+        address owner,
+        bytes32 salt
+    ) external view returns (bool);
 
     /**
      * @notice Mark multiple nonces as used
