@@ -324,7 +324,9 @@ contract NonceManagerTest is TestBase {
 
         // Build the NoncesToInvalidate struct hash independently of the contract (standard EIP-712).
         bytes32 noncesStructHash = keccak256(
-            abi.encode(permit3.NONCES_TO_INVALIDATE_TYPEHASH(), uint64(block.chainid), keccak256(abi.encodePacked(salts)))
+            abi.encode(
+                permit3.NONCES_TO_INVALIDATE_TYPEHASH(), uint64(block.chainid), keccak256(abi.encodePacked(salts))
+            )
         );
 
         // Build the top-level CancelPermit3 struct hash, again independently.
