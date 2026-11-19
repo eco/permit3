@@ -328,7 +328,11 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      *         - >3: Increase allowance mode - adds to allowance with expiration timestamp
      * @notice Enforces timestamp-based locking and handles MAX_ALLOWANCE for infinite approvals
      */
-    function _processChainPermits(address owner, uint48 timestamp, ChainPermits memory chainPermits) internal {
+    function _processChainPermits(
+        address owner,
+        uint48 timestamp,
+        ChainPermits memory chainPermits
+    ) internal {
         uint256 permitsLength = chainPermits.permits.length;
         for (uint256 i = 0; i < permitsLength; i++) {
             AllowanceOrTransfer memory p = chainPermits.permits[i];
@@ -351,7 +355,11 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      * @param timestamp Current timestamp for validation
      * @param p The permit operation to process
      */
-    function _processAllowanceOperation(address owner, uint48 timestamp, AllowanceOrTransfer memory p) private {
+    function _processAllowanceOperation(
+        address owner,
+        uint48 timestamp,
+        AllowanceOrTransfer memory p
+    ) private {
         // Validate tokenKey is not zero
         if (p.tokenKey == bytes32(0)) {
             revert ZeroToken();
@@ -426,7 +434,10 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      * @param allowed Current allowance to modify
      * @param amountDelta Amount to decrease by
      */
-    function _decreaseAllowance(Allowance memory allowed, uint160 amountDelta) private pure {
+    function _decreaseAllowance(
+        Allowance memory allowed,
+        uint160 amountDelta
+    ) private pure {
         if (allowed.amount != MAX_ALLOWANCE || amountDelta == MAX_ALLOWANCE) {
             allowed.amount = amountDelta > allowed.amount ? 0 : allowed.amount - amountDelta;
         }
@@ -437,7 +448,10 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      * @param allowed Allowance to lock
      * @param timestamp Current timestamp for lock tracking
      */
-    function _lockAllowance(Allowance memory allowed, uint48 timestamp) private pure {
+    function _lockAllowance(
+        Allowance memory allowed,
+        uint48 timestamp
+    ) private pure {
         allowed.amount = 0;
         allowed.expiration = LOCKED_ALLOWANCE;
         allowed.timestamp = timestamp;

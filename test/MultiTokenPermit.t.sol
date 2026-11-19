@@ -29,11 +29,17 @@ contract MockERC721 is ERC721 {
         _mint(to, tokenId);
     }
 
-    function mint(address to, uint256 tokenId) external {
+    function mint(
+        address to,
+        uint256 tokenId
+    ) external {
         _mint(to, tokenId);
     }
 
-    function mintBatch(address to, uint256 amount) external returns (uint256[] memory tokenIds) {
+    function mintBatch(
+        address to,
+        uint256 amount
+    ) external returns (uint256[] memory tokenIds) {
         tokenIds = new uint256[](amount);
         for (uint256 i = 0; i < amount; i++) {
             tokenIds[i] = _tokenIdCounter++;
@@ -49,11 +55,21 @@ contract MockERC721 is ERC721 {
 contract MockERC1155 is ERC1155 {
     constructor() ERC1155("https://mock.uri/{id}") { }
 
-    function mint(address to, uint256 tokenId, uint256 amount, bytes memory data) external {
+    function mint(
+        address to,
+        uint256 tokenId,
+        uint256 amount,
+        bytes memory data
+    ) external {
         _mint(to, tokenId, amount, data);
     }
 
-    function mintBatch(address to, uint256[] memory tokenIds, uint256[] memory amounts, bytes memory data) external {
+    function mintBatch(
+        address to,
+        uint256[] memory tokenIds,
+        uint256[] memory amounts,
+        bytes memory data
+    ) external {
         _mintBatch(to, tokenIds, amounts, data);
     }
 }
@@ -283,10 +299,7 @@ contract MultiTokenPermitTest is TestBase {
 
         for (uint256 i = 0; i < 3; i++) {
             transfers[i] = IMultiTokenPermit.ERC721Transfer({
-                from: nftOwner,
-                to: recipientAddress,
-                tokenId: i,
-                token: address(nftToken)
+                from: nftOwner, to: recipientAddress, tokenId: i, token: address(nftToken)
             });
         }
 
@@ -520,7 +533,7 @@ contract MultiTokenPermitTest is TestBase {
                 token: address(nftToken),
                 tokenId: TOKEN_ID_1,
                 amount: 1 // Should be 1 for ERC721
-             })
+            })
         });
 
         // ERC1155 transfer
@@ -569,7 +582,7 @@ contract MultiTokenPermitTest is TestBase {
                 token: address(nftToken),
                 tokenId: TOKEN_ID_1,
                 amount: 2 // Invalid: ERC721 must have amount = 1
-             })
+            })
         });
 
         // Should revert with InvalidAmount
@@ -712,10 +725,7 @@ contract MultiTokenPermitTest is TestBase {
 
         for (uint256 i = 0; i < numTokens; i++) {
             transfers[i] = IMultiTokenPermit.ERC721Transfer({
-                from: nftOwner,
-                to: recipientAddress,
-                tokenId: tokenIds[i],
-                token: address(nftToken)
+                from: nftOwner, to: recipientAddress, tokenId: tokenIds[i], token: address(nftToken)
             });
         }
 
@@ -957,10 +967,7 @@ contract MultiTokenPermitTest is TestBase {
         // Prepare batch transfer
         IMultiTokenPermit.ERC721Transfer[] memory transfers = new IMultiTokenPermit.ERC721Transfer[](1);
         transfers[0] = IMultiTokenPermit.ERC721Transfer({
-            from: nftOwner,
-            to: recipientAddress,
-            tokenId: tokenIds[0],
-            token: address(nftToken)
+            from: nftOwner, to: recipientAddress, tokenId: tokenIds[0], token: address(nftToken)
         });
 
         // Attempt batch transfer should fail due to lockdown
