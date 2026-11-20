@@ -116,7 +116,7 @@ function executeOrder(
     
     // 6. Verify transfer details
     require(permits.length == 1, "Invalid permit count");
-    require(permits[0].token == order.tokenIn, "Invalid token");
+    require(permits[0].tokenKey == bytes32(uint256(uint160(order.tokenIn))), "Invalid token");
     require(permits[0].account == address(this), "Invalid recipient");
     require(permits[0].amountDelta == order.amountIn, "Invalid amount");
     require(permits[0].modeOrExpiration == 0, "Invalid mode");
@@ -456,7 +456,7 @@ function executeMultiSigOrder(
     
     // 7. Verify transfer details
     require(permits.length == 1, "Invalid permit count");
-    require(permits[0].token == order.tokenIn, "Invalid token");
+    require(permits[0].tokenKey == bytes32(uint256(uint160(order.tokenIn))), "Invalid token");
     require(permits[0].account == address(this), "Invalid recipient");
     require(permits[0].amountDelta == order.amountIn, "Invalid amount");
     require(permits[0].modeOrExpiration == 0, "Invalid mode");
