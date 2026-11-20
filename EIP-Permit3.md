@@ -191,10 +191,10 @@ The `transferOrExpiration` field defines four distinct operation types:
    - Special: `type(uint160).max` sets to zero
 
 3. **Lock** (`value = 2`)
-   - Activates account security mode
+   - Locks one (token, account) pair: blocks spending by the account, every allowance change, and transfers to the account
    - Sets allowance to zero
-   - Records timestamp for future validations
-   - Only allows decrease operations
+   - Records the timestamp
+   - Only an Unlock sent by the owner's own call removes it; a relayed signature cannot
 
 4. **Increase/Update** (`value > 2`)
    - Adds `amountDelta` to the allowance, whatever the timestamp
@@ -213,10 +213,10 @@ if (timestamp > allowed.timestamp) {
     allowed.timestamp = timestamp;
 }
 
-// Lock validation
-if (allowed.expiration == LOCKED_ALLOWANCE && 
-    timestamp < allowed.timestamp) {
-    revert AllowanceLocked();
+// Lock validation: a locked pair rejects every operation except an Unlock sent by the owner itself
+if (allowed.expiration == LOCKED_ALLOWANCE &&
+    (operation != UNLOCK || msg.sender != owner)) {
+    revert AllowanceLocked(owner, tokenKey, account);
 }
 ```
 

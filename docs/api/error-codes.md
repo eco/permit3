@@ -129,17 +129,18 @@ error AllowanceLocked(address owner, address token, address spender);
 ```
 
 **Description:**
-Thrown when attempting to modify an allowance that is in the locked state.
+Thrown when an operation needs a (token, account) pair that is locked.
 
 **Possible Causes:**
-- Trying to increase/decrease a locked allowance
-- Attempting to transfer using a locked allowance
-- Security lockdown in effect
+- Trying to approve, increase, decrease or lock a locked allowance
+- The locked account trying to spend through its allowance
+- A TransferERC20 operation to a locked recipient
+- A signed Unlock submitted by anyone other than the owner
 
 **Mitigation:**
 - Check if an allowance is locked before attempting operations
-- Use the unlock operation (mode 3) to remove the lock
-- Ensure the unlock operation has a more recent timestamp than the lock
+- The owner removes the lock with an Unlock operation (mode 3) in a call sent from its own account; a relayed signature cannot unlock
+- Before unlocking, cancel with `invalidateNonces` any signed permit that the lock blocked and that must not run
 
 <a id="proof-errors"></a>
 ### Proof Errors

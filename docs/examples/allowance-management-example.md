@@ -179,13 +179,13 @@ const decreasePermit = {
 ### 3. Lock Allowances
 
 ```javascript
-// Lock all USDC allowances (emergency function)
+// Lock DEX's USDC allowance (emergency function)
 const lockPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: 2, // Lock mode
         token: USDC_ADDRESS,
-        account: ethers.constants.AddressZero, // Not used for locking
+        account: DEX_ADDRESS, // The account to lock; the zero address reverts with ZeroAccount
         amountDelta: 0 // Not used for locking
     }]
 };
@@ -193,14 +193,16 @@ const lockPermit = {
 
 ### 4. Unlock Allowances
 
+Only the owner's own call can unlock: the owner sends `permit3.permit(unlockPermit.permits)` from its own account. A signed Unlock submitted by anyone else reverts with `AllowanceLocked`.
+
 ```javascript
-// Unlock USDC (requires subsequent increase operation to set allowance)
+// Unlock DEX's USDC allowance (requires subsequent increase operation to set allowance)
 const unlockPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: 3, // Unlock mode
         token: USDC_ADDRESS,
-        account: ethers.constants.AddressZero, // Not used for unlocking
+        account: DEX_ADDRESS, // The account to unlock
         amountDelta: 0 // Not used for unlocking
     }]
 };

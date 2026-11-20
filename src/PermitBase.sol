@@ -143,9 +143,10 @@ contract PermitBase is IPermit {
     }
 
     /**
-     * @notice Revoke multiple token approvals
-     * @dev Emergency function to quickly remove permissions
-     * @param approvals Array of token-spender pairs to revoke
+     * @notice Lock multiple (token, account) pairs
+     * @dev Emergency function. Sets each allowance to zero and locks it until the owner's own call unlocks it.
+     *      See IPermit.lockdown for what a lock blocks and what it does not.
+     * @param approvals Array of token-spender pairs to lock
      */
     function lockdown(
         TokenSpenderPair[] calldata approvals

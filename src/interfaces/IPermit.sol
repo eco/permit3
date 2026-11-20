@@ -199,9 +199,16 @@ interface IPermit {
     ) external;
 
     /**
-     * @notice Emergency function to revoke multiple approvals at once
-     * @param approvals Array of token-spender pairs to revoke
-     * @dev Sets all specified approvals to zero. Useful for security incidents
+     * @notice Emergency function to lock multiple (token, account) pairs at once
+     * @param approvals Array of token-spender pairs to lock
+     * @dev Sets each allowance to zero and locks it. A locked pair blocks two things: transfers by that account
+     *      as a spender (transferFrom and the NFT transfer functions), and Permit3 TransferERC20 operations to
+     *      that account as the recipient. It does not block transfers to other recipients, including a
+     *      transferFrom to the locked address by a different approved spender. A lock blocks pending signed
+     *      permits but does not cancel them: once unlocked they can run again until their deadline. To cancel a
+     *      signed permit, invalidate its salt with invalidateNonces. Only the owner's own call (an Unlock with
+     *      msg.sender == owner) can lift a lock. A lock on one NFT/ERC1155 token id (a per-tokenId key) does not
+     *      stop a spender that holds a collection-wide allowance from moving that id.
      */
     function lockdown(
         TokenSpenderPair[] calldata approvals

@@ -123,11 +123,14 @@ struct Allowance {
 
 ### Account Locking
 
-Locked accounts have special restrictions:
-- Cannot increase/decrease allowances
-- Cannot execute transfers
-- Must submit unlock command with timestamp validation to disable
-- Provides emergency security control
+`lockdown()`, or a Lock operation in a permit, locks one (token, account) pair. While the pair is locked:
+- The account cannot spend the owner's tokens through its allowance (`transferFrom` and the NFT transfer functions), and the owner cannot approve it or change its allowance
+- Permit3 `TransferERC20` operations to the account revert, whether signed or sent by the owner
+- Only the owner's own call can unlock it: an Unlock operation in a call sent from the owner's account. A relayed signature cannot unlock it, whatever its timestamp
+
+What a lock does not do:
+- It does not block transfers to other recipients, including a `transferFrom` to the locked address by a different approved spender
+- It does not cancel signatures. A blocked signed permit keeps its nonce and can run again after the owner unlocks the pair, until its deadline. To cancel a signed permit, call `invalidateNonces` with its salt
 
 ## Integration
 
@@ -170,11 +173,11 @@ permits[0] = AllowanceOrTransfer({
     amountDelta: 1000e6
 });
 
-// 3. Lock Account
+// 3. Lock a spender you no longer trust
 permits[1] = AllowanceOrTransfer({
     modeOrExpiration: 2,
     token: USDC,
-    account: address(0),
+    account: OLD_SPENDER, // the account to lock; the zero address reverts with ZeroAccount
     amountDelta: 0
 });
 

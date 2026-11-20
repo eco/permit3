@@ -45,7 +45,7 @@ const optimismPermits = {
     permits: [{
         modeOrExpiration: 2, // Lock mode
         token: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", // USDC on Optimism
-        account: ethers.constants.AddressZero, // Not used for lock
+        account: "0xDEF3DEF3DEF3DEF3DEF3DEF3DEF3DEF3DEF3DEF3", // DEX on Optimism, the account to lock (not the zero address)
         amountDelta: 0 // Not used for lock
     }]
 };

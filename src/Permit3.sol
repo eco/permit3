@@ -326,7 +326,8 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      *         - 2: Lock allowance mode - sets allowance to locked state preventing usage
      *         - 3: Unlock allowance mode - removes lock from previously locked allowance
      *         - >3: Increase allowance mode - adds to allowance with expiration timestamp
-     * @notice Enforces timestamp-based locking and handles MAX_ALLOWANCE for infinite approvals
+     * @notice A locked (token, account) slot rejects every operation on it, and every TransferERC20 operation to
+     *         `account`, until the owner's own call unlocks it. Handles MAX_ALLOWANCE for infinite approvals
      */
     function _processChainPermits(
         address owner,
@@ -343,10 +344,10 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
 
                 address token = address(uint160(uint256(p.tokenKey)));
 
-                // Gate signed transfers with the existing allowance lock mechanism (Cantina 3.1.2).
-                // The recipient (p.account) is the only counterparty committed in the signature, so an
-                // owner blocks a signed transfer to a given recipient via lockdown(token, recipient),
-                // which writes the same owner->tokenKey->recipient allowance slot read here.
+                // Gate every TransferERC20 operation (signed, or sent directly by the owner) with the allowance
+                // lock (Cantina 3.1.2). The recipient (p.account) is the only counterparty the owner commits to,
+                // so lockdown(token, recipient) blocks transfers to that recipient: it writes the same
+                // owner -> tokenKey -> recipient slot read here. A transfer to any other recipient is not blocked.
                 if (allowances[owner][p.tokenKey][p.account].expiration == LOCKED_ALLOWANCE) {
                     revert AllowanceLocked(owner, p.tokenKey, p.account);
                 }
@@ -378,11 +379,14 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
             revert ZeroAccount();
         }
 
-        // The timestamp is the time of signing, so a timestamp later than block.timestamp is never stored or
-        // compared (Cantina 3.2.1). Increase (stores it) and Unlock (compares it with the lock's) revert; nothing
-        // is consumed, so the signature can be retried once block.timestamp reaches it. Lock stores
-        // block.timestamp instead, so an emergency Lock signed on a clock that runs ahead of the chain still
-        // lands. Decrease neither stores nor compares the timestamp. TransferERC20 does not reach this function.
+        // The timestamp is the time of signing, so a timestamp later than block.timestamp is never stored
+        // (Cantina 3.2.1). Increase (stores it) and Unlock revert; nothing is consumed, so the signature can be
+        // retried once block.timestamp reaches it. Unlock no longer compares the timestamp (only the owner's own
+        // call lifts a lock) and the owner's direct call always carries block.timestamp, so the Unlock revert can
+        // only delay a signed Unlock the owner submits itself; it is kept so this rule does not depend on the
+        // unlock rule. Lock stores block.timestamp instead, so an emergency Lock signed on a clock that runs ahead
+        // of the chain still lands. Decrease neither stores nor compares the timestamp. TransferERC20 does not
+        // reach this function.
         if (block.timestamp < timestamp) {
             if (p.modeOrExpiration == uint48(PermitType.Lock)) {
                 timestamp = uint48(block.timestamp);
@@ -394,7 +398,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
         Allowance memory allowed = allowances[owner][p.tokenKey][p.account];
 
         // Validate lock status before processing
-        _validateLockStatus(owner, p, allowed, p.modeOrExpiration, timestamp);
+        _validateLockStatus(owner, p, allowed, p.modeOrExpiration);
 
         // Process the operation based on its type
         if (p.modeOrExpiration == uint48(PermitType.Decrease)) {
@@ -424,28 +428,23 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
 
     /**
      * @dev Validates if an operation can proceed based on lock status
+     * @dev A locked allowance rejects every operation except an Unlock in a call sent by the owner itself
+     *      (msg.sender == owner). A relayed signature never lifts a lock, whatever its timestamp: the contract
+     *      cannot tell an Unlock signed after the lock from one the owner was tricked into signing before it
+     *      and dating ahead of it.
      * @param owner Token owner
      * @param p Permit operation being processed
      * @param allowed Current allowance state
      * @param operationType Type of operation being performed
-     * @param timestamp Current timestamp
      */
     function _validateLockStatus(
         address owner,
         AllowanceOrTransfer memory p,
         Allowance memory allowed,
-        uint48 operationType,
-        uint48 timestamp
-    ) private pure {
+        uint48 operationType
+    ) private view {
         if (allowed.expiration == LOCKED_ALLOWANCE) {
-            if (operationType == uint48(PermitType.Unlock)) {
-                // Only allow unlock if timestamp is newer than lock timestamp
-                if (timestamp <= allowed.timestamp) {
-                    // Decode address from tokenKey for error message
-                    revert AllowanceLocked(owner, p.tokenKey, p.account);
-                }
-            } else {
-                // For all other operations, reject if allowance is locked
+            if (operationType != uint48(PermitType.Unlock) || msg.sender != owner) {
                 revert AllowanceLocked(owner, p.tokenKey, p.account);
             }
         }

@@ -378,18 +378,20 @@ const permitData = {
 const permitData = {
     modeOrExpiration: 2, // Lock mode
     token: tokenAddress,
-    account: address(0), // Not used for locking
+    account: spenderAddress, // The account to lock; the zero address reverts with ZeroAccount
     amountDelta: 0 // Not used for locking
 };
 ```
 
 ### Unlocking an Account
 
+Only the owner's own call can unlock. Send the Unlock from the owner's account with `permit3.permit([permitData])`; a signed Unlock submitted by anyone else reverts with `AllowanceLocked`.
+
 ```javascript
 const permitData = {
     modeOrExpiration: 3, // Unlock mode
     token: tokenAddress,
-    account: address(0), // Not used for unlocking
+    account: spenderAddress, // The account to unlock
     amountDelta: 0 // Not used for unlocking
 };
 ```

@@ -16,10 +16,10 @@ interface IPermit3 is IPermit, INonceManager {
 
     /**
      * @notice Enum representing the type of permit operation
-     * @param TransferERC20 Execute immediate ERC20 transfer
+     * @param TransferERC20 Execute immediate ERC20 transfer. Reverts AllowanceLocked if (token, recipient) is locked
      * @param Decrease Decrease allowance
      * @param Lock Lock allowance
-     * @param Unlock Unlock previously locked allowance
+     * @param Unlock Unlock a locked allowance. Only the owner's own call (msg.sender == owner) can lift a lock
      */
     enum PermitType {
         TransferERC20,
@@ -31,10 +31,12 @@ interface IPermit3 is IPermit, INonceManager {
     /**
      * @notice Represents a token allowance modification or transfer operation
      * @param modeOrExpiration Mode indicators:
-     *        = 0: Immediate ERC20 transfer mode
+     *        = 0: Immediate ERC20 transfer mode. Reverts AllowanceLocked if the owner locked (token, account):
+     *             a lock on `account` blocks transfers to it. A transfer to any other recipient is not blocked
      *        = 1: Decrease allowance mode
      *        = 2: Lock allowance mode
-     *        = 3: UnLock allowance mode
+     *        = 3: Unlock allowance mode. Lifts a lock only in a call sent by the owner itself; a relayed
+     *             signature cannot lift a lock, whatever its timestamp
      *        > 3: Increase allowance mode, new expiration for the allowance if the timestamp is recent
      * @param tokenKey Encoded token identifier (bytes32):
      *        - For ERC20: bytes32(uint256(uint160(address)))
