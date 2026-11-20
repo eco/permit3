@@ -274,7 +274,7 @@ class CrossChainCoordinator {
         
         // Create signature elements
         const salt = ethers.utils.randomBytes(32);
-        const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains
+        const timestamp = await signingTimestamp(orderedChains.map(chain => this.providers[chain])); // smallest latest-block time of the chains
         const deadline = timestamp + 3600; // 1 hour
         
         // Sign using any chain's domain (we'll use ethereum)
@@ -564,7 +564,7 @@ describe("Permit3 Integration Tests", function () {
             
             // Generate signature
             const salt = ethers.utils.randomBytes(32);
-            const timestamp = (await provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
+            const timestamp = (await ethers.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
             const deadline = timestamp + 3600;
             
             const domain = {
@@ -657,7 +657,7 @@ describe("Permit3 Integration Tests", function () {
             
             // Create signature
             const salt = ethers.utils.randomBytes(32);
-            const timestamp = (await provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
+            const timestamp = (await ethers.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
             const deadline = timestamp + 3600;
             
             const domain = {

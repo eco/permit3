@@ -156,6 +156,7 @@ const merkleRoot = buildMerkleRoot(leaves);
 
 ```javascript
 // Create permit data
+// providers: the providers of the three chains, as an array or as an object keyed by chain name
 const permitData = {
     owner: userAddress,
     salt: ethers.utils.randomBytes(32),

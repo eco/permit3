@@ -62,6 +62,7 @@ ERC20(token).approve(PERMIT3_ADDRESS, type(uint256).max);
 
 ```javascript
 // JavaScript (ethers.js)
+// signer: the owner's ethers Signer, connected to the chain the permit runs on
 const domain = {
     name: 'Permit3',
     version: '1',
@@ -82,7 +83,7 @@ const chainPermits = {
 };
 
 // Sign the latest block timestamp: a wall-clock timestamp can be ahead of the chain
-const latestBlockTimestamp = (await provider.getBlock('latest')).timestamp;
+const latestBlockTimestamp = (await signer.provider.getBlock('latest')).timestamp;
 
 const permitData = {
     owner: userAddress,

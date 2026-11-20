@@ -494,7 +494,7 @@ class MultiSigPermitManager {
     // Create signature request for a signer
     async createSignatureRequest(operation) {
         const salt = ethers.utils.id(operation.id);
-        const timestamp = await signingTimestamp(providers); // smallest latest-block time of the operation's chains
+        const timestamp = (await this.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
         const deadline = operation.expiresAt;
         
         const permitDataHash = await this.permit3.hashChainPermits(operation.chainPermits);
