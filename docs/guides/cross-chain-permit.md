@@ -158,7 +158,8 @@ await permit3Ethereum.permit(
     salt,
     deadline,
     timestamp,
-    proofs.ethereum,
+    proofs.ethereum.permits, // ChainPermits for this chain
+    proofs.ethereum.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -174,7 +175,8 @@ await permit3Arbitrum.permit(
     salt,
     deadline,
     timestamp,
-    proofs.arbitrum,
+    proofs.arbitrum.permits, // ChainPermits for this chain
+    proofs.arbitrum.proof,   // bytes32[] Merkle proof
     signature
 );
 ```
@@ -566,7 +568,8 @@ async function executeCrossChainPermits() {
             salt,
             deadline,
             timestamp,
-            proofs[chain],
+            proofs[chain].permits, // ChainPermits for this chain
+            proofs[chain].proof,   // bytes32[] Merkle proof
             signature
         );
         

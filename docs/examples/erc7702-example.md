@@ -388,7 +388,7 @@ function TokenApprovalModal({ tokens, permitOperations, onSuccess }) {
                             <ul>
                                 {permitOperations.map((permit, i) => (
                                     <li key={i}>
-                                        {permit.token} - {permit.amountDelta} allowance
+                                        {permit.tokenKey} - {permit.amountDelta} allowance
                                     </li>
                                 ))}
                             </ul>

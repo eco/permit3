@@ -241,14 +241,15 @@ class CrossChainPermitHelper {
      */
     async executeOnChain(chain, permitData) {
         const contract = this.contracts[chain];
-        const proof = permitData.proofs[chain];
+        const { permits, proof } = permitData.proofs[chain];
         
         return contract.permit(
             permitData.owner,
             permitData.salt,
             permitData.deadline,
             permitData.timestamp,
-            proof,
+            permits, // ChainPermits for this chain
+            proof,   // bytes32[] Merkle proof
             permitData.signature
         );
     }

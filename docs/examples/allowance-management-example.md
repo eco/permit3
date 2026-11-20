@@ -279,7 +279,8 @@ const ethTx = await ethereumPermit3.permit(
     salt,
     deadline,
     timestamp,
-    ethereumProof,
+    ethereumProof.permits, // ChainPermits for this chain
+    ethereumProof.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -295,7 +296,8 @@ const arbTx = await arbitrumPermit3.permit(
     salt,
     deadline,
     timestamp,
-    arbitrumProof,
+    arbitrumProof.permits, // ChainPermits for this chain
+    arbitrumProof.proof,   // bytes32[] Merkle proof
     signature
 );
 ```

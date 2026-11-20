@@ -303,8 +303,8 @@ merkleRoot = buildMerkleTree([ethLeaf, arbLeaf, optLeaf])
 1. **Works with Old Systems**
 ```solidity
 // If you already use Permit2, this still works:
-function approve(address token, address spender, uint160 amount) external;
-function transferFrom(address from, address to, uint160 amount) external;
+function approve(address token, address spender, uint160 amount, uint48 expiration) external;
+function transferFrom(address from, address to, uint160 amount, address token) external;
 ```
 
 2. **Emergency Stop Button**

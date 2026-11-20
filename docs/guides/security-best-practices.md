@@ -442,8 +442,9 @@ When integrating Permit3 into your smart contracts:
 pragma solidity ^0.8.0;
 
 import "@permit3/interfaces/IPermit3.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SecurePermit3Integration {
+contract SecurePermit3Integration is Ownable {
     IPermit3 public immutable permit3;
     
     // Approved tokens and spenders
@@ -453,7 +454,7 @@ contract SecurePermit3Integration {
     // Maximum amounts
     mapping(address => uint256) public maxTokenAmounts;
     
-    constructor(address _permit3) {
+    constructor(address _permit3) Ownable(msg.sender) {
         permit3 = IPermit3(_permit3);
     }
     
@@ -473,7 +474,7 @@ contract SecurePermit3Integration {
     function executeWithPermit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         IPermit3.ChainPermits calldata chainPermits,
         bytes calldata signature
@@ -484,9 +485,10 @@ contract SecurePermit3Integration {
         // 2. Validate permit data
         for (uint i = 0; i < chainPermits.permits.length; i++) {
             IPermit3.AllowanceOrTransfer memory p = chainPermits.permits[i];
+            address token = address(uint160(uint256(p.tokenKey))); // an ERC20's key is its address
             
             // Verify token is approved
-            require(approvedTokens[p.token], "Unapproved token");
+            require(approvedTokens[token], "Unapproved token");
             
             // Verify spender is approved
             if (p.modeOrExpiration > 0) { // Not a transfer
@@ -495,12 +497,12 @@ contract SecurePermit3Integration {
             
             // Verify amount is within limits
             if (p.modeOrExpiration > 3 || p.modeOrExpiration == 0) { // Increase or transfer
-                require(p.amountDelta <= maxTokenAmounts[p.token], "Amount exceeds maximum");
+                require(p.amountDelta <= maxTokenAmounts[token], "Amount exceeds maximum");
             }
         }
         
         // 3. Process the permit
-        permit3.permit(owner, salt, deadline, timestamp, chainPermits, signature);
+        permit3.permit(owner, salt, deadline, timestamp, chainPermits.permits, signature);
         
         // 4. Execute business logic
         // ...

@@ -37,7 +37,7 @@ permit3.permit(
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    chainPermits.permits,
     signature
 );
 ```

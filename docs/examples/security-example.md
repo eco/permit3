@@ -165,7 +165,8 @@ async function emergencyLockdownAllChains() {
                 salt,
                 deadline,
                 timestamp,
-                proofs[chain],
+                proofs[chain].permits, // ChainPermits for this chain
+                proofs[chain].proof,   // bytes32[] Merkle proof
                 signature
             );
             
@@ -268,7 +269,7 @@ class SecurePermitManager {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "permitDataHash", type: "bytes32" }
+                { name: "merkleRoot", type: "bytes32" }
             ]
         };
         
@@ -279,7 +280,7 @@ class SecurePermitManager {
             salt,
             deadline,
             timestamp,
-            permitDataHash
+            merkleRoot: permitDataHash
         };
         
         const signature = await signer._signTypedData(domain, types, value);
@@ -515,7 +516,7 @@ class MultiSigPermitManager {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "permitDataHash", type: "bytes32" }
+                { name: "merkleRoot", type: "bytes32" }
             ]
         };
         
@@ -527,7 +528,7 @@ class MultiSigPermitManager {
                 salt,
                 deadline,
                 timestamp,
-                permitDataHash
+                merkleRoot: permitDataHash
             }
         };
     }
@@ -599,10 +600,10 @@ class MultiSigPermitManager {
         // Execute the permit
         const tx = await this.permit3.permit(
             primaryOwner,
-            operation.chainPermits,
             signatureRequest.value.salt,
             signatureRequest.value.deadline,
             signatureRequest.value.timestamp,
+            operation.chainPermits.permits,
             signature
         );
         

@@ -186,7 +186,7 @@ const tx = await permit3.permit(
     value.salt,
     value.deadline,
     value.timestamp,
-    chainPermits,
+    chainPermits.permits, // the single-chain permit() takes the operations array
     signature
 );
 
@@ -304,7 +304,7 @@ const tx = await permit3.permitWitness(
     witnessValue.salt,
     witnessValue.deadline,
     witnessValue.timestamp,
-    witnessValue.permitted,
+    witnessValue.permitted.permits, // the operations array
     witnessValue.witness,
     witnessTypeString,
     witnessSignature

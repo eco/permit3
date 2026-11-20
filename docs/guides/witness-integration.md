@@ -189,7 +189,7 @@ const permitWithWitnessTx = await permit3.permitWitness(
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    chainPermits.permits, // the single-chain permitWitness() takes the operations array
     witness,
     witnessTypeString,
     signature
@@ -229,7 +229,7 @@ contract DexWithWitness {
     function executeOrderWithPermit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         IPermit3.ChainPermits calldata chainPermits,
         bytes32 witness,
@@ -259,7 +259,7 @@ contract DexWithWitness {
             salt,
             deadline,
             timestamp,
-            chainPermits,
+            chainPermits.permits,
             witness,
             witnessTypeString,
             signature

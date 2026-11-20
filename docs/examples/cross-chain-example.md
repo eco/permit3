@@ -179,7 +179,8 @@ const ethereumTx = await ethereumPermit3.permit(
     salt,
     deadline,
     timestamp,
-    ethereumProof,
+    ethereumProof.permits, // ChainPermits for this chain
+    ethereumProof.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -198,7 +199,8 @@ const arbitrumTx = await arbitrumPermit3.permit(
     salt,
     deadline,
     timestamp,
-    arbitrumProof,
+    arbitrumProof.permits, // ChainPermits for this chain
+    arbitrumProof.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -217,7 +219,8 @@ const optimismTx = await optimismPermit3.permit(
     salt,
     deadline,
     timestamp,
-    optimismProof,
+    optimismProof.permits, // ChainPermits for this chain
+    optimismProof.proof,   // bytes32[] Merkle proof
     signature
 );
 
