@@ -16,6 +16,8 @@ First, we define the order structure that will be encoded in the witness data:
 
 ```solidity
 // OrderBook.sol
+// Compile with the IR pipeline (Foundry: via_ir = true; solc: --via-ir).
+// The default code generator runs out of stack in executeOrder.
 pragma solidity ^0.8.0;
 
 import "@permit3/interfaces/IPermit3.sol";
@@ -343,6 +345,8 @@ This example extends the basic order execution to require multiple signatures fo
 
 ```solidity
 // MultiSigOrderBook.sol
+// Compile with the IR pipeline (Foundry: via_ir = true; solc: --via-ir).
+// The default code generator runs out of stack in executeMultiSigOrder.
 pragma solidity ^0.8.0;
 
 import "@permit3/interfaces/IPermit3.sol";
