@@ -384,4 +384,40 @@ contract Permit3Test is TestBase {
         vm.expectRevert(IPermit.ZeroToken.selector);
         permit3.permit(owner, SALT, deadline, timestamp, chainPermits.permits, signature);
     }
+
+    /// The domain separator ignores block.chainid; the chainId inside the signed leaf binds a permit to one chain
+    function test_forkedChainCannotReplaySingleChainPermit() public {
+        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
+        uint48 deadline = NOW + 1 hours;
+        bytes memory signature = _signPermit(chainPermits, deadline, NOW, SALT);
+        uint256 originalChainId = block.chainid;
+
+        // Same contract, same storage, same domain separator, new chain id: the leaf differs, the signature fails
+        bytes32 separator = permit3.DOMAIN_SEPARATOR();
+        vm.chainId(originalChainId + 1);
+        assertEq(permit3.DOMAIN_SEPARATOR(), separator, "domain separator does not depend on block.chainid");
+        vm.expectRevert(abi.encodeWithSelector(INonceManager.InvalidSignature.selector, owner));
+        permit3.permit(owner, SALT, deadline, NOW, chainPermits.permits, signature);
+        assertFalse(permit3.isNonceUsed(owner, SALT));
+
+        // On the original chain the signature is valid
+        vm.chainId(originalChainId);
+        permit3.permit(owner, SALT, deadline, NOW, chainPermits.permits, signature);
+        assertEq(token.balanceOf(recipient), AMOUNT);
+    }
+
+    function test_forkedChainRejectsProofPath() public {
+        IPermit3.ChainPermits memory chainPermits = _createBasicTransferPermit();
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = keccak256("sibling leaf");
+        uint48 deadline = NOW + 1 hours;
+        bytes memory signature = _signUnbalancedPermit(chainPermits, proof, deadline, NOW, SALT);
+        uint256 forkedChainId = block.chainid + 1;
+
+        vm.chainId(forkedChainId);
+        vm.expectRevert(
+            abi.encodeWithSelector(INonceManager.WrongChainId.selector, uint64(forkedChainId), chainPermits.chainId)
+        );
+        permit3.permit(owner, SALT, deadline, NOW, chainPermits, proof, signature);
+    }
 }

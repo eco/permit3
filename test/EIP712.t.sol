@@ -32,7 +32,8 @@ contract EIP712TestContract is EIP712 {
     }
 }
 
-// Proxy contract to test the specific branch where address(this) != _cachedThis in _domainSeparatorV4
+// Proxy that runs the implementation's code in its own context (delegatecall), so address(this) != _cachedThis
+// inside _domainSeparatorV4 and the separator is rebuilt for the proxy's address
 contract EIP712Proxy {
     EIP712TestContract private immutable _implementation;
 
@@ -47,8 +48,8 @@ contract EIP712Proxy {
         assembly {
             // Copy calldata to memory
             calldatacopy(0, 0, calldatasize())
-            // Call implementation
-            let success := staticcall(gas(), impl, 0, calldatasize(), 0, 0)
+            // Run the implementation's code in this contract's context
+            let success := delegatecall(gas(), impl, 0, calldatasize(), 0, 0)
             // Copy returndata to memory
             returndatacopy(0, 0, returndatasize())
             // Revert or return
@@ -188,7 +189,7 @@ contract EIP712Test is Test {
     }
 
     function test_domainSeparatorThroughProxy() public {
-        // This test specifically tests the branch in _domainSeparatorV4() where address(this) != _cachedThis
+        // Exercises the branch in _domainSeparatorV4() where address(this) != _cachedThis
 
         // Create original EIP712 instance
         EIP712TestContract impl = new EIP712TestContract("TestDomain", "1");
@@ -196,31 +197,43 @@ contract EIP712Test is Test {
         // Get domain separator directly from implementation (uses cached separator)
         bytes32 implSeparator = impl.domainSeparatorV4();
 
-        // Create proxy to original implementation - this forces the else branch in _domainSeparatorV4
-        // when the proxy delegates to the implementation
+        // The proxy delegatecalls the implementation, so its code runs with address(this) == proxy
         EIP712Proxy proxy = new EIP712Proxy(impl);
 
-        // Call through proxy, which will trigger the address(this) != _cachedThis branch
         (bool success, bytes memory data) = address(proxy).staticcall(abi.encodeWithSignature("domainSeparatorV4()"));
         require(success, "Call failed");
         bytes32 proxySeparator = abi.decode(data, (bytes32));
 
-        // Both should return same domain separator even though they use different code paths
-        assertEq(implSeparator, proxySeparator, "Domain separators should match");
+        // The separator is rebuilt for the proxy's address, so it differs from the cached one
+        bytes32 expectedProxySeparator = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes("TestDomain")),
+                keccak256(bytes("1")),
+                uint256(1), // CROSS_CHAIN_ID constant (1)
+                address(proxy)
+            )
+        );
+        assertEq(proxySeparator, expectedProxySeparator, "Rebuilt for the calling address");
+        assertTrue(proxySeparator != implSeparator, "Differs from the cached separator");
 
-        // Also test hashTypedDataV4 through proxy to ensure full coverage
+        // hashTypedDataV4 through the proxy uses the rebuilt separator
         bytes32 testStruct = keccak256("test");
-
-        // Get hash directly from implementation
-        bytes32 implHash = impl.hashTypedDataV4(testStruct);
-
-        // Get hash through proxy
         (success, data) = address(proxy).staticcall(abi.encodeWithSignature("hashTypedDataV4(bytes32)", testStruct));
         require(success, "Call failed");
         bytes32 proxyHash = abi.decode(data, (bytes32));
+        assertEq(proxyHash, keccak256(abi.encodePacked("\x19\x01", expectedProxySeparator, testStruct)));
+    }
 
-        // Both should produce the same hash
-        assertEq(implHash, proxyHash, "Typed data hashes should match");
+    function test_domainSeparatorIgnoresBlockChainId() public {
+        bytes32 separator = eip712.domainSeparatorV4();
+
+        // A different chain id (for example after a fork) does not change the separator
+        vm.chainId(424_242);
+        assertEq(eip712.domainSeparatorV4(), separator, "Separator does not depend on block.chainid");
+
+        (,,, uint256 chainId,,,) = eip712.eip712Domain();
+        assertEq(chainId, 1, "Domain chainId is CROSS_CHAIN_ID");
     }
 
     function test_cached_and_actual_domain_separators() public {
@@ -244,57 +257,5 @@ contract EIP712Test is Test {
 
         // Both should be equal since the cached value should be correctly initialized
         assertEq(directSeparator, expectedDomainSeparator, "Computed domain separator should match expected");
-    }
-
-    // The one line in EIP712 that is not exercised is 67:
-    // Line 67 is: return _buildDomainSeparator();
-    // This happens in the else branch of _domainSeparatorV4
-    // To properly test this, we need to create a scenario where address(this) != _cachedThis
-    function test_EIP712_domain_separator_alternative_implementation() public {
-        // Create a direct implementation that forces exercise of line 67
-
-        // Create a special version that overrides the internal method itself
-        AlternativeEIP712 alternativeImpl = new AlternativeEIP712("TestDomain", "1");
-
-        // Call the domain separator function which will force the else branch
-        bytes32 domainSep = alternativeImpl.domainSeparatorV4();
-
-        // Ensure we got a valid value
-        assert(domainSep != bytes32(0));
-
-        // The expected value would be computed directly
-        bytes32 expectedDomainSeparator = keccak256(
-            abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                keccak256(bytes("TestDomain")),
-                keccak256(bytes("1")),
-                uint256(1), // CROSS_CHAIN_ID constant (1)
-                address(alternativeImpl)
-            )
-        );
-
-        assertEq(expectedDomainSeparator, domainSep, "Domain separator should match expected value");
-    }
-}
-
-// Special contract that overrides internal method to force execution of the missing line
-contract AlternativeEIP712 is EIP712 {
-    constructor(
-        string memory name,
-        string memory version
-    ) EIP712(name, version) { }
-
-    // Expose the domain separator method - this always returns the non-cached version
-    function domainSeparatorV4() external view returns (bytes32) {
-        // We can calculate this directly, which is what the else branch would do in _domainSeparatorV4
-        return keccak256(
-            abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                keccak256(bytes("TestDomain")),
-                keccak256(bytes("1")),
-                uint256(1), // CROSS_CHAIN_ID
-                address(this)
-            )
-        );
     }
 }

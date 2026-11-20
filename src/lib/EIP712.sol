@@ -22,9 +22,10 @@ abstract contract EIP712 is IERC5267 {
     /// @dev Value of 1 enables signatures to work across all chains
     uint256 private constant CROSS_CHAIN_ID = 1;
 
-    // Cache the domain separator as an immutable value, keyed only on `address(this)` so it can be invalidated if the
-    // contract address changes (e.g. via proxy). The chain id is intentionally NOT part of the cache key: the domain
-    // deliberately uses a constant chain id (CROSS_CHAIN_ID = 1) for cross-chain signature compatibility.
+    // Cache the domain separator as an immutable. The cache is used only when this code runs at the address it was
+    // deployed to; under delegatecall (a proxy, or an EIP-7702 delegated account) `address(this) != _cachedThis` and
+    // the separator is rebuilt for the calling address. `block.chainid` is deliberately not part of the key: the
+    // domain uses the constant CROSS_CHAIN_ID for cross-chain signature compatibility.
     bytes32 private immutable _cachedDomainSeparator;
     address private immutable _cachedThis;
 
@@ -62,11 +63,10 @@ abstract contract EIP712 is IERC5267 {
     }
 
     /**
-     * @dev Returns the domain separator for the current chain
+     * @dev Returns the domain separator. It does not depend on block.chainid: the domain uses CROSS_CHAIN_ID
      * @return The EIP-712 domain separator hash
-     * @notice This function returns the cached domain separator if the contract
-     *         address hasn't changed (no proxy implementation changes).
-     *         Otherwise, it rebuilds the domain separator to ensure correctness.
+     * @notice Returns the cached separator when this code runs at the address it was deployed to, and rebuilds
+     *         it for address(this) under delegatecall.
      * @notice The domain separator is used in EIP-712 typed data signing to prevent
      *         signature replay attacks across different domains.
      */

@@ -58,7 +58,8 @@ abstract contract NonceManager is INonceManager, EIP712 {
     ) EIP712(name, version) { }
 
     /**
-     * @dev Returns the domain separator for the current chain.
+     * @dev Returns the EIP-712 domain separator. It is the same on every chain: the domain uses the constant
+     *      chainId 1 (CROSS_CHAIN_ID). A permit is bound to one chain by the chainId inside its signed data.
      */
     function DOMAIN_SEPARATOR() external view returns (bytes32) {
         return _domainSeparatorV4();
