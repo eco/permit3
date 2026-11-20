@@ -102,7 +102,8 @@ contract TestUtilsTest is Test {
         // Hash using utility
         bytes32 hash = Permit3TestUtils.hashChainPermits(permit3, chainPermits);
 
-        // Verify the hash
+        // Verify the hash. This pins the deployed leaf encoding: each element is hashed without the
+        // AllowanceOrTransfer type hash, so the leaf is not EIP-712 hashStruct(ChainPermits).
         bytes32[] memory permitHashes = new bytes32[](permits.length);
 
         for (uint256 i = 0; i < permits.length; i++) {

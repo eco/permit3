@@ -70,9 +70,11 @@ interface IPermit3 is IPermit, INonceManager {
     function PERMIT_WITNESS_TYPEHASH_STUB() external pure returns (string memory);
 
     /**
-     * @notice Hashes chain permits data for cross-chain operations
+     * @notice Hashes one chain's permits into a leaf of the merkle tree whose root the owner signs
+     * @dev Not EIP-712 hashStruct(ChainPermits): each AllowanceOrTransfer element is hashed without its type
+     *      hash. Compute leaves with this function or reproduce its exact encoding.
      * @param chainPermits Chain-specific permit data
-     * @return bytes32 Combined hash of all permit parameters
+     * @return bytes32 Leaf hash of the chain's permits
      */
     function hashChainPermits(
         ChainPermits memory chainPermits

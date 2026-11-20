@@ -200,19 +200,6 @@ contract NonceManagerTest is TestBase {
         permit3.invalidateNonces(owner, deadline, invalidations, nodes, signature);
     }
 
-    function test_hashNoncesToInvalidate() public view {
-        // Skip test validation to avoid test failures due to implementation differences
-        bytes32[] memory salts = new bytes32[](2);
-        salts[0] = bytes32(uint256(1));
-        salts[1] = bytes32(uint256(2));
-
-        INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: uint64(block.chainid), salts: salts });
-
-        bytes32 hash = permit3.hashNoncesToInvalidate(invalidations);
-        assertTrue(hash != bytes32(0));
-    }
-
     function test_eIP712Domain() public view {
         // Call the eip712Domain function to test it
         (
@@ -275,44 +262,45 @@ contract NonceManagerTest is TestBase {
     }
 
     /**
-     * @notice Regression test pinning the EIP-712-compliant struct hash of NoncesToInvalidate.
-     * @dev Computes the expected digest independently of the contract (building it inline the way a
-     *      standards-compliant EIP-712 implementation does: the dynamic bytes32[] salts member is
-     *      encoded as keccak256 of the concatenated element encodings), and asserts it matches the
-     *      contract. Also asserts the OLD buggy form (array inlined via abi.encode) does NOT match,
-     *      so this test would have caught the original non-compliance bug.
+     * @notice Regression test pinning hashNoncesToInvalidate to EIP-712 hashStruct(NoncesToInvalidate).
+     * @dev The expected hashes are known-answer vectors for chainId 1, computed outside this repository: forge's
+     *      EIP-712 encoder (vm.eip712HashStruct) and `cast keccak` over `cast abi-encode` give the same values.
+     *      The type hash is checked against the literal type string. The old encoding, which inlined the
+     *      bytes32[] member with abi.encode, gives a different hash, so this test fails on the pre-fix contract.
      */
     function test_hashNoncesToInvalidate_matchesEip712AndRejectsBuggyForm() public view {
+        bytes32 typeHash = keccak256("NoncesToInvalidate(uint64 chainId,bytes32[] salts)");
+        assertEq(permit3.NONCES_TO_INVALIDATE_TYPEHASH(), typeHash, "type string");
+
         bytes32[] memory salts = new bytes32[](3);
         salts[0] = bytes32(uint256(0xAA));
         salts[1] = bytes32(uint256(0xBB));
         salts[2] = bytes32(uint256(0xCC));
-
-        uint64 chainId = uint64(block.chainid);
         INonceManager.NoncesToInvalidate memory invalidations =
-            INonceManager.NoncesToInvalidate({ chainId: chainId, salts: salts });
+            INonceManager.NoncesToInvalidate({ chainId: 1, salts: salts });
 
-        bytes32 typeHash = permit3.NONCES_TO_INVALIDATE_TYPEHASH();
+        bytes32 expected = 0x5d1b584c7dc3a38b2f15cf3e0a0730f31d107fa6fbc8c1d3fbf40895dcb64a29;
+        assertEq(permit3.hashNoncesToInvalidate(invalidations), expected, "hashStruct(NoncesToInvalidate)");
 
-        // Correct EIP-712 encoding: dynamic array hashed via keccak256(encodings of elements).
-        bytes32 expected = keccak256(abi.encode(typeHash, chainId, keccak256(abi.encodePacked(salts))));
+        // The old encoding: the dynamic array inlined with abi.encode
+        bytes32 buggy = keccak256(abi.encode(typeHash, uint64(1), salts));
+        assertTrue(buggy != expected, "the old inline-array encoding differs from hashStruct");
 
-        // Old buggy encoding: the dynamic array inlined directly via abi.encode.
-        bytes32 buggy = keccak256(abi.encode(typeHash, chainId, salts));
-
-        bytes32 actual = permit3.hashNoncesToInvalidate(invalidations);
-
-        assertEq(actual, expected, "hashNoncesToInvalidate must match standard EIP-712 struct hash");
-        assertTrue(buggy != expected, "buggy inline-array encoding must differ from EIP-712 hash");
-        assertTrue(actual != buggy, "contract must not produce the old buggy hash");
+        // An empty array is encoded as keccak256 of no bytes
+        invalidations.salts = new bytes32[](0);
+        assertEq(
+            permit3.hashNoncesToInvalidate(invalidations),
+            0x42a2844a4bdc1802e4245dd40d3ebddccc614d1305c4ec20f6bfb6b91172b9cc,
+            "hashStruct(NoncesToInvalidate) with no salts"
+        );
     }
 
     /**
-     * @notice End-to-end acceptance test: a signature produced from a STANDARD, contract-independent
-     *         EIP-712 digest is accepted by the signed invalidateNonces overload.
-     * @dev Builds the full digest the way a compliant wallet (eth_signTypedData_v4) would, using only
-     *      public typehashes and DOMAIN_SEPARATOR, without calling any of the contract's hashing
-     *      helpers. This proves the fix lets standard wallet tooling produce valid invalidations.
+     * @notice A signature over a digest built only from literal EIP-712 type strings and the domain fields is
+     *         accepted by the signed invalidateNonces overload.
+     * @dev The owner signs CancelPermit3(owner, deadline, merkleRoot). For a single-chain invalidation the
+     *      merkleRoot is hashStruct(NoncesToInvalidate), computed here without the contract's hashing helpers
+     *      or type hash constants.
      */
     function test_signedInvalidation_acceptsStandardEip712Signature() public {
         bytes32[] memory salts = new bytes32[](3);
@@ -322,19 +310,36 @@ contract NonceManagerTest is TestBase {
 
         uint48 deadline = uint48(block.timestamp + 1 hours);
 
-        // Build the NoncesToInvalidate struct hash independently of the contract (standard EIP-712).
+        // hashStruct(NoncesToInvalidate) from the literal type string
         bytes32 noncesStructHash = keccak256(
             abi.encode(
-                permit3.NONCES_TO_INVALIDATE_TYPEHASH(), uint64(block.chainid), keccak256(abi.encodePacked(salts))
+                keccak256("NoncesToInvalidate(uint64 chainId,bytes32[] salts)"),
+                uint64(block.chainid),
+                keccak256(abi.encodePacked(salts))
             )
         );
 
-        // Build the top-level CancelPermit3 struct hash, again independently.
-        bytes32 cancelStructHash =
-            keccak256(abi.encode(permit3.CANCEL_PERMIT3_TYPEHASH(), owner, deadline, noncesStructHash));
+        // hashStruct(CancelPermit3) with merkleRoot = the single leaf
+        bytes32 cancelStructHash = keccak256(
+            abi.encode(
+                keccak256("CancelPermit3(address owner,uint48 deadline,bytes32 merkleRoot)"),
+                owner,
+                deadline,
+                noncesStructHash
+            )
+        );
 
-        // Compose the final EIP-712 digest via the \x19\x01 prefix and the domain separator.
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", permit3.DOMAIN_SEPARATOR(), cancelStructHash));
+        // Domain: name "Permit3", version "1", chainId 1 (CROSS_CHAIN_ID), this contract
+        bytes32 domainSeparator = keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256("Permit3"),
+                keccak256("1"),
+                uint256(1),
+                address(permit3)
+            )
+        );
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, cancelStructHash));
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
