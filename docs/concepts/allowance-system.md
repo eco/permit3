@@ -10,7 +10,7 @@ Permit3 uses a sophisticated allowance structure that combines amount, expiratio
 struct Allowance {
     uint160 amount;        // Approved amount
     uint48 expiration;     // Timestamp when the allowance expires
-    uint48 timestamp;      // Timestamp of the last update
+    uint48 timestamp;      // Timestamp of the operation that last set the expiration or locked
 }
 ```
 
@@ -20,7 +20,7 @@ This structure is stored for each unique combination of (`owner`, `token`, `spen
 
 - **Amount**: The approved token quantity (max value for unlimited approval)
 - **Expiration**: Unix timestamp after which the allowance is invalid
-- **Timestamp**: The time when the allowance was last updated, crucial for synchronizing operations across chains
+- **Timestamp**: The timestamp of the operation that last set the expiration or locked the allowance. It decides which of two out-of-order Increases sets the expiration; it does not order amount changes (see [Timestamp Management](#timestamp-management))
 
 ## Operation Modes
 
@@ -71,10 +71,10 @@ Reduces an existing allowance.
 ```
 
 **Behavior:**
-- Reduces allowance for `account` by `amountDelta`
+- Reduces the allowance for `account` by `amountDelta` (to 0 if `amountDelta` is larger), whatever the operation timestamp
 - If `amountDelta` is `type(uint160).max`, resets allowance to 0
-- No change to timestamp (preserves existing timestamp)
-- No change to expiration
+- An unlimited allowance (`type(uint160).max`) is left unchanged by any smaller `amountDelta`
+- No change to timestamp or expiration
 
 ### 3. Lock Mode (2)
 
@@ -130,23 +130,23 @@ The most common mode, using `modeOrExpiration` as the expiration timestamp.
 ```
 
 **Behavior:**
-- Increases allowance by `amountDelta`
-- Updates expiration to `modeOrExpiration` timestamp
-- Updates the timestamp to the operation timestamp
-- If `amountDelta` is 0, only updates the expiration
-- If `amountDelta` is `type(uint160).max`, sets unlimited approval
+- Adds `amountDelta` to the allowance, whatever the operation timestamp; reverts if the sum overflows `uint160`
+- If `amountDelta` is `type(uint160).max`, sets unlimited approval; an unlimited allowance stays unlimited
+- Sets the expiration to `modeOrExpiration`, and the stored timestamp to the operation timestamp, only if the operation timestamp is newer than the stored one. With an equal timestamp the later expiration wins; with an older timestamp both are left unchanged
+- If `amountDelta` is 0, only the expiration can change
+- Reverts with `InvalidTimestamp` if the operation timestamp is later than `block.timestamp`
 
 ## Timestamp Management
 
-The timestamp field serves a critical role in the allowance system, especially for cross-chain operations.
+Every signed permit carries one `timestamp`: the time it was signed. The allowance stores a timestamp next to the expiration. That timestamp decides which of two out-of-order Increases sets the expiration. It does **not** order amount changes, and it is not replay protection.
 
 ### Purpose
 
-1. **Operation Ordering**: Ensures operations are applied in the correct order, even when transactions are confirmed out of order
+1. **Expiration Ordering**: An Increase signed earlier cannot overwrite the expiration set by an Increase signed later, even when the transactions are confirmed in the other order
 
-2. **Cross-Chain Consistency**: Allows the same logical operation to be synchronized across multiple chains
+2. **Cross-Chain Consistency**: The same expiration update, signed once with one timestamp, resolves the same way on every chain
 
-3. **Race Condition Prevention**: Prevents allowance race conditions in asynchronous environments
+> **Important:** Amount changes are applied whatever their timestamp: every Increase adds its `amountDelta` and every Decrease subtracts its own, in the order the transactions run. Replay protection (running the same signed permit twice) comes from the per-salt, non-sequential nonce, not from timestamps. See [Nonce Management](nonce-management.md).
 
 ### Example Scenario
 
@@ -157,13 +157,16 @@ Chain A (Ethereum) ───► [Operation timestamp: 100] ───► [Confirm
 Chain B (Arbitrum) ───► [Operation timestamp: 100] ───► [Confirmed at block time: 110]
 ```
 
-Even though the confirmations happen at different times, both operations use the same timestamp (100), ensuring consistent behavior.
+Even though the confirmations happen at different times, both operations use the same timestamp (100), so the expiration they set resolves the same way on both chains.
 
 ### Rules
 
-- Allowance updates that change timestamps are only applied if the operation timestamp is > the stored timestamp
-- This applies to increases only. Lock operations always execute regardless of timestamp, while unlock operations require a newer timestamp only when unlocking a locked state. Decreases preserve existing timestamps without checking them
-- For allowance increases, the highest expiration time is kept when the timestamps are equal
+- **Increase**: the amount changes whatever the timestamp. The expiration and the stored timestamp change only if the operation timestamp is newer than the stored one; with an equal timestamp the later expiration wins. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
+- **Decrease**: the amount changes whatever the timestamp. The expiration and the stored timestamp are left unchanged; a Decrease never reads the timestamp
+- **Lock**: stores its own timestamp, even one older than the stored timestamp. A Lock on an allowance that is already locked reverts with `AllowanceLocked`
+- **Unlock**: lifts a lock only if its timestamp is newer than the stored lock timestamp, and leaves the stored timestamp unchanged
+- **Direct calls**: `approve()` and `lockdown()` set the stored timestamp to `block.timestamp`; the owner's own `permit(AllowanceOrTransfer[])` call uses `block.timestamp` as the operation timestamp
+- **TransferERC20** operations do not read the timestamp
 
 ## Account Locking
 
@@ -202,12 +205,11 @@ Permit3 provides time-bound permissions through expiration timestamps.
 - Expiration only applies to allowances, not to locked states
 - When increasing an allowance with multiple operations that have the same timestamp, the maximum expiration is used
 
-### Operation Priority
+### Expiration Update Priority
 
-The priority of operations is:
-1. Timestamp (higher is more recent)
-2. Expiration (longer is preferred)
-3. Amount (more restrictive takes precedence for decreases, more permissive for increases)
+The precedence rules below decide which **expiration** an Increase leaves in place; they do not order amount changes:
+1. Timestamp (higher is more recent): an Increase with a newer timestamp replaces the stored expiration
+2. Expiration (longer is preferred): when timestamps are equal, the later expiration wins
 
 ## Integration with EIP-712 Signatures
 

@@ -74,7 +74,7 @@ Internal structure used to track token allowances.
 struct Allowance {
     uint160 amount;        // Approved amount
     uint48 expiration;     // Timestamp when the allowance expires
-    uint48 timestamp;      // Timestamp when allowance was last updated
+    uint48 timestamp;      // Timestamp of the operation that last set the expiration or locked
 }
 ```
 
@@ -82,7 +82,7 @@ struct Allowance {
 
 - **amount**: The quantity of tokens approved for spending
 - **expiration**: Unix timestamp when the allowance becomes invalid
-- **timestamp**: Last update timestamp, used for ordering operations across chains
+- **timestamp**: The timestamp of the operation that last set `expiration` or locked the allowance: the signed timestamp of an Increase (only when it is newer than the stored one) or of a Lock, or `block.timestamp` for `approve()` and `lockdown()`. A Decrease, an Unlock and an older Increase leave it unchanged. It decides which Increase sets the expiration; it does not order amount changes.
 
 ### NoncesToInvalidate
 
