@@ -160,7 +160,7 @@ const permitData = {
     owner: userAddress,
     salt: ethers.utils.randomBytes(32),
     deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-    timestamp: Math.floor(Date.now() / 1000),
+    timestamp: await signingTimestamp(providers), // smallest latest-block time of the chains; see "Signing the Timestamp" in allowance-system.md
     merkleRoot: merkleRoot
 };
 

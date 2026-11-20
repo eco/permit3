@@ -22,7 +22,11 @@ const DEX_ADDRESS = "0xDEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1"; // Example DEX
 // Create Permit3 interface
 const permit3 = new ethers.Contract(
     PERMIT3_ADDRESS,
-    ["function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, tuple(uint64 chainId, tuple(uint48 modeOrExpiration, address token, address account, uint160 amountDelta)[] permits) chain, bytes signature) external"],
+    [
+        "function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp, tuple(uint48 modeOrExpiration, bytes32 tokenKey, address account, uint160 amountDelta)[] permits, bytes signature) external",
+        "function hashChainPermits(tuple(uint64 chainId, tuple(uint48 modeOrExpiration, bytes32 tokenKey, address account, uint160 amountDelta)[] permits) chainPermits) pure returns (bytes32)",
+        "function allowance(address user, address token, address spender) view returns (uint160 amount, uint48 expiration, uint48 timestamp)"
+    ],
     wallet
 );
 
@@ -35,7 +39,7 @@ const chainPermits = {
     chainId: 1, // Ethereum mainnet
     permits: [{
         modeOrExpiration: expiration,
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32), // an ERC-20's key: its address, left-padded to 32 bytes
         account: DEX_ADDRESS,
         amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC (6 decimals)
     }]
@@ -44,7 +48,7 @@ const chainPermits = {
 // Create signature elements
 const salt = ethers.utils.randomBytes(32);
 const deadline = nowSeconds + 3600; // 1 hour for transaction to be included
-const timestamp = nowSeconds;
+const timestamp = (await provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
 
 // Set up EIP-712 domain and types
 const domain = {
@@ -61,16 +65,6 @@ const types = {
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'merkleRoot', type: 'bytes32' }
-    ],
-    ChainPermits: [
-        { name: 'chainId', type: 'uint64' },
-        { name: 'permits', type: 'AllowanceOrTransfer[]' }
-    ],
-    AllowanceOrTransfer: [
-        { name: 'modeOrExpiration', type: 'uint48' },
-        { name: 'token', type: 'address' },
-        { name: 'account', type: 'address' },
-        { name: 'amountDelta', type: 'uint160' }
     ]
 };
 
@@ -96,7 +90,7 @@ async function setAllowance() {
         salt,
         deadline,
         timestamp,
-        chainPermits,
+        chainPermits.permits, // the single-chain permit() takes the operations, not the ChainPermits struct
         signature
     );
     
@@ -322,8 +316,8 @@ async function checkAllowance() {
     console.log("Expiration:", new Date(allowance.expiration * 1000).toLocaleString());
     console.log("Last updated:", new Date(allowance.timestamp * 1000).toLocaleString());
     
-    // Check if allowance is locked
-    if (allowance.timestamp === ethers.constants.MaxUint48) {
+    // Check if allowance is locked: a locked allowance has expiration 2
+    if (allowance.expiration === 2) {
         console.log("Warning: This allowance is LOCKED");
     }
 }
@@ -333,60 +327,21 @@ checkAllowance();
 
 ## Emergency Lockdown
 
-Implement an emergency lockdown function that locks all token approvals:
+From the owner's own account, `lockdown()` locks (token, spender) pairs at once. It needs no signature or timestamp, and it re-locks a pair that is already locked without reverting:
 
 ```javascript
-async function emergencyLockdown(tokenAddresses) {
-    // Create lock permits for all tokens
-    const lockPermits = {
-        chainId: (await provider.getNetwork()).chainId,
-        permits: tokenAddresses.map(token => ({
-            modeOrExpiration: 2, // Lock mode
-            token,
-            account: ethers.constants.AddressZero,
-            amountDelta: 0
-        }))
-    };
-    
-    // Generate salt, etc.
-    const salt = ethers.utils.randomBytes(32);
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const deadline = nowSeconds + 3600;
-    const timestamp = nowSeconds;
-    
-    // Calculate hash and sign
-    const permitsHash = await permit3.hashChainPermits(lockPermits);
-    
-    const value = {
-        owner: wallet.address,
-        salt,
-        deadline,
-        timestamp,
-        merkleRoot: permitsHash
-    };
-    
-    const signature = await wallet._signTypedData(domain, types, value);
-    
-    // Submit with high gas price for faster inclusion
-    const tx = await permit3.permit(
-        wallet.address,
-        salt,
-        deadline,
-        timestamp,
-        lockPermits,
-        signature,
-        { gasPrice: ethers.utils.parseUnits("100", "gwei") }
-    );
-    
+async function emergencyLockdown(pairs) { // pairs: [{ token, spender }]
+    const lockdownAbi = ["function lockdown(tuple(address token, address spender)[] approvals) external"];
+    const tx = await new ethers.Contract(PERMIT3_ADDRESS, lockdownAbi, wallet).lockdown(pairs);
     await tx.wait();
     console.log("Emergency lockdown successful!");
 }
 
-// Example usage
+// Example usage: lock each (token, spender) pair you approved
 emergencyLockdown([
-    USDC_ADDRESS,
-    DAI_ADDRESS,
-    WETH_ADDRESS,
-    // Add more token addresses as needed
+    { token: USDC_ADDRESS, spender: DEX_ADDRESS },
+    // Add more pairs as needed
 ]);
 ```
+
+Without gas on the owner's account, sign Lock operations for a relayer instead: see `signEmergencyLock` in [Security Best Practices](../guides/security-best-practices.md#account-locking). Each Lock needs a real `account` (the zero address reverts with `ZeroAccount`), and a Lock on a pair that is already locked reverts its whole permit.

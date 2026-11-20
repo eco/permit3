@@ -174,6 +174,14 @@ Even though the confirmations happen at different times, both operations use the
 
 Sign the timestamp of the latest block of the chain the permit will run on. For a permit that covers several chains, sign the smallest of the latest block timestamps of those chains. Do not sign the wall clock (`Date.now()`): a device clock can run ahead of a chain, and a chain's block timestamps can lag the wall clock, so the signed time can be later than `block.timestamp` when the transaction lands.
 
+```javascript
+// The timestamp to sign: the latest block timestamp of the chain, or the smallest one across the chains a permit covers
+async function signingTimestamp(providers) {
+    const blocks = await Promise.all(providers.map(provider => provider.getBlock('latest')));
+    return Math.min(...blocks.map(block => block.timestamp));
+}
+```
+
 If a permit contains an Increase or an Unlock and its timestamp is later than `block.timestamp`, the whole permit reverts with `InvalidTimestamp(providedTimestamp, currentTimestamp)`. Nothing is consumed: the nonce stays unused and the signature stays valid until its deadline, so the same signature can be submitted again once `block.timestamp` reaches the signed timestamp. To replace it with a new permit instead, first cancel it with `invalidateNonces`. A Lock or a Decrease never reverts for this reason, but a revert takes every operation of the permit with it: sign an emergency Lock or Decrease as its own permit, without Increase or Unlock operations.
 
 The `Permit` event reports the operation's timestamp: the signed one, or `block.timestamp` for a Lock whose signed timestamp was later. A Decrease reports its signed timestamp, which nothing stores.

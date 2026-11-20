@@ -318,7 +318,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
      * @dev Core permit processing logic that executes multiple permit operations in a single transaction
      * @dev Internal function that handles both direct permits and signature-verified permits
      * @param owner Token owner authorizing the operations
-     * @param timestamp Block timestamp for validation and allowance updates
+     * @param timestamp Signed timestamp of the permit (block.timestamp for the owner's direct call)
      * @param chainPermits Bundle of permit operations to process on the current chain
      * @notice Handles multiple types of operations based on modeOrExpiration value:
      *         - 0: Immediate ERC20 transfer mode - transfers ERC20 tokens directly without approval

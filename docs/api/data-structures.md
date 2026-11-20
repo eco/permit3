@@ -82,7 +82,7 @@ struct Allowance {
 
 - **amount**: The quantity of tokens approved for spending
 - **expiration**: Unix timestamp when the allowance becomes invalid
-- **timestamp**: The timestamp of the operation that last set `expiration` or locked the allowance: the signed timestamp of an Increase (only when it is newer than the stored one) or of a Lock, or `block.timestamp` for `approve()` and `lockdown()`. A Decrease, an Unlock and an older Increase leave it unchanged. It decides which Increase sets the expiration; it does not order amount changes.
+- **timestamp**: The timestamp of the operation that last set `expiration` or locked the allowance: the signed timestamp of an Increase (only when it is newer than the stored one); for a Lock, its signed timestamp, or `block.timestamp` if the signed one is later; `block.timestamp` for `approve()` and `lockdown()`. A Decrease, an Unlock and an older Increase leave it unchanged. It decides which Increase sets the expiration; it does not order amount changes.
 
 ### NoncesToInvalidate
 

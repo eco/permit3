@@ -269,6 +269,47 @@ contract Permit3TimestampTest is TestBase {
         permit3.permitWitness(owner, SALT, DEADLINE, ts, cp, nodes, WITNESS, WITNESS_TYPE_STRING, sig);
     }
 
+    function test_futureUnlockOnProofPathReverts() public {
+        _lockdown(spender);
+        IPermit3.ChainPermits memory cp = _one(uint48(IPermit3.PermitType.Unlock), 0);
+        bytes32[] memory nodes = _otherChainLeaf();
+        uint48 ts = uint48(block.timestamp + 1);
+        bytes memory sig = _signUnbalancedPermit(cp, nodes, DEADLINE, ts, SALT);
+
+        vm.expectRevert(_invalidTimestamp(ts));
+        permit3.permit(owner, SALT, DEADLINE, ts, cp, nodes, sig);
+
+        (, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(expiration, 2, "still locked");
+    }
+
+    function test_futureUnlockOnWitnessPathReverts() public {
+        _lockdown(spender);
+        IPermit3.ChainPermits memory cp = _one(uint48(IPermit3.PermitType.Unlock), 0);
+        uint48 ts = uint48(block.timestamp + 1);
+        bytes memory sig = _signWitnessPermit(cp, WITNESS, WITNESS_TYPE_STRING, DEADLINE, ts, SALT);
+
+        vm.expectRevert(_invalidTimestamp(ts));
+        permit3.permitWitness(owner, SALT, DEADLINE, ts, cp.permits, WITNESS, WITNESS_TYPE_STRING, sig);
+
+        (, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(expiration, 2, "still locked");
+    }
+
+    function test_futureUnlockOnWitnessProofPathReverts() public {
+        _lockdown(spender);
+        IPermit3.ChainPermits memory cp = _one(uint48(IPermit3.PermitType.Unlock), 0);
+        bytes32[] memory nodes = _otherChainLeaf();
+        uint48 ts = uint48(block.timestamp + 1);
+        bytes memory sig = _signWitnessProof(cp, nodes, ts, SALT);
+
+        vm.expectRevert(_invalidTimestamp(ts));
+        permit3.permitWitness(owner, SALT, DEADLINE, ts, cp, nodes, WITNESS, WITNESS_TYPE_STRING, sig);
+
+        (, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(expiration, 2, "still locked");
+    }
+
     // ---- batches and transfers ----
 
     function test_mixedBatchWithFutureIncreaseRevertsAtomically() public {

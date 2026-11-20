@@ -129,8 +129,9 @@ const salt = ethers.utils.randomBytes(32);
 const now = Math.floor(Date.now() / 1000);
 const deadline = now + 3600; // 1 hour from now
 
-// Set the operation timestamp
-const timestamp = now;
+// Set the operation timestamp: the latest block time, not the wall clock (see "Signing the Timestamp"
+// in docs/concepts/allowance-system.md)
+const timestamp = (await provider.getBlock('latest')).timestamp;
 
 // Create the value to sign
 const value = {
