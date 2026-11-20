@@ -399,17 +399,18 @@ async function batchNFTTransferWithPermit(
     // Approve the executor for each NFT, then move each one with transferFromERC721. A TransferERC20 operation
     // (mode 0) is not used for NFTs: a tokenId key reverts with InvalidTokenKeyForTransfer, and with the collection
     // key it moves the NFT without the receiver check (see "Transfer Function Compatibility" below).
+    const executorAddress = await executor.getAddress(); // works for any Signer; a JsonRpcSigner has no .address
     const permits = nfts.map(nft => ({
         modeOrExpiration: Math.floor(Date.now() / 1000) + 3600, // Increase: approve for one hour
         tokenKey: encodeTokenId(nft.contract, nft.tokenId),
-        account: executor.address,
+        account: executorAddress,
         amountDelta: 1
     }));
     
     // Sign and execute
     const permitData = await createSignedPermit(owner, permits);
     
-    await permit3.permit(
+    const approvalTx = await permit3.permit(
         permitData.owner,
         permitData.salt,
         permitData.deadline,
@@ -417,6 +418,7 @@ async function batchNFTTransferWithPermit(
         permitData.permits,
         permitData.signature
     );
+    await approvalTx.wait(); // the executor's transfers need the approval mined: they are sent by another account
 
     for (const nft of nfts) {
         await permit3.connect(executor).transferFromERC721(permitData.owner, nft.recipient, nft.contract, nft.tokenId);
