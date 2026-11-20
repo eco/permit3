@@ -22,10 +22,11 @@ abstract contract EIP712 is IERC5267 {
     /// @dev Value of 1 enables signatures to work across all chains
     uint256 private constant CROSS_CHAIN_ID = 1;
 
-    // Cache the domain separator as an immutable value, but also store the chain id that it corresponds to, in order to
-    // invalidate the cached domain separator if the chain id changes.
+    // Cache the domain separator as an immutable. The cache is used only when this code runs at the address it was
+    // deployed to; under delegatecall (a proxy, or an EIP-7702 delegated account) `address(this) != _cachedThis` and
+    // the separator is rebuilt for the calling address. `block.chainid` is deliberately not part of the key: the
+    // domain uses the constant CROSS_CHAIN_ID for cross-chain signature compatibility.
     bytes32 private immutable _cachedDomainSeparator;
-    uint256 private immutable _cachedChainId;
     address private immutable _cachedThis;
 
     bytes32 private immutable _hashedName;
@@ -57,17 +58,15 @@ abstract contract EIP712 is IERC5267 {
         _hashedName = keccak256(bytes(name));
         _hashedVersion = keccak256(bytes(version));
 
-        _cachedChainId = CROSS_CHAIN_ID;
         _cachedDomainSeparator = _buildDomainSeparator();
         _cachedThis = address(this);
     }
 
     /**
-     * @dev Returns the domain separator for the current chain
+     * @dev Returns the domain separator. It does not depend on block.chainid: the domain uses CROSS_CHAIN_ID
      * @return The EIP-712 domain separator hash
-     * @notice This function returns the cached domain separator if the contract
-     *         address hasn't changed (no proxy implementation changes).
-     *         Otherwise, it rebuilds the domain separator to ensure correctness.
+     * @notice Returns the cached separator when this code runs at the address it was deployed to, and rebuilds
+     *         it for address(this) under delegatecall.
      * @notice The domain separator is used in EIP-712 typed data signing to prevent
      *         signature replay attacks across different domains.
      */
