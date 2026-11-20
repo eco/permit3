@@ -364,12 +364,15 @@ async function createMarketplaceListing(
 }
 
 // Marketplace executes the permit when item is sold
+// permit3: Permit3 connected to the marketplace's signer, the account the listing approves
 async function executeMarketplaceSale(
     permitData,
-    buyer
+    buyer,
+    nftContract, // the listed NFT, as passed to createMarketplaceListing
+    tokenId
 ) {
-    // 1. Execute the signed permit to get NFT transfer rights
-    await permit3.permit(
+    // 1. Execute the signed permit to get NFT transfer rights, and wait until it is mined
+    const approvalTx = await permit3.permit(
         permitData.owner,
         permitData.salt,
         permitData.deadline,
@@ -377,6 +380,7 @@ async function executeMarketplaceSale(
         permitData.permits,
         permitData.signature
     );
+    await approvalTx.wait();
     
     // 2. Transfer NFT from seller to buyer
     await permit3.transferFromERC721(
@@ -445,9 +449,13 @@ async function createGameAssetBundle(
 }
 
 // Execute the bundle transfer
-async function executeGameAssetBundle(permitData) {
-    // 1. Execute permit to approve all items
-    await permit3.permit(
+// permit3: Permit3 connected to the treasury's signer (GAME_TREASURY_ADDRESS), the account the bundle approves
+async function executeGameAssetBundle(
+    permitData,
+    gameItems // the items passed to createGameAssetBundle
+) {
+    // 1. Execute permit to approve all items, and wait until it is mined
+    const approvalTx = await permit3.permit(
         permitData.owner,
         permitData.salt,
         permitData.deadline,
@@ -455,6 +463,7 @@ async function executeGameAssetBundle(permitData) {
         permitData.permits,
         permitData.signature
     );
+    await approvalTx.wait();
     
     // 2. Transfer each ERC1155 item
     for (const item of gameItems) {
