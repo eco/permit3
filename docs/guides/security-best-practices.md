@@ -113,6 +113,8 @@ async function signEmergencyLock(pairs) { // pairs: [{ token, spender }]
 }
 ```
 
+A lock on (token, account) stops the account from spending through its allowance and stops TransferERC20 operations to it. It does not stop transfers to other recipients, and it does not cancel signatures: a blocked signed permit runs again after the pair is unlocked, until its deadline, and an Increase signed before the lock comes back with no expiration. To cancel a signature you have given, call `invalidateNonces` with its salt, before unlocking. Unlocking while unknown signatures may still be pending is unsafe; if you cannot invalidate their salts, revoke the token's approval to Permit3 instead. Only the owner's own call can unlock a pair; a relayed Permit3 signature cannot, whatever its timestamp. For a smart account, "the owner's own call" includes anything the account has pre-authorised (a queued multisig transaction, a pending UserOperation, a session key): revoke those too.
+
 ### Nonce Management
 
 Proper nonce (salt) management is essential:

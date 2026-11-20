@@ -26,8 +26,8 @@ struct AllowanceOrTransfer {
 - **modeOrExpiration**: Determines the operation type
   - `0`: TransferERC20 mode (execute immediate ERC20 transfer)
   - `1`: Decrease mode (reduce allowance)
-  - `2`: Lock mode (lock allowances)
-  - `3`: Unlock mode (unlock allowances)
+  - `2`: Lock mode (lock one token/account pair)
+  - `3`: Unlock mode (unlock one token/account pair; only in a call sent by the owner itself)
   - `>3`: Increase mode (value serves as expiration timestamp)
 
 - **token**: The ERC20 token address this operation applies to
@@ -35,7 +35,7 @@ struct AllowanceOrTransfer {
 - **account**: 
   - For transfers: The recipient address
   - For allowances: The approved spender address
-  - For lock/unlock: Often set to `address(0)`
+  - For lock/unlock: The account to lock or unlock (the zero address reverts with `ZeroAccount`)
 
 - **amountDelta**:
   - For transfers: The transfer amount

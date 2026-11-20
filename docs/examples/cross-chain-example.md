@@ -22,7 +22,7 @@ const ethereumPermits = {
     chainId: 1,
     permits: [{
         modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours from now
-        token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC on Ethereum
+        tokenKey: ethers.utils.hexZeroPad("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 32), // USDC on Ethereum
         account: "0xDEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1DEF1", // DEX on Ethereum
         amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC
     }]
@@ -33,7 +33,7 @@ const arbitrumPermits = {
     chainId: 42161,
     permits: [{
         modeOrExpiration: 1, // Decrease mode
-        token: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", // USDC on Arbitrum
+        tokenKey: ethers.utils.hexZeroPad("0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", 32), // USDC on Arbitrum
         account: "0xDEF2DEF2DEF2DEF2DEF2DEF2DEF2DEF2DEF2DEF2", // DEX on Arbitrum
         amountDelta: ethers.utils.parseUnits("500", 6) // Decrease by 500 USDC
     }]
@@ -44,8 +44,8 @@ const optimismPermits = {
     chainId: 10,
     permits: [{
         modeOrExpiration: 2, // Lock mode
-        token: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", // USDC on Optimism
-        account: ethers.constants.AddressZero, // Not used for lock
+        tokenKey: ethers.utils.hexZeroPad("0x7F5c764cBc14f9669B88837ca1490cCa17c31607", 32), // USDC on Optimism
+        account: "0xDEF3DEF3DEF3DEF3DEF3DEF3DEF3DEF3DEF3DEF3", // DEX on Optimism, the account to lock (not the zero address)
         amountDelta: 0 // Not used for lock
     }]
 };

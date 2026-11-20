@@ -863,7 +863,8 @@ contract Permit3EdgeTest is Test {
         (v, r, s) = vm.sign(ownerPrivateKey, unlockDigest);
         unlockParams.signature = abi.encodePacked(r, s, v);
 
-        // Execute the unlock permit
+        // Execute the unlock permit. Only the owner's own call can lift a lock, so the owner submits it.
+        vm.prank(owner);
         permit3.permit(
             owner,
             unlockParams.salt,
@@ -965,7 +966,7 @@ contract Permit3EdgeTest is Test {
         (v, r, s) = vm.sign(ownerPrivateKey, unlockDigest);
         unlockParams.signature = abi.encodePacked(r, s, v);
 
-        // Should revert due to older timestamp
+        // Should revert: a relayed signature cannot lift a lock, whatever its timestamp
         vm.expectRevert(abi.encodeWithSelector(IPermit.AllowanceLocked.selector, owner, address(token), spender));
         permit3.permit(
             owner,
@@ -1382,6 +1383,8 @@ contract Permit3EdgeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
         params.signature = abi.encodePacked(r, s, v);
 
+        // Only the owner's own call can lift a lock, so the owner submits the signed Unlock
+        vm.prank(owner);
         permit3.permit(
             owner, params.salt, params.deadline, params.timestamp, inputs.chainPermits.permits, params.signature
         );

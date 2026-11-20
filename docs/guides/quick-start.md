@@ -368,19 +368,21 @@ const permitData = {
 ```javascript
 const permitData = {
     modeOrExpiration: 2, // Lock mode
-    token: tokenAddress,
-    account: address(0), // Not used for locking
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32),
+    account: spenderAddress, // The account to lock; the zero address reverts with ZeroAccount
     amountDelta: 0 // Not used for locking
 };
 ```
 
 ### Unlocking an Account
 
+Only the owner's own call can unlock. Send the Unlock from the owner's account with `permit3.permit([permitData])`. A signed Unlock submitted by anyone else cannot lift the lock: it reverts with `AllowanceLocked`, or with `InvalidTimestamp` while its signed timestamp is later than `block.timestamp`.
+
 ```javascript
 const permitData = {
     modeOrExpiration: 3, // Unlock mode
-    token: tokenAddress,
-    account: address(0), // Not used for unlocking
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32),
+    account: spenderAddress, // The account to unlock
     amountDelta: 0 // Not used for unlocking
 };
 ```

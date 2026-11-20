@@ -53,8 +53,8 @@ Executes an immediate ERC20 token transfer without changing allowances.
 
 **Behavior:**
 - Transfers `amountDelta` tokens from owner to `account`
-- Consumes existing allowance if called by a third party
-- No state changes to allowances
+- Reverts with `AllowanceLocked` if the owner has locked (`token`, `account`) with `lockdown()` or a Lock operation: a lock on the recipient blocks transfers to it, whether signed or sent by the owner. A transfer to any other recipient is not blocked
+- Does not consume or change any allowance; it only reads the recipient's lock state
 
 ### 2. Decrease Mode (1)
 
@@ -78,34 +78,34 @@ Reduces an existing allowance.
 
 ### 3. Lock Mode (2)
 
-Locks all allowances for a token, providing emergency security control.
+Locks one (`token`, `account`) pair, providing emergency security control. `lockdown()` does the same from the owner's own call.
 
 ```solidity
-// Example: Lock all USDC allowances
+// Example: Lock DEX's USDC allowance
 {
     modeOrExpiration: 2,             // Lock mode
-    token: USDC_ADDRESS,              // Token to lock
-    account: address(0),              // Not used for locking
+    tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))), // Token to lock (an ERC-20's key: its address as bytes32)
+    account: DEX_ADDRESS,             // Account to lock; the zero address reverts with ZeroAccount
     amountDelta: 0                    // Not used for locking
 }
 ```
 
 **Behavior:**
-- Enters special security state that blocks all transfers and allowance increases
-- Sets allowance to 0
+- Sets the allowance to 0 and locks it: `account` cannot spend through it, the owner cannot approve or change it, and TransferERC20 operations to `account` revert
 - Stores the operation timestamp, or `block.timestamp` if the operation timestamp is later
-- Can only be removed by an unlock operation with a more recent timestamp
+- Reverts with `AllowanceLocked` if the pair is already locked
+- Can only be removed by an Unlock in a call sent by the owner itself
 
 ### 4. Unlock Mode (3)
 
-Removes the locked state from a token.
+Removes the lock from a (`token`, `account`) pair. Only the owner's own call can do it: an Unlock in `permit(AllowanceOrTransfer[])` sent from the owner's account, or a signed permit that the owner's account submits itself. A signed Unlock submitted by anyone else never lifts the lock, whatever its timestamp, so an Unlock the owner was tricked into signing before the lock cannot undo it: on a locked pair it reverts with `AllowanceLocked`, or with `InvalidTimestamp` while its signed timestamp is later than `block.timestamp`. On a pair that is not locked, an Unlock changes nothing.
 
 ```solidity
-// Example: Unlock USDC (requires subsequent increase operation to set allowance)
+// Example: Unlock DEX's USDC allowance (requires subsequent increase operation to set allowance)
 {
     modeOrExpiration: 3,             // Unlock mode
-    token: USDC_ADDRESS,              // Token to unlock
-    account: address(0),              // Not used for unlocking
+    tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))), // Token to unlock
+    account: DEX_ADDRESS,             // Account to unlock
     amountDelta: 0                    // Not used for unlocking
 }
 ```
@@ -113,7 +113,9 @@ Removes the locked state from a token.
 **Behavior:**
 - Removes the locked state by setting expiration to 0
 - Does not modify allowance amount or timestamp
-- Subsequent increase operation required to set allowance and expiration
+- A later Increase sets the allowance and expiration again. An Increase signed before the lock still runs after the unlock: it adds its amount and, being older than the stored lock timestamp, leaves the expiration at 0, which never expires
+- Changes nothing if the pair is not locked
+- Signed permits that the lock blocked can run again after the unlock; cancel them first with `invalidateNonces` if they must not
 
 ### 5. Increase Mode (>3)
 
@@ -164,7 +166,7 @@ Even though the confirmations happen at different times, both operations use the
 - **Increase**: the amount changes whatever the timestamp. The expiration and the stored timestamp change only if the operation timestamp is newer than the stored one; with an equal timestamp the later expiration wins. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
 - **Decrease**: the amount changes whatever the timestamp. The expiration and the stored timestamp are left unchanged; a Decrease never reads the timestamp
 - **Lock**: stores its own timestamp, even one older than the stored timestamp. A timestamp later than `block.timestamp` is never stored: the Lock stores `block.timestamp` instead, so a Lock signed on a clock that runs ahead of the chain still lands. A Lock on an allowance that is already locked reverts with `AllowanceLocked`
-- **Unlock**: lifts a lock only if its timestamp is newer than the stored lock timestamp, and leaves the stored timestamp unchanged. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
+- **Unlock**: lifts a lock only in a call sent by the owner itself (`msg.sender == owner`); it does not compare its timestamp with the lock's, and a relayed signature never lifts a lock. It leaves the stored timestamp unchanged. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp` before the lock is checked
 - **Direct calls**: `approve()` and `lockdown()` set the stored timestamp to `block.timestamp`; the owner's own `permit(AllowanceOrTransfer[])` call uses `block.timestamp` as the operation timestamp
 - **TransferERC20** operations do not read the timestamp
 
@@ -187,15 +189,26 @@ The `Permit` event reports the operation's timestamp: the signed one, or `block.
 
 ## Account Locking
 
-The lock/unlock system provides emergency security controls for Permit3.
+The lock/unlock system provides emergency security controls for Permit3. A lock applies to one (`owner`, `token`, `account`) slot.
 
 ### Locking Mechanism
 
-A locked token has special restrictions:
+A locked (`token`, `account`) pair has these restrictions:
 
-1. **No Allowance Increases**: Cannot grant new or increase existing permissions
-2. **No Transfers**: Cannot execute transfers of the locked token
-3. **Timestamp Validation**: Can only be unlocked by operations with newer timestamps
+1. **No Allowance Changes**: The owner cannot approve the account, and Increase, Decrease and Lock operations on the pair revert
+2. **No Spending by the Account**: `transferFrom` and the NFT transfer functions called by the account revert
+3. **No TransferERC20 to the Account**: A `TransferERC20` operation to the account reverts, whether it is signed or sent by the owner
+4. **Owner-Only Unlock**: Only an Unlock in a call sent by the owner itself lifts the lock. A relayed signature cannot, whatever its timestamp
+
+### What a Lock Does Not Do
+
+- It does not block transfers to other recipients. A phished signature can send tokens to an address the owner does not know, and a different approved spender can still `transferFrom` to the locked address; a signature given before the lock can also create that other allowance
+- A lock on one NFT/ERC1155 token id (a per-tokenId key) does not stop a spender that holds a collection-wide allowance for the same collection from moving that id
+- It does not cancel signatures. A signed permit that the lock blocks keeps its nonce and can run again after the owner unlocks the pair, until its deadline. An Increase signed before the lock that runs after the unlock can leave the allowance with no expiration (expiration 0 never expires), so do not unlock after an incident until every salt you may have given away is invalidated
+- To cancel a signed permit, call `invalidateNonces` with its salt. That is the kill switch for a leaked or phished signature
+- "The owner's own call" means any call whose `msg.sender` is the owner. For a smart account that includes anything the account itself has pre-authorised (a queued multisig transaction, a pending UserOperation, a session key); the owner-only unlock protects against Permit3 signatures, not against those
+- An owner that can sign (ERC-1271) but cannot send its own call to Permit3 can lock a pair with a relayed Lock permit but can never unlock it
+- A Lock, Decrease or Increase on a pair that is already locked reverts and takes its whole permit with it. Lock pairs that may already be locked in separate permits, or use `lockdown()`, which re-locks without reverting
 
 ### Implementation
 
@@ -203,14 +216,14 @@ Locking is implemented by setting a special value in the allowance mapping and c
 
 ```solidity
 // Pseudocode for lock check
-if (allowances[owner][token][account].expiration == LOCKED_ALLOWANCE) {
-    revert AllowanceLocked();
+if (allowances[owner][tokenKey][account].expiration == LOCKED_ALLOWANCE) {
+    revert AllowanceLocked(owner, tokenKey, account);
 }
 ```
 
 ### Cross-Chain Lock Considerations
 
-Locks can be propagated across chains by creating a multi-chain permit with lock operations for each chain, using the same timestamp. This ensures consistent security across the entire token ecosystem.
+One multi-chain permit with a Lock operation for each chain locks the pair on every chain. Unlocking is per chain: the owner sends an Unlock from its own account on each chain.
 
 ## Expiration Mechanics
 

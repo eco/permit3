@@ -153,14 +153,14 @@ Permit3 supports five operation modes controlled by the `modeOrExpiration` param
    - Special case: `type(uint160).max` resets to 0
 
 3. **Lock Mode** (`modeOrExpiration = 2`):
-   - Locks allowance for security
-   - Blocks any increases or transfers
-   - Requires newer timestamp to unlock
+   - Locks one (token, account) pair for security
+   - Blocks spending by the account, any allowance change, and TransferERC20 operations to the account
+   - Only the owner's own call can unlock it
 
 4. **Unlock Mode** (`modeOrExpiration = 3`):
    - Cancels locked state
-   - Sets new allowance amount
-   - Requires newer timestamp than lock
+   - Does not change the allowance amount or timestamp
+   - Only in a call sent by the owner itself; a relayed signature cannot unlock
 
 5. **Increase Mode** (`modeOrExpiration > 3`):
    - Value represents expiration timestamp
@@ -275,8 +275,8 @@ Permit3 implements several security features:
 
 3. **Account Locking**:
    - Special locked state for emergency security
-   - Operations blocked until explicit unlock
-   - Timestamp validation for unlock operations
+   - Operations on the pair, and TransferERC20 operations to it, blocked until unlocked
+   - Only the owner's own call can unlock; signed Unlocks relayed by others revert
 
 4. **Chain ID Validation**:
    - Explicit chain ID verification

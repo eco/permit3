@@ -118,7 +118,7 @@ error InvalidSignature(address signer);
 error InvalidMerkleProof();
 error InvalidParameters();
 error WrongChainId(uint256 expected, uint256 provided);
-error AllowanceLocked(address owner, address token, address spender);
+error AllowanceLocked(address owner, bytes32 tokenKey, address spender);
 error InvalidWitnessTypeString(string witnessTypeString);
 error NonceAlreadyUsed(address owner, bytes32 salt);
 error AllowanceExpired(uint48 deadline);
@@ -396,10 +396,11 @@ function lockdown(
 - `approvals`: Array of token/spender pairs to lock
 
 **Behavior:**
-- Sets allowance to 0 for all token/spender pairs
-- Sets locked state
-- Records current timestamp
-- Emits Permit events
+- Sets the allowance to 0 and locks each (token, spender) pair; stores `block.timestamp`
+- While a pair is locked, the spender cannot spend through it, the owner cannot approve or change it, and TransferERC20 operations to that address revert
+- Does not cancel signed permits: to cancel one, call `invalidateNonces` with its salt
+- Only the owner's own call can unlock a pair (an Unlock with `msg.sender == owner`)
+- Emits a `Lockdown` event for each pair
 
 ### NonceManager Functions
 
@@ -701,8 +702,8 @@ permit3.permitWitness(
 |------------|----------------|-------------|
 | 0 | TransferERC20 | Immediate ERC20 token transfer to recipient |
 | 1 | Decrease | Reduce existing allowance |
-| 2 | Lock | Lock allowance for security |
-| 3 | Unlock | Unlock previously locked allowance |
+| 2 | Lock | Lock a (token, account) pair: no spending by the account, no TransferERC20 to it |
+| 3 | Unlock | Unlock a locked pair; only in a call sent by the owner itself |
 | > 3 | Increase | Increase allowance with expiration timestamp |
 
 <a id="error-reference"></a>
@@ -713,7 +714,7 @@ permit3.permitWitness(
 | `SignatureExpired(deadline, currentTimestamp)` | Deadline has passed | Use future deadlines, check system time |
 | `InvalidSignature(signer)` | Signature verification failed | Verify signer, domain params, and hash construction |
 | `WrongChainId(expected, provided)` | Chain ID mismatch | Ensure chain ID in permit matches current chain |
-| `AllowanceLocked(owner, token, spender)` | Account is in locked state | Unlock with newer timestamp before operations |
+| `AllowanceLocked(owner, tokenKey, spender)` | The (token, account) pair is locked | The owner unlocks it with its own call (Unlock with `msg.sender == owner`); a relayed signature cannot |
 | `InvalidWitnessTypeString(witnessTypeString)` | Witness type string is malformed | Ensure type string is valid EIP-712 format with closing parenthesis |
 | `NonceAlreadyUsed(owner, salt)` | Salt has been used | Generate unique salts for each signature |
 | `EmptyArray()` | Empty array provided | Ensure arrays contain at least one element |
