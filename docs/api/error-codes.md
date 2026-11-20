@@ -412,6 +412,29 @@ Thrown when an invalid expiration timestamp is provided.
 - Validate expiration times before operations
 - Account for network delays and block times
 
+#### InvalidTimestamp
+
+```solidity
+error InvalidTimestamp(uint48 providedTimestamp, uint48 currentTimestamp);
+```
+
+**Description:**
+Thrown when a permit contains an Increase or an Unlock operation and its signed `timestamp` is later than `block.timestamp`. A Lock stores `block.timestamp` instead of a later timestamp, and a Decrease and a TransferERC20 operation ignore the timestamp, so they never throw it.
+
+**Parameters:**
+- `providedTimestamp`: The signed timestamp of the permit
+- `currentTimestamp`: The current block timestamp
+
+**Possible Causes:**
+- The permit was signed with the wall clock (`Date.now()`) and the signer's clock runs ahead of the chain
+- The chain's block timestamps lag the wall clock
+- A cross-chain permit signed with a timestamp that has not yet been reached on one of its chains
+
+**Mitigation:**
+- Retry: the revert consumes nothing, so the same signature can be retried once `block.timestamp` reaches the signed timestamp, before its deadline; its other checks still apply
+- Sign the latest block timestamp of the target chain, or the smallest one across all chains of a cross-chain permit
+- To replace the permit instead of retrying, cancel it first with `invalidateNonces`
+
 <a id="error-handling-best-practices"></a>
 ## Error Handling Best Practices
 
@@ -442,6 +465,7 @@ Thrown when an invalid expiration timestamp is provided.
 | Chain | WrongChainId | High | Yes | Verify network connection |
 | Witness | InvalidWitnessTypeString | Medium | Yes | Validate format |
 | Allowance | AllowanceLocked | Medium | Yes | Check lock status first |
+| Allowance | InvalidTimestamp | Low | Yes (retry later) | Sign the latest block timestamp |
 | Proof | InvalidMerkleProof | High | Yes | Verify proof locally |
 
 <a id="cross-chain-error-handling"></a>

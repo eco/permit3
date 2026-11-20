@@ -93,7 +93,7 @@ Locks all allowances for a token, providing emergency security control.
 **Behavior:**
 - Enters special security state that blocks all transfers and allowance increases
 - Sets allowance to 0
-- Updates timestamp to current operation time
+- Stores the operation timestamp, or `block.timestamp` if the operation timestamp is later
 - Can only be removed by an unlock operation with a more recent timestamp
 
 ### 4. Unlock Mode (3)
@@ -163,10 +163,18 @@ Even though the confirmations happen at different times, both operations use the
 
 - **Increase**: the amount changes whatever the timestamp. The expiration and the stored timestamp change only if the operation timestamp is newer than the stored one; with an equal timestamp the later expiration wins. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
 - **Decrease**: the amount changes whatever the timestamp. The expiration and the stored timestamp are left unchanged; a Decrease never reads the timestamp
-- **Lock**: stores its own timestamp, even one older than the stored timestamp. A Lock on an allowance that is already locked reverts with `AllowanceLocked`
-- **Unlock**: lifts a lock only if its timestamp is newer than the stored lock timestamp, and leaves the stored timestamp unchanged
+- **Lock**: stores its own timestamp, even one older than the stored timestamp. A timestamp later than `block.timestamp` is never stored: the Lock stores `block.timestamp` instead, so a Lock signed on a clock that runs ahead of the chain still lands. A Lock on an allowance that is already locked reverts with `AllowanceLocked`
+- **Unlock**: lifts a lock only if its timestamp is newer than the stored lock timestamp, and leaves the stored timestamp unchanged. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
 - **Direct calls**: `approve()` and `lockdown()` set the stored timestamp to `block.timestamp`; the owner's own `permit(AllowanceOrTransfer[])` call uses `block.timestamp` as the operation timestamp
 - **TransferERC20** operations do not read the timestamp
+
+### Signing the Timestamp
+
+Sign the timestamp of the latest block of the chain the permit will run on. For a permit that covers several chains, sign the smallest of the latest block timestamps of those chains. Do not sign the wall clock (`Date.now()`): a device clock can run ahead of a chain, and a chain's block timestamps can lag the wall clock, so the signed time can be later than `block.timestamp` when the transaction lands.
+
+If a permit contains an Increase or an Unlock and its timestamp is later than `block.timestamp`, the whole permit reverts with `InvalidTimestamp(providedTimestamp, currentTimestamp)`. Nothing is consumed: the nonce stays unused and the signature stays valid until its deadline, so the same signature can be submitted again once `block.timestamp` reaches the signed timestamp. To replace it with a new permit instead, first cancel it with `invalidateNonces`. A Lock or a Decrease never reverts for this reason, but a revert takes every operation of the permit with it: sign an emergency Lock or Decrease as its own permit, without Increase or Unlock operations.
+
+The `Permit` event reports the operation's timestamp: the signed one, or `block.timestamp` for a Lock whose signed timestamp was later. A Decrease reports its signed timestamp, which nothing stores.
 
 ## Account Locking
 

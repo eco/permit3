@@ -712,10 +712,10 @@ contract Permit3EdgeTest is Test {
         );
     }
 
-    function test_lockTimestampInFuture() public {
-        // A Lock permit must not be allowed to store a future timestamp. Otherwise the
-        // lock would be effectively un-unlockable, since Unlock requires a timestamp
-        // strictly greater than the stored lock timestamp.
+    function test_lockTimestampInFutureIsClampedToBlockTimestamp() public {
+        // A Lock permit never stores a future timestamp. It stores block.timestamp instead, so a
+        // Lock signed on a clock that runs ahead of the chain still lands, and a Lock signed with
+        // type(uint48).max no longer leaves a lock that no later Unlock timestamp can exceed.
 
         // Create a permit to lock the allowance with a future timestamp
         PermitInputs memory lockInputs;
@@ -751,10 +751,7 @@ contract Permit3EdgeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, lockDigest);
         lockParams.signature = abi.encodePacked(r, s, v);
 
-        // Should revert with InvalidTimestamp - a Lock cannot store a future timestamp
-        vm.expectRevert(
-            abi.encodeWithSelector(IPermit.InvalidTimestamp.selector, lockParams.timestamp, uint48(block.timestamp))
-        );
+        // The Lock lands at once and stores block.timestamp, not the signed future timestamp
         permit3.permit(
             owner,
             lockParams.salt,
@@ -763,6 +760,11 @@ contract Permit3EdgeTest is Test {
             lockInputs.chainPermits.permits,
             lockParams.signature
         );
+
+        (uint160 amount, uint48 expiration, uint48 ts) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, 0);
+        assertEq(expiration, 2); // LOCKED_ALLOWANCE is 2
+        assertEq(ts, TIMESTAMP); // block.timestamp, not lockParams.timestamp
     }
 
     function test_lockAndUnlockAllowance() public {
@@ -994,7 +996,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0xaaa));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp);
+        params.timestamp = uint48(block.timestamp + 100);
 
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -1038,7 +1040,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0xbbb));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp);
+        params.timestamp = uint48(block.timestamp + 100);
 
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -1129,7 +1131,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory params;
         params.salt = bytes32(uint256(0xddd));
         params.deadline = uint48(block.timestamp + 1 hours);
-        params.timestamp = uint48(block.timestamp);
+        params.timestamp = uint48(block.timestamp + 100);
 
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
