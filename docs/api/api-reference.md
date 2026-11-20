@@ -69,7 +69,7 @@ struct Allowance {
 ```solidity
 struct AllowanceOrTransfer {
     uint48 modeOrExpiration;  // Operation mode or expiration time
-    address token;            // Token address
+    bytes32 tokenKey;         // ERC20 or collection: bytes32(uint256(uint160(token))); one NFT/ERC1155 id: keccak256(abi.encodePacked(token, tokenId))
     address account;          // Spender or recipient
     uint160 amountDelta;      // Amount change
 }
@@ -95,7 +95,7 @@ Note: In the implementation, cross-chain operations now use separate parameters 
 
 ```solidity
 bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
-    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
+    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)"
 );
 
 bytes32 public constant SIGNED_PERMIT3_TYPEHASH = keccak256(
@@ -554,8 +554,10 @@ const domain = {
 ```
 Permit3(address owner,bytes32 salt,uint48 deadline,uint48 timestamp,bytes32 merkleRoot)
 ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)
-AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)
+AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)
 ```
+
+The owner signs `Permit3`, whose `merkleRoot` is an opaque `bytes32`. Each leaf of that tree is `hashChainPermits(ChainPermits)`, built with the `ChainPermits` type hash above. The leaf is **not** EIP-712 `hashStruct(ChainPermits)`: each `AllowanceOrTransfer` element is hashed as `keccak256(abi.encode(modeOrExpiration, tokenKey, account, amountDelta))`, without the element's type hash. Compute leaves with `hashChainPermits` or reproduce that exact encoding; a standard EIP-712 library gives a different leaf.
 
 ### Witness Permit
 

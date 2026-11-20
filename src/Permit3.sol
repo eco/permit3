@@ -20,9 +20,9 @@ import { NonceManager } from "./NonceManager.sol";
  */
 contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
     /**
-     * @dev EIP-712 typehash for bundled chain permits
-     * Includes nested SpendTransferPermit struct for structured token permissions
-     * Used in cross-chain signature verification
+     * @dev Type hash for one chain's permits, used by hashChainPermits to build a leaf of the signed merkle tree.
+     * The type string declares the nested AllowanceOrTransfer struct, but hashChainPermits hashes each element
+     * without its type hash, so the leaf is not EIP-712 hashStruct(ChainPermits). See hashChainPermits.
      */
     bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
         "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)"
@@ -46,9 +46,14 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
     constructor() NonceManager("Permit3", "1") { }
 
     /**
-     * @dev Generate EIP-712 compatible hash for chain permits
+     * @dev Hash of one chain's permits: a leaf of the merkle tree whose root the owner signs
+     * @dev keccak256(abi.encode(CHAIN_PERMITS_TYPEHASH, chainId, keccak256(abi.encodePacked(h_0, ..., h_n-1))))
+     *      with h_i = keccak256(abi.encode(modeOrExpiration, tokenKey, account, amountDelta)). This is not
+     *      EIP-712 hashStruct(ChainPermits): EIP-712 would hash each element as hashStruct(AllowanceOrTransfer),
+     *      which starts with the element's type hash. A standard EIP-712 library gives a different leaf, so
+     *      off-chain code must call this function or reproduce this exact encoding.
      * @param chainPermits Chain-specific permit data
-     * @return bytes32 Combined hash of all permit parameters
+     * @return bytes32 Leaf hash of the chain's permits
      */
     function hashChainPermits(
         ChainPermits memory chainPermits

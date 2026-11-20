@@ -211,13 +211,14 @@ The priority of operations is:
 
 ## Integration with EIP-712 Signatures
 
-The allowance system integrates with EIP-712 for secure signature-based approvals:
+The owner signs the `Permit3` primary type, whose `merkleRoot` is an opaque `bytes32`. Each leaf of that tree is `hashChainPermits(ChainPermits)`, which uses this type hash:
 
 ```solidity
-// Typehash for AllowanceOrTransfer
-bytes32 constant ALLOWANCE_TRANSFER_TYPEHASH = keccak256(
-    "AllowanceOrTransfer(uint48 modeOrExpiration,address token,address account,uint160 amountDelta)"
+bytes32 public constant CHAIN_PERMITS_TYPEHASH = keccak256(
+    "ChainPermits(uint64 chainId,AllowanceOrTransfer[] permits)AllowanceOrTransfer(uint48 modeOrExpiration,bytes32 tokenKey,address account,uint160 amountDelta)"
 );
 ```
 
-This enables users to sign structured data representing allowance operations, which can then be submitted to the blockchain by anyone.
+There is no separate `AllowanceOrTransfer` type hash in the contract. `hashChainPermits` hashes each element as `keccak256(abi.encode(modeOrExpiration, tokenKey, account, amountDelta))`, without an element type hash, so the leaf is **not** EIP-712 `hashStruct(ChainPermits)`. Compute leaves with `Permit3.hashChainPermits` or reproduce that exact encoding; a standard EIP-712 library gives a different leaf.
+
+Once signed, the permit can be submitted to the blockchain by anyone.
