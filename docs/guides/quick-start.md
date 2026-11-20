@@ -345,7 +345,7 @@ permit3.permit(owner, salt, deadline, timestamp, optProof, signature);
 ```javascript
 const permitData = {
     modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours expiration
-    token: tokenAddress,
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32),
     account: spenderAddress,
     amountDelta: ethers.utils.parseUnits('100', 18) // 100 tokens
 };
@@ -356,7 +356,7 @@ const permitData = {
 ```javascript
 const permitData = {
     modeOrExpiration: 1, // Decrease mode
-    token: tokenAddress,
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32),
     account: spenderAddress,
     amountDelta: ethers.utils.parseUnits('50', 18) // Decrease by 50 tokens
 };

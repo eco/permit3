@@ -369,10 +369,10 @@ async function exampleCrossChainPermit() {
         chainId: 1,
         permits: [
             {
-                token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-                amount: ethers.utils.parseUnits('100', 6),
-                expiration: Math.floor(Date.now() / 1000) + 86400,
-                spender: '0x1111111111111111111111111111111111111111'
+                modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // expiration
+                tokenKey: ethers.utils.hexZeroPad('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 32), // USDC
+                account: '0x1111111111111111111111111111111111111111', // spender
+                amountDelta: ethers.utils.parseUnits('100', 6)
             }
         ]
     });
@@ -381,10 +381,10 @@ async function exampleCrossChainPermit() {
         chainId: 42161,
         permits: [
             {
-                token: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', // USDC.e
-                amount: ethers.utils.parseUnits('50', 6),
-                expiration: Math.floor(Date.now() / 1000) + 86400,
-                spender: '0x2222222222222222222222222222222222222222'
+                modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // expiration
+                tokenKey: ethers.utils.hexZeroPad('0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', 32), // USDC.e
+                account: '0x2222222222222222222222222222222222222222', // spender
+                amountDelta: ethers.utils.parseUnits('50', 6)
             }
         ]
     });
@@ -393,10 +393,10 @@ async function exampleCrossChainPermit() {
         chainId: 10,
         permits: [
             {
-                token: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607', // USDC
-                amount: ethers.utils.parseUnits('75', 6),
-                expiration: Math.floor(Date.now() / 1000) + 86400,
-                spender: '0x3333333333333333333333333333333333333333'
+                modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // expiration
+                tokenKey: ethers.utils.hexZeroPad('0x7F5c764cBc14f9669B88837ca1490cCa17c31607', 32), // USDC
+                account: '0x3333333333333333333333333333333333333333', // spender
+                amountDelta: ethers.utils.parseUnits('75', 6)
             }
         ]
     });
@@ -550,15 +550,15 @@ describe("Permit3 Integration Tests", function () {
     describe("Single Chain Permits", function () {
         it("Should create and execute a permit", async function () {
             const amount = ethers.utils.parseEther("100");
-            const expiration = Math.floor(Date.now() / 1000) + 3600;
             
-            // Create permit data
+            // Create permit data: a transfer of `amount` from the owner to the protocol
             const chainPermits = {
                 chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility // Hardhat chainId
                 permits: [{
-                    modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
-                    token: token.address,
-                    account: defiProtocol.address
+                    modeOrExpiration: 0, // TransferERC20: Permit3 moves the tokens to the account
+                    tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                    account: defiProtocol.address,
+                    amountDelta: amount
                 }]
             };
             
@@ -613,30 +613,33 @@ describe("Permit3 Integration Tests", function () {
     
     describe("Cross-Chain Permits", function () {
         it("Should create and execute an unbalanced permit", async function () {
-            // Create permits for multiple chains
+            // Create permits for multiple chains: each one transfers tokens to an account on its chain
             const permits = [
                 {
                     chainId: 1,
                     permits: [{
-                        modeOrExpiration: (BigInt(ethers.utils.parseEther("50")) << 48n) | BigInt(Math.floor(Date.now() / 1000) + 3600),
-                        token: token.address,
-                        account: defiProtocol.address
+                        modeOrExpiration: 0, // TransferERC20
+                        tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                        account: defiProtocol.address,
+                        amountDelta: ethers.utils.parseEther("50")
                     }]
                 },
                 {
                     chainId: 42161,
                     permits: [{
-                        modeOrExpiration: (BigInt(ethers.utils.parseEther("30")) << 48n) | BigInt(Math.floor(Date.now() / 1000) + 3600),
-                        token: token.address,
-                        account: spender.address
+                        modeOrExpiration: 0, // TransferERC20
+                        tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                        account: spender.address,
+                        amountDelta: ethers.utils.parseEther("30")
                     }]
                 },
                 {
                     chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility // Our test chain
                     permits: [{
-                        modeOrExpiration: (BigInt(ethers.utils.parseEther("20")) << 48n) | BigInt(Math.floor(Date.now() / 1000) + 3600),
-                        token: token.address,
-                        account: defiProtocol.address
+                        modeOrExpiration: 0, // TransferERC20
+                        tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                        account: defiProtocol.address,
+                        amountDelta: ethers.utils.parseEther("20")
                     }]
                 }
             ];

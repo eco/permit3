@@ -14,7 +14,7 @@ const timeRestrictedPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiration
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
         account: DEX_ADDRESS,
         amountDelta: ethers.utils.parseUnits("100", 6) // Exact amount needed
     }]
@@ -25,7 +25,7 @@ const riskyPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: Math.floor(Date.now() / 1000) + (365 * 86400), // 1 year
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
         account: DEX_ADDRESS,
         amountDelta: ethers.constants.MaxUint256 // Unlimited approval (RISKY)
     }]

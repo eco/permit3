@@ -82,8 +82,8 @@ The central struct for all permit operations:
 
 ```solidity
 struct AllowanceOrTransfer {
-    uint48 modeOrExpiration;  // >2: expiration timestamp; 0: transfer; 1: decrease; 2: lock
-    address token;
+    uint48 modeOrExpiration;  // 0: transfer; 1: decrease; 2: lock; 3: unlock; >3: expiration timestamp
+    bytes32 tokenKey;         // ERC-20: bytes32(uint256(uint160(token))); one NFT/ERC-1155 id: keccak256(abi.encodePacked(token, tokenId))
     address account;          // spender or recipient
     uint160 amountDelta;
 }
@@ -93,7 +93,8 @@ struct AllowanceOrTransfer {
 - `0` — execute transfer
 - `1` — decrease allowance
 - `2` — lock account
-- `>2` — set/increase allowance with this expiration
+- `3` — unlock account (only in a call the owner sends itself)
+- `>3` — set/increase allowance with this expiration
 
 ### Cross-Chain Merkle Proofs
 

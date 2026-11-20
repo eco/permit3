@@ -17,7 +17,7 @@ interface IPermit3 is IPermit, INonceManager {
     
     struct AllowanceOrTransfer {
         uint48 modeOrExpiration;
-        address token;
+        bytes32 tokenKey;
         address account;
         uint160 amountDelta;
     }
@@ -289,7 +289,7 @@ interface IMultiTokenPermit {
 ### Key Features
 
 - **Dual-Allowance System**: Check per-token allowance first, fall back to collection-wide
-- **TokenId Encoding**: Encodes tokenId as address using `keccak256(token || tokenId)`
+- **TokenId Keys**: Derives a 32-byte key for one tokenId: `keccak256(abi.encodePacked(token, tokenId))`
 - **Batch Operations**: Efficient multi-token transfers in single transaction
 - **Token Type Support**: Unified interface for ERC20, ERC721, and ERC1155
 

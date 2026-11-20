@@ -29,7 +29,7 @@ Permit3 unifies different allowance operations in a single structure through the
 ```solidity
 struct AllowanceOrTransfer {
     uint48 modeOrExpiration;
-    address token;
+    bytes32 tokenKey;
     address account;
     uint160 amountDelta;
 }
@@ -45,7 +45,7 @@ Executes an immediate ERC20 token transfer without changing allowances.
 // Example: Transfer 100 USDC to recipient
 {
     modeOrExpiration: 0,             // TransferERC20 mode
-    token: USDC_ADDRESS,              // Token to transfer
+    tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))), // Token to transfer (an ERC-20's key: its address as bytes32)
     account: RECIPIENT_ADDRESS,       // Transfer recipient
     amountDelta: 100000000            // 100 USDC (with 6 decimals)
 }
@@ -64,7 +64,7 @@ Reduces an existing allowance.
 // Example: Decrease DEX allowance by 50 USDC
 {
     modeOrExpiration: 1,             // Decrease mode
-    token: USDC_ADDRESS,              // Token address
+    tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))), // Token key
     account: DEX_ADDRESS,             // Spender
     amountDelta: 50000000             // Decrease by 50 USDC
 }
@@ -125,7 +125,7 @@ The most common mode, using `modeOrExpiration` as the expiration timestamp.
 // Example: Approve 500 USDC until tomorrow
 {
     modeOrExpiration: NOW + 86400,   // Expires in 24 hours
-    token: USDC_ADDRESS,              // Token address
+    tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))), // Token key
     account: DEX_ADDRESS,             // Spender
     amountDelta: 500000000            // 500 USDC
 }

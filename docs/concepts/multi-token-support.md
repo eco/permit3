@@ -81,23 +81,21 @@ permit3.approve(erc1155Contract, spender, tokenId, amount, expiration);
 ```
 
 <a id="tokenid-encoding-as-address"></a>
-## 🔐 TokenId Encoding as Address
+## 🔐 TokenId Keys
 
 To efficiently store and manage permissions for millions of potential token IDs, Permit3 uses a deterministic encoding scheme.
 
 ### The Encoding Process
 
 ```solidity
-// Convert token + tokenId into a unique address identifier
-address encodedId = address(uint160(uint256(
-    keccak256(abi.encodePacked(token, tokenId))
-)));
+// Derive a unique 32-byte key from token + tokenId
+bytes32 tokenKey = keccak256(abi.encodePacked(token, tokenId));
 ```
 
 ### Why This Approach?
 
 1. **Storage Efficiency**: Reuses existing allowance mapping structure
-2. **Deterministic**: Same token+ID always produces same encoded address
+2. **Deterministic**: Same token+ID always produces the same key
 3. **Collision Resistant**: Keccak256 ensures virtually no collisions
 4. **Gas Optimized**: Single storage slot per token ID permission
 
@@ -106,14 +104,14 @@ address encodedId = address(uint160(uint256(
 The encoding process:
 1. Concatenates the token contract address with the token ID
 2. Hashes the result using Keccak256 (256-bit output)
-3. Truncates to 160 bits (Ethereum address size)
-4. Casts to address type for storage in allowance mappings
+3. Uses the full 32-byte hash as the key in the allowance mapping
+4. An ERC20, or a whole collection, uses its address as the key instead: `bytes32(uint256(uint160(token)))`
 
-This creates a unique "virtual address" for each token ID that can be used in the standard allowance storage system:
+This gives each token ID its own key in the standard allowance storage:
 
 ```solidity
-mapping(address owner => 
-    mapping(address tokenOrEncodedId => 
+mapping(address owner =>
+    mapping(bytes32 tokenKey =>
         mapping(address spender => Allowance))) allowances;
 ```
 

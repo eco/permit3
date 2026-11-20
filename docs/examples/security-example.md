@@ -73,9 +73,10 @@ async function emergencyLockdownAllChains() {
             for (const token of tokens) {
                 for (const spender of SPENDERS) {
                     permits.push({
-                        modeOrExpiration: 0x1, // Mode 1 = lockdown (set allowance to 0)
-                        token: token,
-                        account: spender
+                        modeOrExpiration: 2, // Lock mode: sets the allowance to 0 and blocks the spender
+                        tokenKey: ethers.utils.hexZeroPad(token, 32),
+                        account: spender,
+                        amountDelta: 0
                     });
                 }
             }
@@ -231,9 +232,10 @@ class SecurePermitManager {
         
         // Create permit data
         const permitData = {
-            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
-            token: token,
-            account: spender
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(token, 32),
+            account: spender,
+            amountDelta: amount
         };
         
         const chainPermits = {
@@ -460,9 +462,10 @@ class MultiSigPermitManager {
         
         // Create the permit data
         const permitData = {
-            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
-            token: token,
-            account: spender
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(token, 32),
+            account: spender,
+            amountDelta: amount
         };
         
         const chainPermits = {

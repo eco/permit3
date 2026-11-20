@@ -518,23 +518,16 @@ class MultiTokenPermit3Client {
 
 ## Critical: Using Multi-Tokens with Signed Permits
 
-**Important**: When using NFTs or ERC1155 tokens with Permit3's signed permit functions (`permit()` with signatures), you must encode the tokenId into the address field since `AllowanceOrTransfer` struct doesn't have a tokenId field:
+**Important**: When using NFTs or ERC1155 tokens with Permit3's signed permit functions (`permit()` with signatures), name one tokenId by its 32-byte key, since the `AllowanceOrTransfer` struct has no tokenId field:
 
 ```javascript
-// Encode NFT/ERC1155 for signed permits
-const encodedTokenId = ethers.utils.getAddress(
-    '0x' + ethers.utils.keccak256(
-        ethers.utils.solidityPack(
-            ['address', 'uint256'],
-            [tokenContract, tokenId]
-        )
-    ).slice(26)
-);
+// Key of one NFT/ERC1155 id for signed permits
+const tokenKey = ethers.utils.solidityKeccak256(['address', 'uint256'], [tokenContract, tokenId]);
 
 // Use in AllowanceOrTransfer
 const permit = {
     modeOrExpiration: expiration,
-    token: encodedTokenId,  // Encoded address, not the token contract
+    tokenKey,  // keccak256(abi.encodePacked(token, tokenId)), not the token contract
     account: spender,
     amountDelta: amount  // 1 for NFTs, variable for ERC1155
 };

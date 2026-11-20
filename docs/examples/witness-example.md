@@ -197,7 +197,7 @@ async function createAndSignOrder(
         chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // TransferERC20 mode
-            token: order.tokenIn,
+            tokenKey: ethers.utils.hexZeroPad(order.tokenIn, 32),
             account: orderBookAddress,
             amountDelta: order.amountIn
         }]
@@ -249,7 +249,7 @@ async function createAndSignOrder(
         ],
         AllowanceOrTransfer: [
             { name: 'modeOrExpiration', type: 'uint48' },
-            { name: 'token', type: 'address' },
+            { name: 'tokenKey', type: 'bytes32' },
             { name: 'account', type: 'address' },
             { name: 'amountDelta', type: 'uint160' }
         ],
@@ -592,7 +592,7 @@ async function createAndSignMultiSigOrder(
         chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // TransferERC20 mode
-            token: order.tokenIn,
+            tokenKey: ethers.utils.hexZeroPad(order.tokenIn, 32),
             account: orderBookAddress,
             amountDelta: order.amountIn
         }]
@@ -648,7 +648,7 @@ async function createAndSignMultiSigOrder(
         ],
         AllowanceOrTransfer: [
             { name: 'modeOrExpiration', type: 'uint48' },
-            { name: 'token', type: 'address' },
+            { name: 'tokenKey', type: 'bytes32' },
             { name: 'account', type: 'address' },
             { name: 'amountDelta', type: 'uint160' }
         ],

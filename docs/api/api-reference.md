@@ -587,7 +587,7 @@ uint48 timestamp = uint48(block.timestamp);
 IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
 permits[0] = IPermit3.AllowanceOrTransfer({
     modeOrExpiration: 0, // TransferERC20 mode
-    token: USDC,
+    tokenKey: bytes32(uint256(uint160(USDC))),
     account: recipient,
     amountDelta: 1000e6 // 1000 USDC
 });
@@ -614,7 +614,7 @@ IPermit3.ChainPermits memory ethPermits = IPermit3.ChainPermits({
     permits: [
         IPermit3.AllowanceOrTransfer({
             modeOrExpiration: futureTimestamp,
-            token: USDC_ETH,
+            tokenKey: bytes32(uint256(uint160(USDC_ETH))),
             account: DEX_ETH,
             amountDelta: 1000e6
         })
@@ -626,7 +626,7 @@ IPermit3.ChainPermits memory arbPermits = IPermit3.ChainPermits({
     permits: [
         IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 1, // Decrease mode
-            token: USDC_ARB,
+            tokenKey: bytes32(uint256(uint160(USDC_ARB))),
             account: DEX_ARB,
             amountDelta: 500e6
         })

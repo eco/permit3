@@ -177,7 +177,7 @@ const types = {
     ],
     AllowanceOrTransfer: [
         { name: 'modeOrExpiration', type: 'uint48' },
-        { name: 'token', type: 'address' },
+        { name: 'tokenKey', type: 'bytes32' },
         { name: 'account', type: 'address' },
         { name: 'amountDelta', type: 'uint160' }
     ],

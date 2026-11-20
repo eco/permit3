@@ -114,21 +114,21 @@ const chainPermits = {
         // Set 1000 USDC allowance for DEX1
         {
             modeOrExpiration: expiration,
-            token: USDC_ADDRESS,
+            tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
             account: DEX1_ADDRESS,
             amountDelta: ethers.utils.parseUnits("1000", 6)
         },
         // Set 500 DAI allowance for DEX2
         {
             modeOrExpiration: expiration,
-            token: DAI_ADDRESS,
+            tokenKey: ethers.utils.hexZeroPad(DAI_ADDRESS, 32),
             account: DEX2_ADDRESS,
             amountDelta: ethers.utils.parseUnits("500", 18) // DAI has 18 decimals
         },
         // Set unlimited WETH allowance for DEX3
         {
             modeOrExpiration: expiration,
-            token: WETH_ADDRESS,
+            tokenKey: ethers.utils.hexZeroPad(WETH_ADDRESS, 32),
             account: DEX3_ADDRESS,
             amountDelta: ethers.constants.MaxUint256 // Unlimited approval
         }
@@ -148,7 +148,7 @@ const increasePermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: expiration,
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
         account: DEX_ADDRESS,
         amountDelta: ethers.utils.parseUnits("500", 6)
     }]
@@ -163,7 +163,7 @@ const decreasePermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: 1, // Decrease mode
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
         account: DEX_ADDRESS,
         amountDelta: ethers.utils.parseUnits("200", 6)
     }]
@@ -210,7 +210,7 @@ const transferPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: 0, // TransferERC20 mode
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
         account: RECIPIENT_ADDRESS,
         amountDelta: ethers.utils.parseUnits("50", 6)
     }]
@@ -227,7 +227,7 @@ const ethereumPermits = {
     chainId: 1,
     permits: [{
         modeOrExpiration: expiration,
-        token: ETH_USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(ETH_USDC_ADDRESS, 32),
         account: ETH_DEX_ADDRESS,
         amountDelta: ethers.utils.parseUnits("1000", 6)
     }]
@@ -237,7 +237,7 @@ const arbitrumPermits = {
     chainId: 42161,
     permits: [{
         modeOrExpiration: expiration,
-        token: ARB_USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(ARB_USDC_ADDRESS, 32),
         account: ARB_DEX_ADDRESS,
         amountDelta: ethers.utils.parseUnits("1000", 6)
     }]

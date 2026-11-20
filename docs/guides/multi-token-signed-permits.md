@@ -11,25 +11,23 @@ The `AllowanceOrTransfer` struct used in Permit3's signed permit functions is **
 ```solidity
 struct AllowanceOrTransfer {
     uint48 modeOrExpiration;  // Operation mode or expiration
-    address token;            // Token address (or encoded tokenId)
+    bytes32 tokenKey;         // Token key: an address as bytes32, or keccak256(token, tokenId)
     address account;          // Spender or recipient
     uint160 amountDelta;      // Amount (must be 1 for NFTs)
 }
 ```
 
-**Key Limitation**: This struct doesn't have a dedicated `tokenId` field, so NFT and ERC1155 operations require special encoding.
+**Key point**: The struct has no `tokenId` field. One NFT or one ERC1155 id is named by a 32-byte key derived from the token address and the tokenId.
 
 <a id="encoding-tokenids"></a>
 ## Encoding TokenIds for Multi-Token Permits
 
-To use NFTs (ERC721) or semi-fungible tokens (ERC1155) with signed permits, you must encode the token address and tokenId into a single address value:
+To use one NFT (ERC721) or one semi-fungible token id (ERC1155) in a signed permit, derive its key from the token address and the tokenId:
 
 ### Encoding Formula
 
 ```solidity
-address encodedTokenId = address(uint160(uint256(
-    keccak256(abi.encodePacked(tokenContract, tokenId))
-)));
+bytes32 tokenKey = keccak256(abi.encodePacked(tokenContract, tokenId));
 ```
 
 ### JavaScript Implementation
@@ -37,22 +35,14 @@ address encodedTokenId = address(uint160(uint256(
 ```javascript
 import { ethers } from 'ethers';
 
+// Key of one NFT or ERC1155 id: keccak256(abi.encodePacked(token, tokenId))
 function encodeTokenId(tokenContract, tokenId) {
-    // Pack token contract and tokenId together
-    const packed = ethers.utils.solidityPack(
-        ['address', 'uint256'],
-        [tokenContract, tokenId]
-    );
-    
-    // Hash the packed data
-    const hash = ethers.utils.keccak256(packed);
-    
-    // Take first 20 bytes (160 bits) as address
-    const encodedAddress = ethers.utils.getAddress(
-        '0x' + hash.slice(26) // Skip '0x' and first 12 bytes
-    );
-    
-    return encodedAddress;
+    return ethers.utils.solidityKeccak256(['address', 'uint256'], [tokenContract, tokenId]);
+}
+
+// Key of an ERC20, or of a whole collection: the address left-padded to 32 bytes
+function addressKey(tokenContract) {
+    return ethers.utils.hexZeroPad(tokenContract, 32);
 }
 ```
 
@@ -61,19 +51,17 @@ function encodeTokenId(tokenContract, tokenId) {
 ```solidity
 contract NFTPermitHelper {
     /**
-     * @notice Encode NFT token and ID for use in AllowanceOrTransfer
+     * @notice Key of one NFT or ERC1155 id, for the tokenKey of an AllowanceOrTransfer
      * @param token The NFT contract address
      * @param tokenId The specific NFT token ID
-     * @return The encoded address to use in permit
+     * @return The key to use in the permit
      */
     function encodeNFT(address token, uint256 tokenId) 
         public 
         pure 
-        returns (address) 
+        returns (bytes32)
     {
-        return address(uint160(uint256(
-            keccak256(abi.encodePacked(token, tokenId))
-        )));
+        return keccak256(abi.encodePacked(token, tokenId));
     }
 }
 ```
@@ -81,26 +69,26 @@ contract NFTPermitHelper {
 <a id="collection-wide-approvals"></a>
 ## Collection-Wide Approvals
 
-To approve an entire NFT collection (all token IDs), use the token contract address directly without encoding:
+To approve an entire NFT collection (all token IDs), use the collection's address key: the contract address left-padded to 32 bytes.
 
 ```javascript
-// For collection-wide approval, use the token address directly
-const collectionApproval = nftContractAddress; // No encoding needed
+// For collection-wide approval, use the address key
+const collectionApproval = addressKey(nftContractAddress);
 
-// For ERC20 tokens, also use the token address directly
-const erc20Token = tokenAddress; // No encoding needed
+// For ERC20 tokens, also use the address key
+const erc20Token = addressKey(tokenAddress);
 ```
 
 ### Decision Tree for Token Encoding
 
 ```
 Is it an NFT/ERC1155 with specific tokenId?
-├─ YES → Encode: keccak256(token + tokenId) as address
+├─ YES → tokenKey = keccak256(abi.encodePacked(token, tokenId))
 └─ NO
     ├─ Is it a collection-wide NFT approval?
-    │  └─ YES → Use token contract address directly
+    │  └─ YES → tokenKey = the token address as bytes32
     └─ Is it an ERC20 token?
-       └─ YES → Use token contract address directly
+       └─ YES → tokenKey = the token address as bytes32
 ```
 
 <a id="signed-permit-examples"></a>
@@ -119,13 +107,13 @@ async function createERC1155PermitSignature(
 ) {
     const permit3 = new ethers.Contract(PERMIT3_ADDRESS, PERMIT3_ABI, signer);
     
-    // 1. Encode the ERC1155 tokenId into an address
+    // 1. Derive the key of this ERC1155 id
     const encodedTokenId = encodeTokenId(erc1155Contract, tokenId);
     
     // 2. Create the permit data
     const permits = [{
         modeOrExpiration: expiration, // Must be > 3 for approval
-        token: encodedTokenId,         // Encoded token identifier
+        tokenKey: encodedTokenId,      // Key of this token id
         account: spender,              // Who can transfer the tokens
         amountDelta: amount            // Amount of ERC1155 tokens
     }];
@@ -149,13 +137,13 @@ async function createNFTPermitSignature(
 ) {
     const permit3 = new ethers.Contract(PERMIT3_ADDRESS, PERMIT3_ABI, signer);
     
-    // 1. Encode the NFT tokenId into an address
+    // 1. Derive the key of this NFT
     const encodedTokenId = encodeTokenId(nftContract, tokenId);
     
     // 2. Create the permit data
     const permits = [{
         modeOrExpiration: expiration, // Must be > 3 for approval
-        token: encodedTokenId,         // Encoded NFT identifier
+        tokenKey: encodedTokenId,      // Key of this NFT
         account: spender,              // Who can transfer the NFT
         amountDelta: 1                 // Always 1 for NFTs
     }];
@@ -180,16 +168,6 @@ async function createNFTPermitSignature(
             { name: 'deadline', type: 'uint48' },
             { name: 'timestamp', type: 'uint48' },
             { name: 'merkleRoot', type: 'bytes32' }
-        ],
-        ChainPermits: [
-            { name: 'chainId', type: 'uint64' },
-            { name: 'permits', type: 'AllowanceOrTransfer[]' }
-        ],
-        AllowanceOrTransfer: [
-            { name: 'modeOrExpiration', type: 'uint48' },
-            { name: 'token', type: 'address' },
-            { name: 'account', type: 'address' },
-            { name: 'amountDelta', type: 'uint160' }
         ]
     };
     
@@ -230,10 +208,10 @@ async function createCollectionPermitSignature(
     spender,
     expiration
 ) {
-    // For collection-wide, use the NFT contract address directly
+    // For collection-wide, use the collection's address key
     const permits = [{
         modeOrExpiration: expiration,
-        token: nftContract,      // Direct contract address for collection-wide
+        tokenKey: addressKey(nftContract), // Address key for collection-wide
         account: spender,
         amountDelta: ethers.constants.MaxUint160 // Max for unlimited
     }];
@@ -251,26 +229,26 @@ async function createMixedTokenPermit(
     tokens // Array of { type, contract, tokenId, spender, amount }
 ) {
     const permits = tokens.map(token => {
-        let tokenAddress;
+        let tokenKey;
         let amount;
         
         if (token.type === 'ERC721') {
             // Encode NFT tokenId
-            tokenAddress = encodeTokenId(token.contract, token.tokenId);
+            tokenKey = encodeTokenId(token.contract, token.tokenId);
             amount = 1;
         } else if (token.type === 'ERC1155') {
             // Encode ERC1155 tokenId
-            tokenAddress = encodeTokenId(token.contract, token.tokenId);
+            tokenKey = encodeTokenId(token.contract, token.tokenId);
             amount = token.amount;
         } else {
-            // ERC20: use contract address directly
-            tokenAddress = token.contract;
+            // ERC20: the address key
+            tokenKey = addressKey(token.contract);
             amount = token.amount;
         }
         
         return {
             modeOrExpiration: token.expiration || Math.floor(Date.now() / 1000) + 86400,
-            token: tokenAddress,
+            tokenKey,
             account: token.spender,
             amountDelta: amount
         };
@@ -302,7 +280,7 @@ async function createCrossChainMultiTokenPermit(
                     const encodedId = encodeTokenId(token.contract, tokenId);
                     permits.push({
                         modeOrExpiration: Math.floor(Date.now() / 1000) + 604800,
-                        token: encodedId,
+                        tokenKey: encodedId,
                         account: token.spender,
                         amountDelta: 1
                     });
@@ -313,16 +291,16 @@ async function createCrossChainMultiTokenPermit(
                     const encodedId = encodeTokenId(token.contract, tokenId);
                     permits.push({
                         modeOrExpiration: Math.floor(Date.now() / 1000) + 604800,
-                        token: encodedId,
+                        tokenKey: encodedId,
                         account: token.spender,
                         amountDelta: token.amounts[index]
                     });
                 });
             } else if (token.type === 'ERC20') {
-                // Handle ERC20 tokens (no encoding needed)
+                // Handle ERC20 tokens (address key)
                 permits.push({
                     modeOrExpiration: Math.floor(Date.now() / 1000) + 604800,
-                    token: token.contract,
+                    tokenKey: addressKey(token.contract),
                     account: token.spender,
                     amountDelta: token.amount
                 });
@@ -376,7 +354,7 @@ async function createMarketplaceListing(
     
     const permits = [{
         modeOrExpiration: expiration,
-        token: encodedNFT,
+        tokenKey: encodedNFT,
         account: marketplaceAddress,
         amountDelta: 1
     }];
@@ -415,13 +393,15 @@ async function executeMarketplaceSale(
 ```javascript
 async function batchNFTTransferWithPermit(
     owner,
+    executor, // signer that moves the NFTs; the permits approve it for each one
     nfts, // Array of { contract, tokenId, recipient }
 ) {
-    // Create permits for batch transfer
+    // TransferERC20 (mode 0) moves only ERC20 tokens: a tokenId key reverts with InvalidTokenKeyForTransfer.
+    // So approve the executor for each NFT, then move each one with transferFromERC721.
     const permits = nfts.map(nft => ({
-        modeOrExpiration: 0,  // 0 = immediate ERC20 transfer mode
-        token: encodeTokenId(nft.contract, nft.tokenId),
-        account: nft.recipient,
+        modeOrExpiration: Math.floor(Date.now() / 1000) + 3600, // Increase: approve for one hour
+        tokenKey: encodeTokenId(nft.contract, nft.tokenId),
+        account: executor.address,
         amountDelta: 1
     }));
     
@@ -436,6 +416,10 @@ async function batchNFTTransferWithPermit(
         permitData.permits,
         permitData.signature
     );
+
+    for (const nft of nfts) {
+        await permit3.connect(executor).transferFromERC721(permitData.owner, nft.recipient, nft.contract, nft.tokenId);
+    }
 }
 ```
 
@@ -449,7 +433,7 @@ async function createGameAssetBundle(
 ) {
     const permits = gameItems.map(item => ({
         modeOrExpiration: Math.floor(Date.now() / 1000) + 86400,
-        token: encodeTokenId(item.contract, item.tokenId),
+        tokenKey: encodeTokenId(item.contract, item.tokenId),
         account: GAME_TREASURY_ADDRESS,
         amountDelta: item.amount  // Variable amounts for ERC1155
     }));
@@ -471,7 +455,7 @@ async function executeGameAssetBundle(permitData) {
     
     // 2. Transfer each ERC1155 item
     for (const item of gameItems) {
-        await permit3['transferFrom(address,address,address,uint256,uint160)'](
+        await permit3.transferFromERC1155(
             permitData.owner,
             GAME_TREASURY_ADDRESS,
             item.contract,
@@ -495,10 +479,11 @@ async function createFractionalPermit(
     const totalShares = shareholders.reduce((sum, s) => sum + s.shares, 0);
     const encodedId = encodeTokenId(erc1155Contract, tokenId);
     
-    // Create transfer permits for each shareholder
+    // TransferERC20 (mode 0) moves only ERC20 tokens. Approve each shareholder for its shares instead;
+    // each one then pulls them with transferFromERC1155.
     const permits = shareholders.map(shareholder => ({
-        modeOrExpiration: 0,  // Immediate transfer
-        token: encodedId,
+        modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // Increase: approve for one day
+        tokenKey: encodedId,
         account: shareholder.address,
         amountDelta: shareholder.shares
     }));
@@ -511,10 +496,10 @@ async function createFractionalPermit(
 
 ### 1. Storage Implications
 
-When you encode an NFT as `keccak256(contract + tokenId)`:
-- The encoded address is stored in the allowance mapping
+When you approve one NFT with the key `keccak256(abi.encodePacked(contract, tokenId))`:
+- The key is stored in the allowance mapping
 - Each NFT approval creates a unique storage slot
-- Collection-wide approvals use the contract address directly
+- Collection-wide approvals use the contract's address key
 
 ### 2. Transfer Function Compatibility
 
@@ -531,16 +516,16 @@ await permit3.transferFromERC721(
 ### 3. Allowance Queries
 
 ```javascript
-// Query NFT-specific allowance
-const encodedId = encodeTokenId(nftContract, tokenId);
-const { amount, expiration } = await permit3.allowance(
+// Query NFT-specific allowance (the tokenId overload)
+const { amount, expiration } = await permit3['allowance(address,address,address,uint256)'](
     owner,
-    encodedId,  // Use encoded address
-    spender
+    nftContract,
+    spender,
+    tokenId
 );
 
 // Query collection-wide allowance
-const { amount: collectionAllowance } = await permit3.allowance(
+const { amount: collectionAllowance } = await permit3['allowance(address,address,address)'](
     owner,
     nftContract,  // Use contract address directly
     spender
@@ -563,11 +548,9 @@ library MultiTokenPermitHelper {
     function encodeTokenId(address token, uint256 tokenId) 
         internal 
         pure 
-        returns (address) 
+        returns (bytes32)
     {
-        return address(uint160(uint256(
-            keccak256(abi.encodePacked(token, tokenId))
-        )));
+        return keccak256(abi.encodePacked(token, tokenId));
     }
     
     /**
@@ -581,7 +564,7 @@ library MultiTokenPermitHelper {
     ) internal pure returns (IPermit3.AllowanceOrTransfer memory) {
         return IPermit3.AllowanceOrTransfer({
             modeOrExpiration: expiration,
-            token: encodeTokenId(token, tokenId),
+            tokenKey: encodeTokenId(token, tokenId),
             account: spender,
             amountDelta: 1  // Always 1 for NFTs
         });
@@ -599,7 +582,7 @@ library MultiTokenPermitHelper {
     ) internal pure returns (IPermit3.AllowanceOrTransfer memory) {
         return IPermit3.AllowanceOrTransfer({
             modeOrExpiration: expiration,
-            token: encodeTokenId(token, tokenId),
+            tokenKey: encodeTokenId(token, tokenId),
             account: spender,
             amountDelta: amount  // Variable amount for ERC1155
         });
@@ -616,7 +599,7 @@ library MultiTokenPermitHelper {
     ) internal pure returns (IPermit3.AllowanceOrTransfer memory) {
         return IPermit3.AllowanceOrTransfer({
             modeOrExpiration: expiration,
-            token: token, // Direct address for collection-wide
+            tokenKey: bytes32(uint256(uint160(token))), // Address key for collection-wide
             account: spender,
             amountDelta: type(uint160).max
         });
@@ -633,7 +616,7 @@ library MultiTokenPermitHelper {
     ) internal pure returns (IPermit3.AllowanceOrTransfer memory) {
         return IPermit3.AllowanceOrTransfer({
             modeOrExpiration: expiration,
-            token: token,  // Direct address for ERC20
+            tokenKey: bytes32(uint256(uint160(token))),  // Address key for ERC20
             account: spender,
             amountDelta: amount
         });
