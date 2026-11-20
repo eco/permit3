@@ -163,7 +163,7 @@ async function createNFTPermitSignature(
     // 3. Create signature parameters
     const salt = ethers.utils.randomBytes(32);
     const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour
-    const timestamp = Math.floor(Date.now() / 1000);
+    const timestamp = (await signer.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
     
     // 4. Create EIP-712 signature
     const domain = {

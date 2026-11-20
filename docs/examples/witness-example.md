@@ -206,7 +206,7 @@ async function createAndSignOrder(
     // 2. Create salt and deadline
     const salt = ethers.utils.randomBytes(32);
     const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour
-    const timestamp = Math.floor(Date.now() / 1000);
+    const timestamp = (await signer.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
     
     // 3. Create witness
     const abiCoder = new ethers.utils.AbiCoder();
@@ -601,7 +601,7 @@ async function createAndSignMultiSigOrder(
     // 3. Create salt and deadline
     const salt = ethers.utils.randomBytes(32);
     const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour
-    const timestamp = Math.floor(Date.now() / 1000);
+    const timestamp = (await makerSigner.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
     
     // 4. Create witness (including approver signature)
     const witness = ethers.utils.keccak256(

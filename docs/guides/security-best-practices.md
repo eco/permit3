@@ -76,43 +76,40 @@ function getExpiration(operationType) {
 
 ### Account Locking
 
-Implement account locking for emergency security control:
+Implement account locking for emergency security control. From the owner's own account, `lockdown()` takes effect immediately and needs no signature or timestamp:
 
 ```javascript
-// Lock all token allowances
-async function emergencyLock(tokensToLock) {
-    const permits = {
-        chainId: await provider.getNetwork().then(n => n.chainId),
-        permits: tokensToLock.map(token => ({
-            modeOrExpiration: 2, // Lock mode
-            token,
-            account: ethers.constants.AddressZero, // Not used for lock
-            amountDelta: 0 // Not used for lock
-        }))
-    };
-    
-    // Generate salt, timestamp, etc.
-    const salt = ethers.utils.randomBytes(32);
-    const timestamp = Math.floor(Date.now() / 1000);
+// Lock (token, spender) pairs from the owner's own account
+async function emergencyLockdown(pairs) { // pairs: [{ token, spender }]
+    return permit3.connect(wallet).lockdown(pairs);
+}
+```
+
+Without gas on the owner's account, sign Lock operations and let a relayer submit them:
+
+```javascript
+// Sign Lock operations for a relayer to submit. All pairs go in one permit, so one pair that is already
+// locked reverts the whole permit: if that can happen, sign one permit per pair, or use lockdown().
+// wallet: the owner's ethers Wallet, connected to the chain's provider
+async function signEmergencyLock(pairs) { // pairs: [{ token, spender }]
+    const permits = pairs.map(({ token, spender }) => ({
+        modeOrExpiration: 2, // Lock mode
+        tokenKey: ethers.utils.hexZeroPad(token, 32), // ERC20 or collection: the token address as bytes32
+        account: spender, // the account to lock; the zero address reverts with ZeroAccount
+        amountDelta: 0 // Not used for lock
+    }));
+
+    // Sign the latest block timestamp, not the wall clock. A Lock never reverts for a timestamp
+    // ahead of the chain (it stores block.timestamp instead), but Increase and Unlock operations do.
+    const timestamp = (await wallet.provider.getBlock('latest')).timestamp;
     const deadline = timestamp + 3600;
-    
-    // Sign and submit with high gas price for faster inclusion
-    const signature = await signPermit(wallet, domain, permits, salt, deadline, timestamp);
-    
-    const gasPrice = await provider.getGasPrice();
-    const urgentGasPrice = gasPrice.mul(150).div(100); // 1.5x current gas price
-    
-    const tx = await permit3.permit(
-        wallet.address,
-        salt,
-        deadline,
-        timestamp,
-        permits,
-        signature,
-        { gasPrice: urgentGasPrice }
-    );
-    
-    return tx;
+    const salt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+    const chainId = (await wallet.provider.getNetwork()).chainId;
+
+    const signature = await signPermit(wallet, domain, { chainId, permits }, salt, deadline, timestamp);
+
+    // The relayer submits: permit3.permit(owner, salt, deadline, timestamp, permits, signature)
+    return { owner: wallet.address, salt, deadline, timestamp, permits, signature };
 }
 ```
 
@@ -158,8 +155,9 @@ When working with cross-chain permits, additional security considerations apply:
 
 ```javascript
 // Use the same salt, deadline, and timestamp across all chains
+// providers: the providers of the chains the permit covers, as an array or as an object keyed by chain name
 const salt = ethers.utils.randomBytes(32);
-const timestamp = Math.floor(Date.now() / 1000);
+const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains; see "Signing the Timestamp"
 const deadline = timestamp + 3600; // 1 hour
 
 // Share these values across all chain operations

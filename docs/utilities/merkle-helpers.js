@@ -187,7 +187,9 @@ class CrossChainPermitHelper {
         
         // Create signature data
         const salt = ethers.utils.randomBytes(32);
-        const timestamp = Math.floor(Date.now() / 1000);
+        // Sign the smallest latest-block timestamp across the chains, so it is not in the future on any of them
+        const blocks = await Promise.all(chains.map(chain => this.providers[chain].getBlock('latest')));
+        const timestamp = Math.min(...blocks.map(block => block.timestamp));
         const deadline = timestamp + 3600; // 1 hour
         
         // Sign using mainnet domain

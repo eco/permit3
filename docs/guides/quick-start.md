@@ -62,6 +62,7 @@ ERC20(token).approve(PERMIT3_ADDRESS, type(uint256).max);
 
 ```javascript
 // JavaScript (ethers.js)
+// signer: the owner's ethers Signer, connected to the chain the permit runs on
 const domain = {
     name: 'Permit3',
     version: '1',
@@ -71,7 +72,7 @@ const domain = {
 
 const permit = {
     modeOrExpiration: 0, // TransferERC20 mode
-    token: tokenAddress,
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32), // an ERC-20's key: its address, left-padded to 32 bytes
     account: recipientAddress,
     amountDelta: ethers.utils.parseUnits('10', 18) // 10 tokens
 };
@@ -81,11 +82,14 @@ const chainPermits = {
     permits: [permit]
 };
 
+// Sign the latest block timestamp: a wall-clock timestamp can be ahead of the chain
+const latestBlockTimestamp = (await signer.provider.getBlock('latest')).timestamp;
+
 const permitData = {
     owner: userAddress,
     salt: ethers.utils.randomBytes(32),
-    deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-    timestamp: Math.floor(Date.now() / 1000),
+    deadline: latestBlockTimestamp + 3600, // 1 hour
+    timestamp: latestBlockTimestamp,
     chain: chainPermits
 };
 
@@ -96,21 +100,11 @@ const types = {
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'merkleRoot', type: 'bytes32' }
-    ],
-    ChainPermits: [
-        { name: 'chainId', type: 'uint64' },
-        { name: 'permits', type: 'AllowanceOrTransfer[]' }
-    ],
-    AllowanceOrTransfer: [
-        { name: 'modeOrExpiration', type: 'uint48' },
-        { name: 'token', type: 'address' },
-        { name: 'account', type: 'address' },
-        { name: 'amountDelta', type: 'uint160' }
     ]
 };
 
-// Calculate the permits hash
-const permitsHash = ethers.utils.keccak256(/* hash calculation logic */);
+// Calculate the permits hash (a view call on Permit3)
+const permitsHash = await permit3.hashChainPermits(chainPermits);
 
 const value = {
     owner: permitData.owner,

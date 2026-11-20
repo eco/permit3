@@ -712,6 +712,61 @@ contract Permit3EdgeTest is Test {
         );
     }
 
+    function test_lockTimestampInFutureIsClampedToBlockTimestamp() public {
+        // A Lock permit never stores a future timestamp. It stores block.timestamp instead, so a
+        // Lock signed on a clock that runs ahead of the chain still lands, and a Lock signed with
+        // type(uint48).max no longer leaves a lock that no later Unlock timestamp can exceed.
+
+        // Create a permit to lock the allowance with a future timestamp
+        PermitInputs memory lockInputs;
+        lockInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
+        lockInputs.permits[0] = IPermit3.AllowanceOrTransfer({
+            modeOrExpiration: uint48(IPermit3.PermitType.Lock), // Lock mode (2)
+            tokenKey: bytes32(uint256(uint160(address(token)))),
+            account: spender,
+            amountDelta: 0 // Not used for lock
+        });
+
+        lockInputs.chainPermits = IPermit3.ChainPermits({ chainId: uint64(block.chainid), permits: lockInputs.permits });
+
+        TestParams memory lockParams;
+        lockParams.salt = bytes32(uint256(0x446));
+        lockParams.deadline = uint48(block.timestamp + 1 hours);
+        lockParams.timestamp = uint48(block.timestamp + 1000); // Future timestamp
+
+        // Sign the lock permit
+        bytes32 lockDataHash = permit3Tester.hashChainPermits(lockInputs.chainPermits);
+        bytes32 lockSignedHash = keccak256(
+            abi.encode(
+                permit3.SIGNED_PERMIT3_TYPEHASH(),
+                owner,
+                lockParams.salt,
+                lockParams.deadline,
+                lockParams.timestamp,
+                lockDataHash
+            )
+        );
+
+        bytes32 lockDigest = _getDigest(lockSignedHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, lockDigest);
+        lockParams.signature = abi.encodePacked(r, s, v);
+
+        // The Lock lands at once and stores block.timestamp, not the signed future timestamp
+        permit3.permit(
+            owner,
+            lockParams.salt,
+            lockParams.deadline,
+            lockParams.timestamp,
+            lockInputs.chainPermits.permits,
+            lockParams.signature
+        );
+
+        (uint160 amount, uint48 expiration, uint48 ts) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, 0);
+        assertEq(expiration, 2); // LOCKED_ALLOWANCE is 2
+        assertEq(ts, TIMESTAMP); // block.timestamp, not lockParams.timestamp
+    }
+
     function test_lockAndUnlockAllowance() public {
         // First set up an initial allowance
         vm.prank(owner);
@@ -767,6 +822,12 @@ contract Permit3EdgeTest is Test {
         assertEq(expiration, 2); // LOCKED_ALLOWANCE is 2
         assertEq(ts, lockParams.timestamp);
 
+        // Remember the lock timestamp before advancing the clock
+        uint48 lockTimestamp = lockParams.timestamp;
+
+        // Advance the chain so the unlock can use a newer (but not future) timestamp
+        vm.warp(block.timestamp + 100);
+
         // Now create a permit to unlock with a newer timestamp
         PermitInputs memory unlockInputs;
         unlockInputs.permits = new IPermit3.AllowanceOrTransfer[](1);
@@ -783,7 +844,7 @@ contract Permit3EdgeTest is Test {
         TestParams memory unlockParams;
         unlockParams.salt = bytes32(uint256(0x777));
         unlockParams.deadline = uint48(block.timestamp + 1 hours);
-        unlockParams.timestamp = uint48(block.timestamp + 100); // Newer timestamp
+        unlockParams.timestamp = uint48(block.timestamp); // Newer than lock timestamp, not in the future
 
         // Sign the unlock permit
         bytes32 unlockDataHash = permit3Tester.hashChainPermits(unlockInputs.chainPermits);
@@ -817,7 +878,7 @@ contract Permit3EdgeTest is Test {
         assertEq(amount, 0); // Amount remains unchanged by unlock operation
         assertEq(expiration, 0); // No expiration (unlocked)
         // Note: timestamp should remain from lock operation since unlock only changes expiration
-        assertEq(ts, uint48(block.timestamp)); // Timestamp remains from lock operation
+        assertEq(ts, lockTimestamp); // Timestamp remains from lock operation
     }
 
     function test_attemptUnlockWithOlderTimestamp() public {
@@ -1288,8 +1349,11 @@ contract Permit3EdgeTest is Test {
         vm.prank(owner);
         permit3.lockdown(pairs);
 
-        // Create unlock permit with newer timestamp
-        uint48 newerTimestamp = uint48(block.timestamp) + 1;
+        // Advance the clock so the unlock can use a newer (but not future) timestamp than the lock
+        vm.warp(block.timestamp + 1);
+
+        // Create unlock permit with newer timestamp (now equal to the current block time)
+        uint48 newerTimestamp = uint48(block.timestamp);
 
         PermitInputs memory inputs;
         inputs.permits = new IPermit3.AllowanceOrTransfer[](1);
