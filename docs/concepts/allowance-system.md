@@ -84,7 +84,7 @@ Locks one (`token`, `account`) pair, providing emergency security control. `lock
 // Example: Lock DEX's USDC allowance
 {
     modeOrExpiration: 2,             // Lock mode
-    token: USDC_ADDRESS,              // Token to lock
+    tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))), // Token to lock (an ERC-20's key: its address as bytes32)
     account: DEX_ADDRESS,             // Account to lock; the zero address reverts with ZeroAccount
     amountDelta: 0                    // Not used for locking
 }
@@ -104,7 +104,7 @@ Removes the lock from a (`token`, `account`) pair. Only the owner's own call can
 // Example: Unlock DEX's USDC allowance (requires subsequent increase operation to set allowance)
 {
     modeOrExpiration: 3,             // Unlock mode
-    token: USDC_ADDRESS,              // Token to unlock
+    tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))), // Token to unlock
     account: DEX_ADDRESS,             // Account to unlock
     amountDelta: 0                    // Not used for unlocking
 }

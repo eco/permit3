@@ -178,7 +178,7 @@ const lockPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: 2, // Lock mode
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
         account: DEX_ADDRESS, // The account to lock; the zero address reverts with ZeroAccount
         amountDelta: 0 // Not used for locking
     }]
@@ -195,7 +195,7 @@ const unlockPermit = {
     chainId: 1,
     permits: [{
         modeOrExpiration: 3, // Unlock mode
-        token: USDC_ADDRESS,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
         account: DEX_ADDRESS, // The account to unlock
         amountDelta: 0 // Not used for unlocking
     }]

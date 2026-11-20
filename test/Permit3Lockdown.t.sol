@@ -233,6 +233,32 @@ contract Permit3LockdownTest is TestBase {
         assertEq(token.balanceOf(recipient), 0);
     }
 
+    /// Documented limit: an Increase signed before the lock runs after the owner's unlock and never expires
+    function test_staleIncreaseAfterOwnerUnlockHasNoExpiration() public {
+        uint48 signedExpiration = NOW + 1 hours;
+        IPermit3.ChainPermits memory cp = _single(_op(signedExpiration, spender, 500));
+        bytes memory sig = _signPermit(cp, DEADLINE, NOW, SALT); // signed at NOW, before the lock
+
+        vm.warp(NOW + 10);
+        _lockdown(spender); // lock timestamp NOW + 10, newer than the Increase
+
+        vm.prank(owner);
+        permit3.permit(_single(_op(uint48(IPermit3.PermitType.Unlock), spender, 0)).permits);
+
+        // Anyone relays the old Increase before its deadline
+        permit3.permit(owner, SALT, DEADLINE, NOW, cp.permits, sig);
+
+        (uint160 amount, uint48 expiration,) = permit3.allowance(owner, address(token), spender);
+        assertEq(amount, 500);
+        assertEq(expiration, 0, "the signed expiration was not applied");
+
+        // Long after the expiration the owner signed, the spender can still pull
+        vm.warp(uint256(signedExpiration) + 365 days);
+        vm.prank(spender);
+        permit3.transferFrom(owner, spender, 500, address(token));
+        assertEq(token.balanceOf(spender), 500);
+    }
+
     // ---- only the owner's own call lifts a lock ----
 
     /// Signed before the lockdown, dated after it: once its timestamp is reached it still cannot lift the lock
@@ -322,6 +348,19 @@ contract Permit3LockdownTest is TestBase {
 
         vm.expectRevert(_lockedError(spender));
         permit3.permitWitness(owner, SALT, DEADLINE, ts, cp.permits, WITNESS, WITNESS_TYPE_STRING, sig);
+    }
+
+    function test_relayedUnlockRejectedOnWitnessProofPath() public {
+        _lockdown(spender);
+        vm.warp(NOW + 1); // a relayed Unlock newer than the lock: it would lift the lock under a timestamp rule
+
+        IPermit3.ChainPermits memory cp = _single(_op(uint48(IPermit3.PermitType.Unlock), spender, 0));
+        bytes32[] memory nodes = _nodes();
+        uint48 ts = NOW + 1;
+        bytes memory sig = _signWitnessProof(cp, nodes, ts, SALT);
+
+        vm.expectRevert(_lockedError(spender));
+        permit3.permitWitness(owner, SALT, DEADLINE, ts, cp, nodes, WITNESS, WITNESS_TYPE_STRING, sig);
     }
 
     /// A relayer whose transaction the owner originated (tx.origin == owner) is still not the owner's own call

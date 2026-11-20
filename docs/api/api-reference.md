@@ -118,7 +118,7 @@ error InvalidSignature(address signer);
 error InvalidMerkleProof();
 error InvalidParameters();
 error WrongChainId(uint256 expected, uint256 provided);
-error AllowanceLocked(address owner, address token, address spender);
+error AllowanceLocked(address owner, bytes32 tokenKey, address spender);
 error InvalidWitnessTypeString(string witnessTypeString);
 error NonceAlreadyUsed(address owner, bytes32 salt);
 error AllowanceExpired(uint48 deadline);
@@ -714,7 +714,7 @@ permit3.permitWitness(
 | `SignatureExpired(deadline, currentTimestamp)` | Deadline has passed | Use future deadlines, check system time |
 | `InvalidSignature(signer)` | Signature verification failed | Verify signer, domain params, and hash construction |
 | `WrongChainId(expected, provided)` | Chain ID mismatch | Ensure chain ID in permit matches current chain |
-| `AllowanceLocked(owner, token, spender)` | The (token, account) pair is locked | The owner unlocks it with its own call (Unlock with `msg.sender == owner`); a relayed signature cannot |
+| `AllowanceLocked(owner, tokenKey, spender)` | The (token, account) pair is locked | The owner unlocks it with its own call (Unlock with `msg.sender == owner`); a relayed signature cannot |
 | `InvalidWitnessTypeString(witnessTypeString)` | Witness type string is malformed | Ensure type string is valid EIP-712 format with closing parenthesis |
 | `NonceAlreadyUsed(owner, salt)` | Salt has been used | Generate unique salts for each signature |
 | `EmptyArray()` | Empty array provided | Ensure arrays contain at least one element |

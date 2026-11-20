@@ -178,7 +178,7 @@ function permitWitness(
 
 ### Operation Modes
 
-The `transferOrExpiration` field defines four distinct operation types:
+The `modeOrExpiration` field defines five distinct operation types:
 
 1. **Transfer** (`value = 0`)
    - Direct token transfer execution
@@ -196,7 +196,12 @@ The `transferOrExpiration` field defines four distinct operation types:
    - Records the timestamp
    - Only an Unlock sent by the owner's own call removes it; a relayed signature cannot
 
-4. **Increase/Update** (`value > 2`)
+4. **Unlock** (`value = 3`)
+   - Removes a lock; on a pair that is not locked it changes nothing
+   - Lifts a lock only in a call sent by the owner itself (`msg.sender == owner`); a relayed Unlock on a locked pair reverts with `AllowanceLocked`
+   - Leaves the amount at zero and the stored timestamp unchanged
+
+5. **Increase/Update** (`value > 3`)
    - Adds `amountDelta` to the allowance, whatever the timestamp
    - Sets the expiration only if the timestamp is newer than the stored one (with an equal timestamp, the later expiration wins)
    - Special cases:
@@ -209,7 +214,7 @@ The `transferOrExpiration` field defines four distinct operation types:
 ```solidity
 // Expiration rule for Increase/Update. The amount was already added, whatever the timestamp.
 if (timestamp > allowed.timestamp) {
-    allowed.expiration = transferOrExpiration;
+    allowed.expiration = modeOrExpiration;
     allowed.timestamp = timestamp;
 }
 

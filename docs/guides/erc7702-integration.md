@@ -188,7 +188,7 @@ The contract includes specific error types:
 
 ### Permit3 Errors (via `permit()` function)
 - `WrongChainId(uint256 expected, uint256 actual)`: Chain ID mismatch
-- `AllowanceLocked()`: Attempting to modify locked allowance
+- `AllowanceLocked(owner, tokenKey, spender)`: the (token, spender) pair is locked, or a transfer goes to a locked recipient
 - `AllowanceExpired(uint48 expiration)`: Permit operation on expired allowance
 
 <a id="gas-considerations"></a>

@@ -125,7 +125,7 @@ Thrown when the witnessTypeString is not properly formatted according to EIP-712
 #### AllowanceLocked
 
 ```solidity
-error AllowanceLocked(address owner, address token, address spender);
+error AllowanceLocked(address owner, bytes32 tokenKey, address spender);
 ```
 
 **Description:**

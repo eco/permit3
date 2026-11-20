@@ -168,7 +168,7 @@ AllowanceOrTransfer[] memory permits = new AllowanceOrTransfer[](3);
 // 2. Increase Allowance
 permits[0] = AllowanceOrTransfer({
     modeOrExpiration: uint48(block.timestamp + 1 days),
-    token: USDC,
+    tokenKey: bytes32(uint256(uint160(USDC))), // an ERC-20's key: its address as bytes32
     account: DEX,
     amountDelta: 1000e6
 });
@@ -176,7 +176,7 @@ permits[0] = AllowanceOrTransfer({
 // 3. Lock a spender you no longer trust
 permits[1] = AllowanceOrTransfer({
     modeOrExpiration: 2,
-    token: USDC,
+    tokenKey: bytes32(uint256(uint160(USDC))),
     account: OLD_SPENDER, // the account to lock; the zero address reverts with ZeroAccount
     amountDelta: 0
 });
@@ -184,7 +184,7 @@ permits[1] = AllowanceOrTransfer({
 // 4. Execute Transfer
 permits[2] = AllowanceOrTransfer({
     modeOrExpiration: 0,
-    token: USDC,
+    tokenKey: bytes32(uint256(uint160(USDC))),
     account: recipient,
     amountDelta: 500e6
 });
