@@ -376,7 +376,7 @@ const permitData = {
 
 ### Unlocking an Account
 
-Only the owner's own call can unlock. Send the Unlock from the owner's account with `permit3.permit([permitData])`; a signed Unlock submitted by anyone else reverts with `AllowanceLocked`.
+Only the owner's own call can unlock. Send the Unlock from the owner's account with `permit3.permit([permitData])`. A signed Unlock submitted by anyone else cannot lift the lock: it reverts with `AllowanceLocked`, or with `InvalidTimestamp` while its signed timestamp is later than `block.timestamp`.
 
 ```javascript
 const permitData = {

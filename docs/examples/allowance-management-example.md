@@ -187,7 +187,7 @@ const lockPermit = {
 
 ### 4. Unlock Allowances
 
-Only the owner's own call can unlock: the owner sends `permit(unlockPermit.permits)` from its own account. The `permit3` object above declares only the signed `permit`, so the call below uses a one-function ABI, as the emergency lockdown does. A signed Unlock submitted by anyone else reverts with `AllowanceLocked`.
+Only the owner's own call can unlock: the owner sends `permit(unlockPermit.permits)` from its own account. The `permit3` object above declares only the signed `permit`, so the call below uses a one-function ABI, as the emergency lockdown does. A signed Unlock submitted by anyone else cannot lift the lock: it reverts with `AllowanceLocked`, or with `InvalidTimestamp` while its signed timestamp is later than `block.timestamp`.
 
 ```javascript
 // Unlock DEX's USDC allowance (requires subsequent increase operation to set allowance)
