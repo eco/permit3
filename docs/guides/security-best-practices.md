@@ -90,6 +90,7 @@ Without gas on the owner's account, sign Lock operations and let a relayer submi
 ```javascript
 // Sign Lock operations for a relayer to submit. All pairs go in one permit, so one pair that is already
 // locked reverts the whole permit: if that can happen, sign one permit per pair, or use lockdown().
+// wallet: the owner's ethers Wallet, connected to the chain's provider
 async function signEmergencyLock(pairs) { // pairs: [{ token, spender }]
     const permits = pairs.map(({ token, spender }) => ({
         modeOrExpiration: 2, // Lock mode
@@ -100,10 +101,10 @@ async function signEmergencyLock(pairs) { // pairs: [{ token, spender }]
 
     // Sign the latest block timestamp, not the wall clock. A Lock never reverts for a timestamp
     // ahead of the chain (it stores block.timestamp instead), but Increase and Unlock operations do.
-    const timestamp = (await provider.getBlock('latest')).timestamp;
+    const timestamp = (await wallet.provider.getBlock('latest')).timestamp;
     const deadline = timestamp + 3600;
     const salt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-    const chainId = (await provider.getNetwork()).chainId;
+    const chainId = (await wallet.provider.getNetwork()).chainId;
 
     const signature = await signPermit(wallet, domain, { chainId, permits }, salt, deadline, timestamp);
 
@@ -154,6 +155,7 @@ When working with cross-chain permits, additional security considerations apply:
 
 ```javascript
 // Use the same salt, deadline, and timestamp across all chains
+// providers: the providers of the chains the permit covers, as an array or as an object keyed by chain name
 const salt = ethers.utils.randomBytes(32);
 const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains; see "Signing the Timestamp"
 const deadline = timestamp + 3600; // 1 hour

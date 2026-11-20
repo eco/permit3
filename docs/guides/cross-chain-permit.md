@@ -90,8 +90,9 @@ const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
 
 ```javascript
 // Create signature
+// provider: the object of providers keyed by chain name that Step 3 uses
 const salt = ethers.utils.randomBytes(32);
-const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains; see "Signing the Timestamp"
+const timestamp = await signingTimestamp(orderedChains.map(chain => provider[chain])); // smallest latest-block time of the chains; see "Signing the Timestamp"
 const deadline = timestamp + 3600; // 1 hour validity
 
 const domain = {
@@ -213,6 +214,7 @@ const ethereumPermits = {
 Build permits dynamically based on user's needs:
 
 ```javascript
+// providers: an object of providers keyed by chain name
 class CrossChainPermitBuilder {
     constructor() {
         this.chainPermits = new Map();
@@ -263,7 +265,7 @@ class CrossChainPermitBuilder {
         
         // Create signature
         const salt = ethers.utils.randomBytes(32);
-        const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains
+        const timestamp = await signingTimestamp(chains.map(chain => providers[chain])); // smallest latest-block time of the chains
         const deadline = timestamp + 3600;
         
         // ... (signing logic)
