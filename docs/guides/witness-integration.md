@@ -148,6 +148,7 @@ const extendedTypes = {
 
 ```typescript
 // Create permit data for USDC approval
+// signer: the owner's ethers Signer, connected to the chain the permit runs on
 const chainPermits = {
     chainId,
     permits: [{
@@ -161,7 +162,7 @@ const chainPermits = {
 // Create salt, deadline, and timestamp
 const salt = ethers.utils.randomBytes(32);
 const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour
-const timestamp = (await provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
+const timestamp = (await signer.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
 
 // Data to sign
 const value = {

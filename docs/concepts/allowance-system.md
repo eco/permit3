@@ -175,9 +175,10 @@ Even though the confirmations happen at different times, both operations use the
 Sign the timestamp of the latest block of the chain the permit will run on. For a permit that covers several chains, sign the smallest of the latest block timestamps of those chains. Do not sign the wall clock (`Date.now()`): a device clock can run ahead of a chain, and a chain's block timestamps can lag the wall clock, so the signed time can be later than `block.timestamp` when the transaction lands.
 
 ```javascript
-// The timestamp to sign: the latest block timestamp of the chain, or the smallest one across the chains a permit covers
+// The timestamp to sign: the smallest latest-block timestamp of the chains a permit covers.
+// providers: the providers of those chains, as an array or as an object keyed by chain name
 async function signingTimestamp(providers) {
-    const blocks = await Promise.all(providers.map(provider => provider.getBlock('latest')));
+    const blocks = await Promise.all(Object.values(providers).map(provider => provider.getBlock('latest')));
     return Math.min(...blocks.map(block => block.timestamp));
 }
 ```
