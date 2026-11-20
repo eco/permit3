@@ -197,8 +197,8 @@ The `transferOrExpiration` field defines four distinct operation types:
    - Only allows decrease operations
 
 4. **Increase/Update** (`value > 2`)
-   - Timestamp-based expiration
-   - Updates allowance if timestamp is newer
+   - Adds `amountDelta` to the allowance, whatever the timestamp
+   - Sets the expiration only if the timestamp is newer than the stored one (with an equal timestamp, the later expiration wins)
    - Special cases:
       - `amountDelta = 0`: Updates expiration only
       - `amountDelta = type(uint160).max`: Unlimited approval
@@ -207,7 +207,7 @@ The `transferOrExpiration` field defines four distinct operation types:
 
 #### Timestamp Control
 ```solidity
-// Update rules
+// Expiration rule for Increase/Update. The amount was already added, whatever the timestamp.
 if (timestamp > allowed.timestamp) {
     allowed.expiration = transferOrExpiration;
     allowed.timestamp = timestamp;
@@ -222,9 +222,9 @@ if (allowed.expiration == LOCKED_ALLOWANCE &&
 
 #### Asynchronous Processing
 - Operations can arrive in any order
-- Most recent timestamp takes precedence in expiration updates
-- Prevents cross-chain race conditions
-- Maintains consistent state across chains
+- For Increase/Update operations, the most recent timestamp decides the expiration
+- Amounts are applied in the order transactions run, whatever their timestamps
+- Replay protection comes from per-salt nonces, not from timestamps
 
 ### Cross-Chain Operations with Gas Optimization
 

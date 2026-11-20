@@ -26,7 +26,7 @@ event Permit(
 **Use cases:**
 - Track allowance changes
 - Monitor spending permissions
-- Track operation ordering by timestamp
+- See which Increase set the current expiration (the newest `timestamp` wins)
 
 ### Approval
 
@@ -176,7 +176,7 @@ When using Permit3 across multiple chains, the same events are emitted on each c
 
 1. **Common salt/nonce**: The same salt is used across all chains for a single logical operation
 2. **Unique chainId**: Each `ChainPermits` structure contains the specific chainId
-3. **Consistent timestamp**: Operations use the same timestamp across chains for ordering
+3. **Consistent timestamp**: Operations use the same timestamp across chains, so the expiration an Increase sets resolves the same way on every chain (the newest timestamp wins). The timestamp does not order amount changes.
 
 This allows applications to correlate related events across different blockchains by matching salt, owner, and timestamp values.
 
@@ -188,6 +188,6 @@ Permit3 events are designed to be easily indexed by subgraphs and monitoring ser
 - Index events by `owner` to track all operations for a specific user
 - Index by `token` to monitor activity for specific tokens
 - Index by `salt` to identify cross-chain operations
-- Use `timestamp` to determine operation ordering
+- Use `timestamp` to see which Increase set the current expiration (the newest timestamp wins); it does not order amount changes
 
 This enables comprehensive analytics and monitoring of cross-chain token permissions.

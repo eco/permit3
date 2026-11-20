@@ -335,16 +335,16 @@ Chain ID verification is paramount for cross-chain security:
 - **Contract enforcement**: Permit3 automatically rejects operations with mismatched chain IDs
 
 ### 2. **Signature Domain Separation**
-Proper domain separation prevents signature misuse:
-- **EIP-712 domains**: Each signature includes chain-specific domain parameters
-- **Cross-chain consideration**: When using `CROSS_CHAIN_ID` (0), signatures are intentionally valid across multiple chains
+The EIP-712 domain is the same on every chain. Chain binding comes from the signed data, not from the domain:
+- **EIP-712 domain**: `name` "Permit3", `version` "1", `chainId` 1 (the constant `CROSS_CHAIN_ID`, on every chain) and `verifyingContract`. The domain does not separate chains
+- **Chain binding**: each `ChainPermits` leaf, and each `NoncesToInvalidate` leaf, carries the `chainId` it is for. Permit3 checks it against `block.chainid` when the permit runs, so a signature cannot be replayed on another chain, or on a fork with a different chain id
 - **Explicit intent**: Users must understand whether they're signing for single-chain or cross-chain operations
 - **Domain components**:
   ```solidity
   domain = {
       name: "Permit3",
-      version: "1", 
-      chainId: chainId, // Critical for domain separation
+      version: "1",
+      chainId: 1, // CROSS_CHAIN_ID: the same on every chain
       verifyingContract: permit3Address
   }
   ```
@@ -356,12 +356,12 @@ Sophisticated nonce handling prevents replay attacks:
 - **Invalidation strategies**:
   - Single nonce: Invalidate one specific operation
   - Batch invalidation: Cancel multiple operations efficiently
-  - Emergency lockdown: Invalidate all pending operations
+  - Cancelling every pending signature: invalidate all of their salts. `lockdown()` does not invalidate nonces
 - **State tracking**: Each chain independently tracks used nonces
 
 ### 4. **Additional Security Best Practices**
 - **Deadline Validation**: Set reasonable deadlines to limit the window of vulnerability
-- **Timestamp Ordering**: Be aware of timestamp-based operation ordering across chains
+- **Timestamp Ordering**: For Increase operations, the newer signed timestamp decides the expiration on every chain. Amounts are not ordered by timestamp, and replay is prevented by per-salt nonces
 - **Proof Verification**: Ensure proofs correctly link chain-specific permits to the root hash
 - **Witness validation**: When using witness data, ensure proper validation on each chain
 

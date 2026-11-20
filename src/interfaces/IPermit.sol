@@ -62,7 +62,10 @@ interface IPermit {
     error InvalidExpiration(uint48 expiration);
 
     /**
-     * @dev Thrown when a timestamp is set too far in the future
+     * @dev Thrown when an Increase or Unlock operation carries a signed timestamp later than block.timestamp.
+     *      The permit's nonce is not consumed, so the same signature can be retried once block.timestamp reaches
+     *      the signed timestamp, before its deadline; its other checks still apply. Sign the latest block timestamp
+     *      to avoid it.
      * @param providedTimestamp The timestamp that was provided
      * @param currentTimestamp The current block timestamp
      */

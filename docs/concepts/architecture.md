@@ -283,10 +283,10 @@ Permit3 implements several security features:
    - Prevents cross-chain replay attacks
    - Works with witness functionality
 
-5. **Timestamp Ordering**:
-   - Operations ordered by timestamp across chains
-   - Prevents race conditions in cross-chain operations
-   - Critical for asynchronous allowance updates
+5. **Timestamp-Ordered Expirations**:
+   - For Increase operations, the newer signed timestamp decides the expiration, on every chain
+   - An Increase signed earlier cannot overwrite the expiration set by one signed later
+   - Amounts are not ordered by timestamp, and replay is prevented by per-salt nonces, not timestamps
 
 <a id="gas-optimization"></a>
 ## Gas Optimization

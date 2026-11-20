@@ -132,6 +132,7 @@ error ZeroTo();
 error ZeroAccount();
 error InvalidAmount(uint160 amount);
 error InvalidExpiration(uint48 expiration);
+error InvalidTimestamp(uint48 providedTimestamp, uint48 currentTimestamp);
 ```
 
 <a id="function-signatures"></a>
@@ -719,6 +720,7 @@ permit3.permitWitness(
 | `ZeroOwner()` | Owner address is zero | Validate addresses before function calls |
 | `AllowanceExpired(deadline)` | Allowance has expired | Check expiration before operations |
 | `InsufficientAllowance(requested, available)` | Not enough allowance | Check current allowance before transfers |
+| `InvalidTimestamp(providedTimestamp, currentTimestamp)` | A permit with an Increase or Unlock carries a timestamp later than `block.timestamp` | Retry once `block.timestamp` reaches it (nothing was consumed); sign the latest block timestamp |
 
 <a id="nonce-management-reference"></a>
 ## Nonce Management Reference
@@ -744,5 +746,5 @@ This approach:
 - **Chain ID Validation**: Verify chain IDs to prevent cross-chain replay
 - **Witness Data Verification**: Validate witness data before taking action
 - **Account Locking**: Understand implications of locked state
-- **Timestamp Ordering**: Be aware of timestamp-based operation ordering
+- **Timestamp Ordering**: For Increase operations, the newer signed timestamp decides the expiration. Amounts are not ordered by timestamp, and replay is prevented by per-salt nonces
 - **Allowance Management**: Monitor allowance changes across chains

@@ -361,7 +361,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
     /**
      * @dev Processes allowance-related operations for a single permit
      * @param owner Token owner authorizing the operation
-     * @param timestamp Current timestamp for validation
+     * @param timestamp Signed timestamp of the permit (block.timestamp for the owner's direct call)
      * @param p The permit operation to process
      */
     function _processAllowanceOperation(
@@ -376,6 +376,19 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
 
         if (p.account == address(0)) {
             revert ZeroAccount();
+        }
+
+        // The timestamp is the time of signing, so a timestamp later than block.timestamp is never stored or
+        // compared (Cantina 3.2.1). Increase (stores it) and Unlock (compares it with the lock's) revert; nothing
+        // is consumed, so the signature can be retried once block.timestamp reaches it. Lock stores
+        // block.timestamp instead, so an emergency Lock signed on a clock that runs ahead of the chain still
+        // lands. Decrease neither stores nor compares the timestamp. TransferERC20 does not reach this function.
+        if (block.timestamp < timestamp) {
+            if (p.modeOrExpiration == uint48(PermitType.Lock)) {
+                timestamp = uint48(block.timestamp);
+            } else if (p.modeOrExpiration != uint48(PermitType.Decrease)) {
+                revert InvalidTimestamp(timestamp, uint48(block.timestamp));
+            }
         }
 
         Allowance memory allowed = allowances[owner][p.tokenKey][p.account];
@@ -488,7 +501,7 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
         Allowance memory allowed,
         AllowanceOrTransfer memory p,
         uint48 timestamp
-    ) private view {
+    ) private pure {
         // Handle amount increase if specified
         if (p.amountDelta > 0) {
             if (allowed.amount != MAX_ALLOWANCE) {
@@ -498,11 +511,6 @@ contract Permit3 is IPermit3, MultiTokenPermit, NonceManager {
                     allowed.amount += p.amountDelta;
                 }
             }
-        }
-
-        // Prevent setting timestamps in the future
-        if (block.timestamp < timestamp) {
-            revert InvalidTimestamp(timestamp, uint48(block.timestamp));
         }
 
         // Update expiration and timestamp based on precedence rules

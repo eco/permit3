@@ -81,11 +81,14 @@ const chainPermits = {
     permits: [permit]
 };
 
+// Sign the latest block timestamp: a wall-clock timestamp can be ahead of the chain
+const latestBlockTimestamp = (await provider.getBlock('latest')).timestamp;
+
 const permitData = {
     owner: userAddress,
     salt: ethers.utils.randomBytes(32),
-    deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-    timestamp: Math.floor(Date.now() / 1000),
+    deadline: latestBlockTimestamp + 3600, // 1 hour
+    timestamp: latestBlockTimestamp,
     chain: chainPermits
 };
 
