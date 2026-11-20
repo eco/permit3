@@ -396,8 +396,9 @@ async function batchNFTTransferWithPermit(
     executor, // signer that moves the NFTs; the permits approve it for each one
     nfts, // Array of { contract, tokenId, recipient }
 ) {
-    // TransferERC20 (mode 0) moves only ERC20 tokens: a tokenId key reverts with InvalidTokenKeyForTransfer.
-    // So approve the executor for each NFT, then move each one with transferFromERC721.
+    // Approve the executor for each NFT, then move each one with transferFromERC721. A TransferERC20 operation
+    // (mode 0) is not used for NFTs: a tokenId key reverts with InvalidTokenKeyForTransfer, and with the collection
+    // key it moves the NFT without the receiver check (see "Transfer Function Compatibility" below).
     const permits = nfts.map(nft => ({
         modeOrExpiration: Math.floor(Date.now() / 1000) + 3600, // Increase: approve for one hour
         tokenKey: encodeTokenId(nft.contract, nft.tokenId),
@@ -479,7 +480,8 @@ async function createFractionalPermit(
     const totalShares = shareholders.reduce((sum, s) => sum + s.shares, 0);
     const encodedId = encodeTokenId(erc1155Contract, tokenId);
     
-    // TransferERC20 (mode 0) moves only ERC20 tokens. Approve each shareholder for its shares instead;
+    // TransferERC20 (mode 0) cannot move ERC1155 tokens: a tokenId key reverts with InvalidTokenKeyForTransfer,
+    // and an ERC1155 contract has no ERC20 transferFrom. Approve each shareholder for its shares instead;
     // each one then pulls them with transferFromERC1155.
     const permits = shareholders.map(shareholder => ({
         modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // Increase: approve for one day
@@ -503,15 +505,20 @@ When you approve one NFT with the key `keccak256(abi.encodePacked(contract, toke
 
 ### 2. Transfer Function Compatibility
 
-```javascript
-// ❌ WRONG: Cannot use standard transferFrom for NFTs
-await permit3.transferFrom(from, to, amount, encodedTokenId);
+Move NFTs with `transferFromERC721` and ERC1155 tokens with `transferFromERC1155`:
 
-// ✅ CORRECT: Use explicit NFT transfer function
-await permit3.transferFromERC721(
-    from, to, nftContract, tokenId
-);
+```javascript
+await permit3.transferFromERC721(from, to, nftContract, tokenId);
+await permit3.transferFromERC1155(from, to, erc1155Contract, tokenId, amount);
 ```
+
+Permit3's ERC20 paths, a TransferERC20 operation (mode 0) and `transferFrom(from, to, amount, token)`, call the token's `transferFrom(from, to, amount)`. An ERC721 contract has a function with the same signature, and it returns nothing, which these paths accept as success. So with the collection address as the token and the tokenId as the amount, they do move the NFT, provided the owner has approved Permit3 to move it (`setApprovalForAll` or `approve`), as `transferFromERC721` also requires. The guides use `transferFromERC721` anyway:
+
+- It calls `safeTransferFrom`, so a contract recipient must accept the NFT. The ERC20 paths call `transferFrom`, which can leave the NFT in a contract that cannot move it.
+- Its tokenId is a `uint256`. The ERC20 paths take a `uint160` amount, so they cannot name a tokenId of 2^160 or more.
+- It spends one NFT from a per-tokenId or a collection-wide allowance. `transferFrom` reads only the collection-wide allowance and compares the tokenId with it, as if it were an amount.
+
+The ERC20 paths cannot move ERC1155 tokens: an ERC1155 contract has no such `transferFrom`, and a per-tokenId key in a TransferERC20 operation reverts with `InvalidTokenKeyForTransfer`.
 
 ### 3. Allowance Queries
 
