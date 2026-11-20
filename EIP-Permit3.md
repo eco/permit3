@@ -185,26 +185,30 @@ The `modeOrExpiration` field defines five distinct operation types:
    - Direct token transfer execution
    - `spender` = recipient address
    - `amountDelta` = transfer amount
+   - Does not read the timestamp
 
 2. **Decrease** (`value = 1`)
    - Reduces allowance
    - Normal: decrease by `amountDelta`
    - Special: `type(uint160).max` sets to zero
+   - Neither stores nor compares the timestamp; its event carries the signed value, even one later than `block.timestamp`
 
 3. **Lock** (`value = 2`)
    - Locks one (token, account) pair: blocks spending by the account, every allowance change, and transfers to the account
    - Sets allowance to zero
-   - Records the timestamp
+   - Records its timestamp. A timestamp later than `block.timestamp` is clamped: the Lock records and emits `block.timestamp`
    - Only an Unlock sent by the owner's own call removes it; a relayed signature cannot
 
 4. **Unlock** (`value = 3`)
    - Removes a lock; on a pair that is not locked it changes nothing
-   - Lifts a lock only in a call sent by the owner itself (`msg.sender == owner`); a relayed Unlock on a locked pair reverts with `AllowanceLocked`
+   - Lifts a lock only in a call sent by the owner itself (`msg.sender == owner`). On a locked pair, a relayed Unlock reverts with `AllowanceLocked`, or with `InvalidTimestamp` while its signed timestamp is later than `block.timestamp`
+   - A timestamp later than `block.timestamp` reverts with `InvalidTimestamp` before the lock is checked, also when the owner submits a signed Unlock itself
    - Leaves the amount at zero and the stored timestamp unchanged
 
 5. **Increase/Update** (`value > 3`)
    - Adds `amountDelta` to the allowance, whatever the timestamp
    - Sets the expiration only if the timestamp is newer than the stored one (with an equal timestamp, the later expiration wins)
+   - A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
    - Special cases:
       - `amountDelta = 0`: Updates expiration only
       - `amountDelta = type(uint160).max`: Unlimited approval
@@ -213,16 +217,25 @@ The `modeOrExpiration` field defines five distinct operation types:
 
 #### Timestamp Control
 ```solidity
-// Expiration rule for Increase/Update. The amount was already added, whatever the timestamp.
-if (timestamp > allowed.timestamp) {
-    allowed.expiration = modeOrExpiration;
-    allowed.timestamp = timestamp;
+// 1. Future timestamps, checked first for every allowance operation (TransferERC20 does not reach this)
+if (timestamp > block.timestamp) {
+    if (operation == LOCK) {
+        timestamp = block.timestamp; // a future Lock records and emits block.timestamp
+    } else if (operation != DECREASE) {
+        revert InvalidTimestamp(timestamp, block.timestamp); // Increase, Unlock
+    }
 }
 
-// Lock validation: a locked pair rejects every operation except an Unlock sent by the owner itself
+// 2. Lock validation: a locked pair rejects every operation except an Unlock sent by the owner itself
 if (allowed.expiration == LOCKED_ALLOWANCE &&
     (operation != UNLOCK || msg.sender != owner)) {
     revert AllowanceLocked(owner, tokenKey, account);
+}
+
+// 3. Expiration rule for Increase/Update. The amount was already added, whatever the timestamp.
+if (timestamp > allowed.timestamp) {
+    allowed.expiration = modeOrExpiration;
+    allowed.timestamp = timestamp;
 }
 ```
 

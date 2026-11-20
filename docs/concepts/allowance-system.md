@@ -98,7 +98,7 @@ Locks one (`token`, `account`) pair, providing emergency security control. `lock
 
 ### 4. Unlock Mode (3)
 
-Removes the lock from a (`token`, `account`) pair. Only the owner's own call can do it: an Unlock in `permit(AllowanceOrTransfer[])` sent from the owner's account, or a signed permit that the owner's account submits itself. A signed Unlock submitted by anyone else reverts with `AllowanceLocked`, whatever its timestamp, so an Unlock the owner was tricked into signing before the lock cannot undo it.
+Removes the lock from a (`token`, `account`) pair. Only the owner's own call can do it: an Unlock in `permit(AllowanceOrTransfer[])` sent from the owner's account, or a signed permit that the owner's account submits itself. A signed Unlock submitted by anyone else never lifts the lock, whatever its timestamp, so an Unlock the owner was tricked into signing before the lock cannot undo it: on a locked pair it reverts with `AllowanceLocked`, or with `InvalidTimestamp` while its signed timestamp is later than `block.timestamp`. On a pair that is not locked, an Unlock changes nothing.
 
 ```solidity
 // Example: Unlock DEX's USDC allowance (requires subsequent increase operation to set allowance)
@@ -166,7 +166,7 @@ Even though the confirmations happen at different times, both operations use the
 - **Increase**: the amount changes whatever the timestamp. The expiration and the stored timestamp change only if the operation timestamp is newer than the stored one; with an equal timestamp the later expiration wins. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
 - **Decrease**: the amount changes whatever the timestamp. The expiration and the stored timestamp are left unchanged; a Decrease never reads the timestamp
 - **Lock**: stores its own timestamp, even one older than the stored timestamp. A timestamp later than `block.timestamp` is never stored: the Lock stores `block.timestamp` instead, so a Lock signed on a clock that runs ahead of the chain still lands. A Lock on an allowance that is already locked reverts with `AllowanceLocked`
-- **Unlock**: lifts a lock only in a call sent by the owner itself (`msg.sender == owner`), whatever its timestamp; a relayed signature never lifts a lock. It leaves the stored timestamp unchanged. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp`
+- **Unlock**: lifts a lock only in a call sent by the owner itself (`msg.sender == owner`); it does not compare its timestamp with the lock's, and a relayed signature never lifts a lock. It leaves the stored timestamp unchanged. A timestamp later than `block.timestamp` reverts with `InvalidTimestamp` before the lock is checked
 - **Direct calls**: `approve()` and `lockdown()` set the stored timestamp to `block.timestamp`; the owner's own `permit(AllowanceOrTransfer[])` call uses `block.timestamp` as the operation timestamp
 - **TransferERC20** operations do not read the timestamp
 

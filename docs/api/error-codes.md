@@ -129,13 +129,13 @@ error AllowanceLocked(address owner, bytes32 tokenKey, address spender);
 ```
 
 **Description:**
-Thrown when an operation needs a (token, account) pair that is locked.
+Thrown when an operation needs a (token, account) pair that is locked. An Increase or an Unlock whose signed timestamp is later than `block.timestamp` reverts with `InvalidTimestamp` before this check.
 
 **Possible Causes:**
 - Trying to approve, increase, decrease or lock a locked allowance
 - The locked account trying to spend through its allowance
 - A TransferERC20 operation to a locked recipient
-- A signed Unlock submitted by anyone other than the owner
+- A signed Unlock of a locked pair, submitted by anyone other than the owner
 
 **Mitigation:**
 - Check if an allowance is locked before attempting operations
