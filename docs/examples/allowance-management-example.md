@@ -187,7 +187,7 @@ const lockPermit = {
 
 ### 4. Unlock Allowances
 
-Only the owner's own call can unlock: the owner sends `permit3.permit(unlockPermit.permits)` from its own account. A signed Unlock submitted by anyone else reverts with `AllowanceLocked`.
+Only the owner's own call can unlock: the owner sends `permit(unlockPermit.permits)` from its own account. The `permit3` object above declares only the signed `permit`, so the call below uses a one-function ABI, as the emergency lockdown does. A signed Unlock submitted by anyone else reverts with `AllowanceLocked`.
 
 ```javascript
 // Unlock DEX's USDC allowance (requires subsequent increase operation to set allowance)
@@ -200,6 +200,10 @@ const unlockPermit = {
         amountDelta: 0 // Not used for unlocking
     }]
 };
+
+// The owner's own call: permit(AllowanceOrTransfer[]) sent from the owner's account
+const directPermitAbi = ["function permit(tuple(uint48 modeOrExpiration, bytes32 tokenKey, address account, uint160 amountDelta)[] permits) external"];
+await new ethers.Contract(PERMIT3_ADDRESS, directPermitAbi, wallet).permit(unlockPermit.permits);
 ```
 
 ### 5. Direct Transfer
