@@ -180,7 +180,8 @@ const ethereumTx = await ethereumPermit3.permit(
     salt,
     deadline,
     timestamp,
-    ethereumProof,
+    ethereumProof.permits, // ChainPermits for this chain
+    ethereumProof.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -199,7 +200,8 @@ const arbitrumTx = await arbitrumPermit3.permit(
     salt,
     deadline,
     timestamp,
-    arbitrumProof,
+    arbitrumProof.permits, // ChainPermits for this chain
+    arbitrumProof.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -218,7 +220,8 @@ const optimismTx = await optimismPermit3.permit(
     salt,
     deadline,
     timestamp,
-    optimismProof,
+    optimismProof.permits, // ChainPermits for this chain
+    optimismProof.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -258,9 +261,9 @@ const ethereumPermits = {
     chainId: 1,
     permits: [
         // Operation 1
-        { modeOrExpiration: future, token: USDC, account: DEX1, amountDelta: 1000e6 },
+        { modeOrExpiration: future, tokenKey: ethers.utils.hexZeroPad(USDC, 32), account: DEX1, amountDelta: 1000e6 },
         // Operation 2
-        { modeOrExpiration: future, token: WETH, account: DEX2, amountDelta: 1e18 },
+        { modeOrExpiration: future, tokenKey: ethers.utils.hexZeroPad(WETH, 32), account: DEX2, amountDelta: 1e18 },
         // Operation 3 (...)        
     ]
 };

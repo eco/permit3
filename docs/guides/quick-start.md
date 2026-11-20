@@ -134,7 +134,7 @@ function executePermit(
         salt,
         deadline,
         timestamp,
-        chainPermits,
+        chainPermits.permits, // the single-chain permit() takes the operations array
         signature
     );
     
@@ -232,7 +232,7 @@ function executeWitnessPermit(
         salt,
         deadline,
         timestamp,
-        chainPermits,
+        chainPermits.permits, // the single-chain permitWitness() takes the operations array
         witness,
         witnessTypeString,
         signature
@@ -319,7 +319,7 @@ const ethProof = {
     proof: generateMerkleProof(leaves, 0) // Direct array
 };
 
-permit3.permit(owner, salt, deadline, timestamp, ethProof, signature);
+permit3.permit(owner, salt, deadline, timestamp, ethProof.permits, ethProof.proof, signature);
 
 // On Arbitrum
 const arbProof = {
@@ -327,7 +327,7 @@ const arbProof = {
     proof: generateMerkleProof(leaves, 1) // Direct array
 };
 
-permit3.permit(owner, salt, deadline, timestamp, arbProof, signature);
+permit3.permit(owner, salt, deadline, timestamp, arbProof.permits, arbProof.proof, signature);
 
 // On Optimism
 const optProof = {
@@ -335,7 +335,7 @@ const optProof = {
     proof: generateMerkleProof(leaves, 2) // Direct array
 };
 
-permit3.permit(owner, salt, deadline, timestamp, optProof, signature);
+permit3.permit(owner, salt, deadline, timestamp, optProof.permits, optProof.proof, signature);
 ```
 
 <a id="common-operations"></a>
@@ -346,7 +346,7 @@ permit3.permit(owner, salt, deadline, timestamp, optProof, signature);
 ```javascript
 const permitData = {
     modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours expiration
-    token: tokenAddress,
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32),
     account: spenderAddress,
     amountDelta: ethers.utils.parseUnits('100', 18) // 100 tokens
 };
@@ -357,7 +357,7 @@ const permitData = {
 ```javascript
 const permitData = {
     modeOrExpiration: 1, // Decrease mode
-    token: tokenAddress,
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32),
     account: spenderAddress,
     amountDelta: ethers.utils.parseUnits('50', 18) // Decrease by 50 tokens
 };

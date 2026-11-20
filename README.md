@@ -99,7 +99,7 @@ The protocol centers around the `AllowanceOrTransfer` structure:
 ```solidity
 struct AllowanceOrTransfer {
     uint48 modeOrExpiration;    // Operation mode/expiration
-    address token;              // Token address
+    bytes32 tokenKey;           // Token key: an ERC-20's address as bytes32
     address account;            // Approved spender/recipient
     uint160 amountDelta;        // Amount change/transfer amount
 }
@@ -201,7 +201,7 @@ const ethPermits = {
     chainId: 1,
     permits: [{
         modeOrExpiration: futureTimestamp,
-        token: USDC_ETH,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ETH, 32),
         account: DEX_ETH,
         amountDelta: 1000e6
     }]
@@ -211,7 +211,7 @@ const arbPermits = {
     chainId: 42161,
     permits: [{
         modeOrExpiration: 1, // Decrease mode
-        token: USDC_ARB,
+        tokenKey: ethers.utils.hexZeroPad(USDC_ARB, 32),
         account: DEX_ARB,
         amountDelta: 500e6
     }]

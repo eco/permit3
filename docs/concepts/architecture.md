@@ -85,7 +85,7 @@ struct Allowance {
 ```solidity
 struct AllowanceOrTransfer {
     uint48 modeOrExpiration;  // Operation mode or expiration time
-    address token;            // Token address
+    bytes32 tokenKey;         // Token key: an ERC-20's address as bytes32
     address account;          // Spender or recipient
     uint160 amountDelta;      // Amount change
 }

@@ -84,7 +84,7 @@ const tokens = [
 const permits = [
     {
         modeOrExpiration: 2000, // Expiration timestamp
-        token: "0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8",
+        tokenKey: ethers.utils.hexZeroPad("0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8", 32),
         account: spenderAddress,
         amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC
     }
@@ -388,7 +388,7 @@ function TokenApprovalModal({ tokens, permitOperations, onSuccess }) {
                             <ul>
                                 {permitOperations.map((permit, i) => (
                                     <li key={i}>
-                                        {permit.token} - {permit.amountDelta} allowance
+                                        {permit.tokenKey} - {permit.amountDelta} allowance
                                     </li>
                                 ))}
                             </ul>
@@ -433,7 +433,7 @@ function DApp() {
     const permitOperations = [
         {
             modeOrExpiration: 1735689600, // Expiration timestamp
-            token: "0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8",
+            tokenKey: ethers.utils.hexZeroPad("0xA0b86a33E6441c4d9dB1b7e8D44d6A9a7b91c2b8", 32),
             account: "0x742D35cc6634C0532925a3b8D0C23b881A32a6AB", // DEX contract
             amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC allowance
         }

@@ -253,25 +253,6 @@ Thrown when an empty array is provided where operations require at least one ele
 
 ### Address Validation Errors
 
-#### ZeroOwner
-
-```solidity
-error ZeroOwner();
-```
-
-**Description:**
-Thrown when the owner address is zero (0x0).
-
-**Possible Causes:**
-- Uninitialized owner address
-- Logic error in address assignment
-- Invalid function parameters
-
-**Mitigation:**
-- Validate owner addresses before function calls
-- Ensure proper address initialization
-- Use address validation in client code
-
 #### ZeroToken
 
 ```solidity
@@ -309,44 +290,6 @@ Thrown when the spender address is zero (0x0).
 - Validate spender addresses before approval operations
 - Ensure proper spender identification
 - Use address validation in client code
-
-#### ZeroFrom
-
-```solidity
-error ZeroFrom();
-```
-
-**Description:**
-Thrown when the from address is zero (0x0) in transfer operations.
-
-**Possible Causes:**
-- Uninitialized from address
-- Invalid transfer source
-- Logic error in transfer setup
-
-**Mitigation:**
-- Validate from addresses before transfer operations
-- Ensure proper source address identification
-- Use address validation for transfers
-
-#### ZeroTo
-
-```solidity
-error ZeroTo();
-```
-
-**Description:**
-Thrown when the to address is zero (0x0) in transfer operations.
-
-**Possible Causes:**
-- Uninitialized to address
-- Invalid transfer destination
-- Logic error in transfer setup
-
-**Mitigation:**
-- Validate to addresses before transfer operations
-- Ensure proper destination address identification
-- Use address validation for transfers
 
 #### ZeroAccount
 

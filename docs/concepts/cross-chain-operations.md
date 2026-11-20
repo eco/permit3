@@ -94,7 +94,7 @@ const ethPermits = {
     permits: [
         {
             modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24-hour expiration
-            token: "0x6B175474E89094C44Da98b954EedeAC495271d0F", // DAI on Ethereum
+            tokenKey: ethers.utils.hexZeroPad("0x6B175474E89094C44Da98b954EedeAC495271d0F", 32), // DAI on Ethereum
             account: "0xDEF1...789", // Spender address
             amountDelta: ethers.utils.parseEther("100") // 100 DAI
         }
@@ -107,7 +107,7 @@ const arbPermits = {
     permits: [
         {
             modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24-hour expiration
-            token: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", // DAI on Arbitrum
+            tokenKey: ethers.utils.hexZeroPad("0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", 32), // DAI on Arbitrum
             account: "0xDEF1...789", // Spender address
             amountDelta: ethers.utils.parseEther("50") // 50 DAI
         }
@@ -120,7 +120,7 @@ const optPermits = {
     permits: [
         {
             modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24-hour expiration
-            token: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", // DAI on Optimism
+            tokenKey: ethers.utils.hexZeroPad("0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", 32), // DAI on Optimism
             account: "0xDEF1...789", // Spender address
             amountDelta: ethers.utils.parseEther("25") // 25 DAI
         }

@@ -45,7 +45,7 @@ function permit(address owner, bytes32 salt, uint48 deadline, uint48 timestamp,
 AllowanceOrTransfer[] memory operations = [
     AllowanceOrTransfer({
         modeOrExpiration: 1735689600, // expiration timestamp
-        token: USDC_ADDRESS,
+        tokenKey: bytes32(uint256(uint160(USDC_ADDRESS))),
         account: DEX_ADDRESS,
         amountDelta: 1000e6 // 1000 USDC allowance
     })

@@ -68,22 +68,16 @@ const TokenApproval = () => {
             // Calculate expiration timestamp
             const expirationTimestamp = Math.floor(Date.now() / 1000) + (expiration * 3600);
             
-            // Build permit data
-            const permitData = {
-                token: token,
-                amount: parsedAmount,
-                expiration: expirationTimestamp,
-                spender: spender
-            };
+            // Build the Increase: an allowance for the spender until the expiration
+            const permits = [{
+                modeOrExpiration: expirationTimestamp,
+                tokenKey: ethers.utils.hexZeroPad(token, 32),
+                account: spender,
+                amountDelta: parsedAmount
+            }];
             
-            // Create permit with Permit3
-            const tx = await permit3.permit(
-                await signer.getAddress(),
-                permitData.token,
-                permitData.amount,
-                permitData.expiration,
-                permitData.spender
-            );
+            // The owner's own call needs no signature: permit(AllowanceOrTransfer[])
+            const tx = await permit3.permit(permits);
             
             await tx.wait();
             setSuccess(true);
@@ -351,7 +345,8 @@ class CrossChainCoordinator {
             salt,
             deadline,
             timestamp,
-            chainProof,
+            chainProof.permits, // ChainPermits for this chain
+            chainProof.proof,   // bytes32[] Merkle proof
             signature
         );
         
@@ -369,10 +364,10 @@ async function exampleCrossChainPermit() {
         chainId: 1,
         permits: [
             {
-                token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-                amount: ethers.utils.parseUnits('100', 6),
-                expiration: Math.floor(Date.now() / 1000) + 86400,
-                spender: '0x1111111111111111111111111111111111111111'
+                modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // expiration
+                tokenKey: ethers.utils.hexZeroPad('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', 32), // USDC
+                account: '0x1111111111111111111111111111111111111111', // spender
+                amountDelta: ethers.utils.parseUnits('100', 6)
             }
         ]
     });
@@ -381,10 +376,10 @@ async function exampleCrossChainPermit() {
         chainId: 42161,
         permits: [
             {
-                token: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', // USDC.e
-                amount: ethers.utils.parseUnits('50', 6),
-                expiration: Math.floor(Date.now() / 1000) + 86400,
-                spender: '0x2222222222222222222222222222222222222222'
+                modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // expiration
+                tokenKey: ethers.utils.hexZeroPad('0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', 32), // USDC.e
+                account: '0x2222222222222222222222222222222222222222', // spender
+                amountDelta: ethers.utils.parseUnits('50', 6)
             }
         ]
     });
@@ -393,10 +388,10 @@ async function exampleCrossChainPermit() {
         chainId: 10,
         permits: [
             {
-                token: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607', // USDC
-                amount: ethers.utils.parseUnits('75', 6),
-                expiration: Math.floor(Date.now() / 1000) + 86400,
-                spender: '0x3333333333333333333333333333333333333333'
+                modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // expiration
+                tokenKey: ethers.utils.hexZeroPad('0x7F5c764cBc14f9669B88837ca1490cCa17c31607', 32), // USDC
+                account: '0x3333333333333333333333333333333333333333', // spender
+                amountDelta: ethers.utils.parseUnits('75', 6)
             }
         ]
     });
@@ -459,20 +454,21 @@ contract DeFiProtocol {
         // Use Permit3 to transfer tokens with the permit
         permit3.permit(owner, salt, deadline, timestamp, chainPermits.permits, signature);
         
-        // Now we can transfer tokens from the owner
+        // Permit3 has executed the operations: each TransferERC20 to this contract delivered its tokens
         for (uint i = 0; i < chainPermits.permits.length; i++) {
             IPermit3.AllowanceOrTransfer memory permit = chainPermits.permits[i];
             
-            // Check if this is a transfer (mode = 0)
-            if (permit.modeOrExpiration & 1 == 0) {
-                // Extract transfer details
-                uint160 amount = uint160(permit.modeOrExpiration >> 48);
+            // A transfer (mode 0) whose recipient is this contract
+            if (permit.modeOrExpiration == 0 && permit.account == address(this)) {
+                // Extract transfer details: a transfer's tokenKey is the token address
+                address token = address(uint160(uint256(permit.tokenKey)));
+                uint160 amount = permit.amountDelta;
                 
-                // Permit3 has already validated and will transfer the tokens
-                emit TokensReceived(owner, permit.token, amount);
+                // Permit3 has already moved the tokens from the owner to this contract
+                emit TokensReceived(owner, token, amount);
                 
                 // Execute your protocol logic here
-                _executeProtocolAction(owner, permit.token, amount);
+                _executeProtocolAction(owner, token, amount);
             }
         }
     }
@@ -494,11 +490,12 @@ contract DeFiProtocol {
         for (uint i = 0; i < permits.permits.length; i++) {
             IPermit3.AllowanceOrTransfer memory permit = permits.permits[i];
             
-            // Check if this is a transfer (mode = 0)
-            if (permit.modeOrExpiration & 1 == 0) {
-                uint160 amount = uint160(permit.modeOrExpiration >> 48);
-                emit TokensReceived(owner, permit.token, amount);
-                _executeProtocolAction(owner, permit.token, amount);
+            // A transfer (mode 0) whose recipient is this contract
+            if (permit.modeOrExpiration == 0 && permit.account == address(this)) {
+                address token = address(uint160(uint256(permit.tokenKey)));
+                uint160 amount = permit.amountDelta;
+                emit TokensReceived(owner, token, amount);
+                _executeProtocolAction(owner, token, amount);
             }
         }
     }
@@ -550,15 +547,15 @@ describe("Permit3 Integration Tests", function () {
     describe("Single Chain Permits", function () {
         it("Should create and execute a permit", async function () {
             const amount = ethers.utils.parseEther("100");
-            const expiration = Math.floor(Date.now() / 1000) + 3600;
             
-            // Create permit data
+            // Create permit data: a transfer of `amount` from the owner to the protocol
             const chainPermits = {
-                chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility // Hardhat chainId
+                chainId: (await ethers.provider.getNetwork()).chainId, // the chain the permit runs on (Hardhat: 31337)
                 permits: [{
-                    modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
-                    token: token.address,
-                    account: defiProtocol.address
+                    modeOrExpiration: 0, // TransferERC20: Permit3 moves the tokens to the account
+                    tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                    account: defiProtocol.address,
+                    amountDelta: amount
                 }]
             };
             
@@ -580,7 +577,7 @@ describe("Permit3 Integration Tests", function () {
                     { name: "salt", type: "bytes32" },
                     { name: "deadline", type: "uint48" },
                     { name: "timestamp", type: "uint48" },
-                    { name: "permitDataHash", type: "bytes32" }
+                    { name: "merkleRoot", type: "bytes32" }
                 ]
             };
             
@@ -591,7 +588,7 @@ describe("Permit3 Integration Tests", function () {
                 salt,
                 deadline,
                 timestamp,
-                permitDataHash
+                merkleRoot: permitDataHash
             };
             
             const signature = await owner._signTypedData(domain, types, value);
@@ -613,30 +610,33 @@ describe("Permit3 Integration Tests", function () {
     
     describe("Cross-Chain Permits", function () {
         it("Should create and execute an unbalanced permit", async function () {
-            // Create permits for multiple chains
+            // Create permits for multiple chains: each one transfers tokens to an account on its chain
             const permits = [
                 {
                     chainId: 1,
                     permits: [{
-                        modeOrExpiration: (BigInt(ethers.utils.parseEther("50")) << 48n) | BigInt(Math.floor(Date.now() / 1000) + 3600),
-                        token: token.address,
-                        account: defiProtocol.address
+                        modeOrExpiration: 0, // TransferERC20
+                        tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                        account: defiProtocol.address,
+                        amountDelta: ethers.utils.parseEther("50")
                     }]
                 },
                 {
                     chainId: 42161,
                     permits: [{
-                        modeOrExpiration: (BigInt(ethers.utils.parseEther("30")) << 48n) | BigInt(Math.floor(Date.now() / 1000) + 3600),
-                        token: token.address,
-                        account: spender.address
+                        modeOrExpiration: 0, // TransferERC20
+                        tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                        account: spender.address,
+                        amountDelta: ethers.utils.parseEther("30")
                     }]
                 },
                 {
-                    chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility // Our test chain
+                    chainId: (await ethers.provider.getNetwork()).chainId, // our test chain (Hardhat: 31337)
                     permits: [{
-                        modeOrExpiration: (BigInt(ethers.utils.parseEther("20")) << 48n) | BigInt(Math.floor(Date.now() / 1000) + 3600),
-                        token: token.address,
-                        account: defiProtocol.address
+                        modeOrExpiration: 0, // TransferERC20
+                        tokenKey: ethers.utils.hexZeroPad(token.address, 32),
+                        account: defiProtocol.address,
+                        amountDelta: ethers.utils.parseEther("20")
                     }]
                 }
             ];

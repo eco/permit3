@@ -122,13 +122,14 @@ Permit3 builds on these fundamental data structures:
  *        = 2: Lock allowance mode
  *        = 3: UnLock allowance mode
  *        > 3: Increase allowance mode, new expiration timestamp
- * @param token Address of the ERC20 token
+ * @param tokenKey Token key: bytes32(uint256(uint160(token))) for an ERC20 or a whole collection,
+ *        keccak256(abi.encodePacked(token, tokenId)) for one NFT or ERC1155 id
  * @param account Transfer recipient (for mode 0) or approved spender (for allowance)
  * @param amountDelta Allowance change or transfer amount
  */
 struct AllowanceOrTransfer {
     uint48 modeOrExpiration;
-    address token;
+    bytes32 tokenKey;
     address account;
     uint160 amountDelta;
 }
@@ -315,8 +316,8 @@ merkleRoot = buildMerkleTree([ethLeaf, arbLeaf, optLeaf])
 1. **Works with Old Systems**
 ```solidity
 // If you already use Permit2, this still works:
-function approve(address token, address spender, uint160 amount) external;
-function transferFrom(address from, address to, uint160 amount) external;
+function approve(address token, address spender, uint160 amount, uint48 expiration) external;
+function transferFrom(address from, address to, uint160 amount, address token) external;
 ```
 
 2. **Emergency Stop Button**
@@ -328,9 +329,9 @@ function invalidateNonces(address owner, uint48 deadline, NoncesToInvalidate cal
 3. **Flexible Timing**
 ```solidity
 // You can:
-transferOrExpiration = 1;         // Use tokens right now
-transferOrExpiration = 0;         // Permission never expires
-transferOrExpiration = timestamp; // Expires at a specific time
+modeOrExpiration = 0;         // Transfer tokens right now
+modeOrExpiration = 1;         // Decrease an allowance
+modeOrExpiration = timestamp; // Increase an allowance that expires at this time (any value above 3)
 ```
 
 ### The Magic Behind Connecting Chains

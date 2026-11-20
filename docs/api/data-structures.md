@@ -15,7 +15,7 @@ The central structure for all permission operations in Permit3. This unified str
 ```solidity
 struct AllowanceOrTransfer {
     uint48 modeOrExpiration;    // Operation mode or expiration timestamp
-    address token;              // Token address
+    bytes32 tokenKey;           // Token key (see below)
     address account;            // Spender address or transfer recipient
     uint160 amountDelta;        // Amount change or transfer amount
 }
@@ -30,7 +30,9 @@ struct AllowanceOrTransfer {
   - `3`: Unlock mode (unlock one token/account pair; only in a call sent by the owner itself)
   - `>3`: Increase mode (value serves as expiration timestamp)
 
-- **token**: The ERC20 token address this operation applies to
+- **tokenKey**: The token this operation applies to, as a 32-byte key:
+  - An ERC20, or a whole NFT/ERC1155 collection: the token address left-padded to 32 bytes, `bytes32(uint256(uint160(token)))` (ethers v5: `ethers.utils.hexZeroPad(token, 32)`). TransferERC20 operations use this form.
+  - One NFT or ERC1155 id: `keccak256(abi.encodePacked(token, tokenId))` (ethers v5: `ethers.utils.solidityKeccak256(['address', 'uint256'], [token, tokenId])`).
 
 - **account**: 
   - For transfers: The recipient address

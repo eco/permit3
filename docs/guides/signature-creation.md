@@ -40,20 +40,7 @@ const types = {
         { name: 'salt', type: 'bytes32' },
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
-        { name: 'merkleRoot', type: 'bytes32' }
-    ],
-    
-    // Supporting types for permit data
-    ChainPermits: [
-        { name: 'chainId', type: 'uint64' },
-        { name: 'permits', type: 'AllowanceOrTransfer[]' }
-    ],
-    
-    AllowanceOrTransfer: [
-        { name: 'modeOrExpiration', type: 'uint48' },
-        { name: 'token', type: 'address' },
-        { name: 'account', type: 'address' },
-        { name: 'amountDelta', type: 'uint160' }
+        { name: 'merkleRoot', type: 'bytes32' } // permit3.hashChainPermits(chainPermits), or a cross-chain root
     ]
 };
 ```
@@ -98,7 +85,7 @@ const chainPermits = {
     chainId: 1, // Ethereum mainnet
     permits: [{
         modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24h from now
-        token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
+        tokenKey: ethers.utils.hexZeroPad("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 32), // USDC
         account: "0x1111111111111111111111111111111111111111", // Spender
         amountDelta: ethers.utils.parseUnits("1000", 6) // 1000 USDC
     }]
@@ -111,7 +98,7 @@ const chainPermits = {
 // Initialize Permit3 contract
 const permit3 = new ethers.Contract(
     PERMIT3_ADDRESS,
-    ["function hashChainPermits(tuple(uint256,tuple(uint48,address,address,uint160)[]) permits) external pure returns (bytes32)"],
+    ["function hashChainPermits(tuple(uint64,tuple(uint48,bytes32,address,uint160)[]) permits) external pure returns (bytes32)"],
     signer
 );
 
@@ -199,7 +186,7 @@ const tx = await permit3.permit(
     value.salt,
     value.deadline,
     value.timestamp,
-    chainPermits,
+    chainPermits.permits, // the single-chain permit() takes the operations array
     signature
 );
 
@@ -283,7 +270,7 @@ const witnessTypes = {
     ],
     AllowanceOrTransfer: [
         { name: 'modeOrExpiration', type: 'uint48' },
-        { name: 'token', type: 'address' },
+        { name: 'tokenKey', type: 'bytes32' },
         { name: 'account', type: 'address' },
         { name: 'amountDelta', type: 'uint160' }
     ]
@@ -317,7 +304,7 @@ const tx = await permit3.permitWitness(
     witnessValue.salt,
     witnessValue.deadline,
     witnessValue.timestamp,
-    witnessValue.permitted,
+    witnessValue.permitted.permits, // the operations array
     witnessValue.witness,
     witnessTypeString,
     witnessSignature

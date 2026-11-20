@@ -73,9 +73,10 @@ async function emergencyLockdownAllChains() {
             for (const token of tokens) {
                 for (const spender of SPENDERS) {
                     permits.push({
-                        modeOrExpiration: 0x1, // Mode 1 = lockdown (set allowance to 0)
-                        token: token,
-                        account: spender
+                        modeOrExpiration: 2, // Lock mode: sets the allowance to 0 and blocks the spender
+                        tokenKey: ethers.utils.hexZeroPad(token, 32),
+                        account: spender,
+                        amountDelta: 0
                     });
                 }
             }
@@ -164,7 +165,8 @@ async function emergencyLockdownAllChains() {
                 salt,
                 deadline,
                 timestamp,
-                proofs[chain],
+                proofs[chain].permits, // ChainPermits for this chain
+                proofs[chain].proof,   // bytes32[] Merkle proof
                 signature
             );
             
@@ -231,9 +233,10 @@ class SecurePermitManager {
         
         // Create permit data
         const permitData = {
-            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
-            token: token,
-            account: spender
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(token, 32),
+            account: spender,
+            amountDelta: amount
         };
         
         const chainPermits = {
@@ -266,7 +269,7 @@ class SecurePermitManager {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "permitDataHash", type: "bytes32" }
+                { name: "merkleRoot", type: "bytes32" }
             ]
         };
         
@@ -277,7 +280,7 @@ class SecurePermitManager {
             salt,
             deadline,
             timestamp,
-            permitDataHash
+            merkleRoot: permitDataHash
         };
         
         const signature = await signer._signTypedData(domain, types, value);
@@ -460,9 +463,10 @@ class MultiSigPermitManager {
         
         // Create the permit data
         const permitData = {
-            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
-            token: token,
-            account: spender
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(token, 32),
+            account: spender,
+            amountDelta: amount
         };
         
         const chainPermits = {
@@ -512,7 +516,7 @@ class MultiSigPermitManager {
                 { name: "salt", type: "bytes32" },
                 { name: "deadline", type: "uint48" },
                 { name: "timestamp", type: "uint48" },
-                { name: "permitDataHash", type: "bytes32" }
+                { name: "merkleRoot", type: "bytes32" }
             ]
         };
         
@@ -524,7 +528,7 @@ class MultiSigPermitManager {
                 salt,
                 deadline,
                 timestamp,
-                permitDataHash
+                merkleRoot: permitDataHash
             }
         };
     }
@@ -596,10 +600,10 @@ class MultiSigPermitManager {
         // Execute the permit
         const tx = await this.permit3.permit(
             primaryOwner,
-            operation.chainPermits,
             signatureRequest.value.salt,
             signatureRequest.value.deadline,
             signatureRequest.value.timestamp,
+            operation.chainPermits.permits,
             signature
         );
         

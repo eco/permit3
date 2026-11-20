@@ -37,7 +37,7 @@ permit3.permit(
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    chainPermits.permits,
     signature
 );
 ```
@@ -49,7 +49,7 @@ Permit3 can also directly transfer tokens with a signature:
 ```solidity
 IPermit3.AllowanceOrTransfer memory permitData = IPermit3.AllowanceOrTransfer({
     modeOrExpiration: 0, // TransferERC20 mode
-    token: tokenAddress,
+    tokenKey: bytes32(uint256(uint160(tokenAddress))),
     account: recipientAddress,
     amountDelta: amount
 });

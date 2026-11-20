@@ -123,7 +123,7 @@ const types = {
     ],
     AllowanceOrTransfer: [
         { name: 'modeOrExpiration', type: 'uint48' },
-        { name: 'token', type: 'address' },
+        { name: 'tokenKey', type: 'bytes32' },
         { name: 'account', type: 'address' },
         { name: 'amountDelta', type: 'uint160' }
     ]
@@ -153,7 +153,7 @@ const chainPermits = {
     chainId,
     permits: [{
         modeOrExpiration: Math.floor(Date.now() / 1000) + 86400, // 24 hours
-        token: orderData.tokenIn, // USDC
+        tokenKey: ethers.utils.hexZeroPad(orderData.tokenIn, 32), // USDC
         account: DEX_ADDRESS,
         amountDelta: orderData.amountIn // 1000 USDC
     }]
@@ -190,7 +190,7 @@ const permitWithWitnessTx = await permit3.permitWitness(
     salt,
     deadline,
     timestamp,
-    chainPermits,
+    chainPermits.permits, // the single-chain permitWitness() takes the operations array
     witness,
     witnessTypeString,
     signature
@@ -230,7 +230,7 @@ contract DexWithWitness {
     function executeOrderWithPermit(
         address owner,
         bytes32 salt,
-        uint256 deadline,
+        uint48 deadline,
         uint48 timestamp,
         IPermit3.ChainPermits calldata chainPermits,
         bytes32 witness,
@@ -260,7 +260,7 @@ contract DexWithWitness {
             salt,
             deadline,
             timestamp,
-            chainPermits,
+            chainPermits.permits,
             witness,
             witnessTypeString,
             signature
@@ -341,9 +341,9 @@ const batchedPermits = {
     chainId,
     permits: [
         // Operation 1
-        { modeOrExpiration: future, token: USDC, account: DEX, amountDelta: 1000e6 },
+        { modeOrExpiration: future, tokenKey: ethers.utils.hexZeroPad(USDC, 32), account: DEX, amountDelta: 1000e6 },
         // Operation 2
-        { modeOrExpiration: future, token: WETH, account: DEX, amountDelta: 1e18 },
+        { modeOrExpiration: future, tokenKey: ethers.utils.hexZeroPad(WETH, 32), account: DEX, amountDelta: 1e18 },
         // ... more operations
     ]
 };

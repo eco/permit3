@@ -16,6 +16,8 @@ First, we define the order structure that will be encoded in the witness data:
 
 ```solidity
 // OrderBook.sol
+// Compile with the IR pipeline (Foundry: via_ir = true; solc: --via-ir).
+// The default code generator runs out of stack in executeOrder.
 pragma solidity ^0.8.0;
 
 import "@permit3/interfaces/IPermit3.sol";
@@ -116,7 +118,7 @@ function executeOrder(
     
     // 6. Verify transfer details
     require(permits.length == 1, "Invalid permit count");
-    require(permits[0].token == order.tokenIn, "Invalid token");
+    require(permits[0].tokenKey == bytes32(uint256(uint160(order.tokenIn))), "Invalid token");
     require(permits[0].account == address(this), "Invalid recipient");
     require(permits[0].amountDelta == order.amountIn, "Invalid amount");
     require(permits[0].modeOrExpiration == 0, "Invalid mode");
@@ -197,7 +199,7 @@ async function createAndSignOrder(
         chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // TransferERC20 mode
-            token: order.tokenIn,
+            tokenKey: ethers.utils.hexZeroPad(order.tokenIn, 32),
             account: orderBookAddress,
             amountDelta: order.amountIn
         }]
@@ -249,7 +251,7 @@ async function createAndSignOrder(
         ],
         AllowanceOrTransfer: [
             { name: 'modeOrExpiration', type: 'uint48' },
-            { name: 'token', type: 'address' },
+            { name: 'tokenKey', type: 'bytes32' },
             { name: 'account', type: 'address' },
             { name: 'amountDelta', type: 'uint160' }
         ],
@@ -343,6 +345,8 @@ This example extends the basic order execution to require multiple signatures fo
 
 ```solidity
 // MultiSigOrderBook.sol
+// Compile with the IR pipeline (Foundry: via_ir = true; solc: --via-ir).
+// The default code generator runs out of stack in executeMultiSigOrder.
 pragma solidity ^0.8.0;
 
 import "@permit3/interfaces/IPermit3.sol";
@@ -456,7 +460,7 @@ function executeMultiSigOrder(
     
     // 7. Verify transfer details
     require(permits.length == 1, "Invalid permit count");
-    require(permits[0].token == order.tokenIn, "Invalid token");
+    require(permits[0].tokenKey == bytes32(uint256(uint160(order.tokenIn))), "Invalid token");
     require(permits[0].account == address(this), "Invalid recipient");
     require(permits[0].amountDelta == order.amountIn, "Invalid amount");
     require(permits[0].modeOrExpiration == 0, "Invalid mode");
@@ -592,7 +596,7 @@ async function createAndSignMultiSigOrder(
         chainId: 1, // ALWAYS 1 (CROSS_CHAIN_ID) for cross-chain compatibility
         permits: [{
             modeOrExpiration: 0, // TransferERC20 mode
-            token: order.tokenIn,
+            tokenKey: ethers.utils.hexZeroPad(order.tokenIn, 32),
             account: orderBookAddress,
             amountDelta: order.amountIn
         }]
@@ -648,7 +652,7 @@ async function createAndSignMultiSigOrder(
         ],
         AllowanceOrTransfer: [
             { name: 'modeOrExpiration', type: 'uint48' },
-            { name: 'token', type: 'address' },
+            { name: 'tokenKey', type: 'bytes32' },
             { name: 'account', type: 'address' },
             { name: 'amountDelta', type: 'uint160' }
         ],

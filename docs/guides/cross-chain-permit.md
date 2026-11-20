@@ -33,25 +33,28 @@ const permits = {
     ethereum: {
         chainId: 1,
         permits: [{
-            modeOrExpiration: (BigInt(parseEther("100")) << 48n) | BigInt(expiration),
-            token: USDC_MAINNET,
-            account: spenderAddress
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(USDC_MAINNET, 32),
+            account: spenderAddress,
+            amountDelta: parseEther("100")
         }]
     },
     arbitrum: {
         chainId: 42161,
         permits: [{
-            modeOrExpiration: (BigInt(parseEther("50")) << 48n) | BigInt(expiration),
-            token: USDC_ARBITRUM,
-            account: spenderAddress
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(USDC_ARBITRUM, 32),
+            account: spenderAddress,
+            amountDelta: parseEther("50")
         }]
     },
     optimism: {
         chainId: 10,
         permits: [{
-            modeOrExpiration: (BigInt(parseEther("75")) << 48n) | BigInt(expiration),
-            token: USDC_OPTIMISM,
-            account: spenderAddress
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(USDC_OPTIMISM, 32),
+            account: spenderAddress,
+            amountDelta: parseEther("75")
         }]
     }
 };
@@ -156,7 +159,8 @@ await permit3Ethereum.permit(
     salt,
     deadline,
     timestamp,
-    proofs.ethereum,
+    proofs.ethereum.permits, // ChainPermits for this chain
+    proofs.ethereum.proof,   // bytes32[] Merkle proof
     signature
 );
 
@@ -172,7 +176,8 @@ await permit3Arbitrum.permit(
     salt,
     deadline,
     timestamp,
-    proofs.arbitrum,
+    proofs.arbitrum.permits, // ChainPermits for this chain
+    proofs.arbitrum.proof,   // bytes32[] Merkle proof
     signature
 );
 ```
@@ -189,21 +194,24 @@ const ethereumPermits = {
     permits: [
         {
             // Approve USDC for DEX
-            modeOrExpiration: (BigInt(parseEther("1000")) << 48n) | BigInt(expiration),
-            token: USDC_ADDRESS,
-            account: DEX_ADDRESS
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(USDC_ADDRESS, 32),
+            account: DEX_ADDRESS,
+            amountDelta: parseEther("1000")
         },
         {
             // Approve WETH for Lending
-            modeOrExpiration: (BigInt(parseEther("10")) << 48n) | BigInt(expiration),
-            token: WETH_ADDRESS,
-            account: LENDING_ADDRESS
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(WETH_ADDRESS, 32),
+            account: LENDING_ADDRESS,
+            amountDelta: parseEther("10")
         },
         {
             // Approve DAI for Yield Farm
-            modeOrExpiration: (BigInt(parseEther("5000")) << 48n) | BigInt(expiration),
-            token: DAI_ADDRESS,
-            account: YIELD_FARM_ADDRESS
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(DAI_ADDRESS, 32),
+            account: YIELD_FARM_ADDRESS,
+            amountDelta: parseEther("5000")
         }
     ]
 };
@@ -229,9 +237,10 @@ class CrossChainPermitBuilder {
         }
         
         const permit = {
-            modeOrExpiration: (BigInt(amount) << 48n) | BigInt(expiration),
-            token,
-            account: spender
+            modeOrExpiration: expiration,
+            tokenKey: ethers.utils.hexZeroPad(token, 32),
+            account: spender,
+            amountDelta: amount
         };
         
         this.chainPermits.get(chain).permits.push(permit);
@@ -466,25 +475,28 @@ async function executeCrossChainPermits() {
         ethereum: {
             chainId: 1,
             permits: [{
-                modeOrExpiration: (BigInt(ethers.utils.parseEther("1000")) << 48n) | BigInt(expiration),
-                token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
-                account: "0x1111111111111111111111111111111111111111" // DEX
+                modeOrExpiration: expiration,
+                tokenKey: ethers.utils.hexZeroPad("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 32), // USDC
+                account: "0x1111111111111111111111111111111111111111", // DEX
+                amountDelta: ethers.utils.parseEther("1000")
             }]
         },
         arbitrum: {
             chainId: 42161,
             permits: [{
-                modeOrExpiration: (BigInt(ethers.utils.parseEther("500")) << 48n) | BigInt(expiration),
-                token: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", // USDC.e
-                account: "0x2222222222222222222222222222222222222222" // Lending
+                modeOrExpiration: expiration,
+                tokenKey: ethers.utils.hexZeroPad("0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", 32), // USDC.e
+                account: "0x2222222222222222222222222222222222222222", // Lending
+                amountDelta: ethers.utils.parseEther("500")
             }]
         },
         optimism: {
             chainId: 10,
             permits: [{
-                modeOrExpiration: (BigInt(ethers.utils.parseEther("750")) << 48n) | BigInt(expiration),
-                token: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", // USDC
-                account: "0x3333333333333333333333333333333333333333" // Yield
+                modeOrExpiration: expiration,
+                tokenKey: ethers.utils.hexZeroPad("0x7F5c764cBc14f9669B88837ca1490cCa17c31607", 32), // USDC
+                account: "0x3333333333333333333333333333333333333333", // Yield
+                amountDelta: ethers.utils.parseEther("750")
             }]
         }
     };
@@ -558,7 +570,8 @@ async function executeCrossChainPermits() {
             salt,
             deadline,
             timestamp,
-            proofs[chain],
+            proofs[chain].permits, // ChainPermits for this chain
+            proofs[chain].proof,   // bytes32[] Merkle proof
             signature
         );
         

@@ -124,15 +124,13 @@ error NonceAlreadyUsed(address owner, bytes32 salt);
 error AllowanceExpired(uint48 deadline);
 error InsufficientAllowance(uint256 requestedAmount, uint256 availableAmount);
 error EmptyArray();
-error ZeroOwner();
 error ZeroToken();
 error ZeroSpender();
-error ZeroFrom();
-error ZeroTo();
 error ZeroAccount();
 error InvalidAmount(uint160 amount);
 error InvalidExpiration(uint48 expiration);
 error InvalidTimestamp(uint48 providedTimestamp, uint48 currentTimestamp);
+error InvalidTokenKeyForTransfer();
 ```
 
 <a id="function-signatures"></a>
@@ -587,7 +585,7 @@ uint48 timestamp = uint48(block.timestamp);
 IPermit3.AllowanceOrTransfer[] memory permits = new IPermit3.AllowanceOrTransfer[](1);
 permits[0] = IPermit3.AllowanceOrTransfer({
     modeOrExpiration: 0, // TransferERC20 mode
-    token: USDC,
+    tokenKey: bytes32(uint256(uint160(USDC))),
     account: recipient,
     amountDelta: 1000e6 // 1000 USDC
 });
@@ -614,7 +612,7 @@ IPermit3.ChainPermits memory ethPermits = IPermit3.ChainPermits({
     permits: [
         IPermit3.AllowanceOrTransfer({
             modeOrExpiration: futureTimestamp,
-            token: USDC_ETH,
+            tokenKey: bytes32(uint256(uint160(USDC_ETH))),
             account: DEX_ETH,
             amountDelta: 1000e6
         })
@@ -626,7 +624,7 @@ IPermit3.ChainPermits memory arbPermits = IPermit3.ChainPermits({
     permits: [
         IPermit3.AllowanceOrTransfer({
             modeOrExpiration: 1, // Decrease mode
-            token: USDC_ARB,
+            tokenKey: bytes32(uint256(uint160(USDC_ARB))),
             account: DEX_ARB,
             amountDelta: 500e6
         })
@@ -718,7 +716,7 @@ permit3.permitWitness(
 | `InvalidWitnessTypeString(witnessTypeString)` | Witness type string is malformed | Ensure type string is valid EIP-712 format with closing parenthesis |
 | `NonceAlreadyUsed(owner, salt)` | Salt has been used | Generate unique salts for each signature |
 | `EmptyArray()` | Empty array provided | Ensure arrays contain at least one element |
-| `ZeroOwner()` | Owner address is zero | Validate addresses before function calls |
+| `InvalidTokenKeyForTransfer()` | A TransferERC20 operation's `tokenKey` is not a token address | Use the token address as the key, `bytes32(uint256(uint160(token)))`; move NFTs and ERC1155 with `transferFromERC721` / `transferFromERC1155` |
 | `AllowanceExpired(deadline)` | Allowance has expired | Check expiration before operations |
 | `InsufficientAllowance(requested, available)` | Not enough allowance | Check current allowance before transfers |
 | `InvalidTimestamp(providedTimestamp, currentTimestamp)` | A permit with an Increase or Unlock carries a timestamp later than `block.timestamp` | Retry once `block.timestamp` reaches it (nothing was consumed); sign the latest block timestamp |
