@@ -744,5 +744,5 @@ This approach:
 - **Chain ID Validation**: Verify chain IDs to prevent cross-chain replay
 - **Witness Data Verification**: Validate witness data before taking action
 - **Account Locking**: Understand implications of locked state
-- **Timestamp Ordering**: Timestamp precedence orders `expiration` updates only; amount deltas apply unconditionally and replay is prevented by per-salt nonces
+- **Timestamp Ordering**: For Increase operations, the newer signed timestamp decides the expiration. Amounts are not ordered by timestamp, and replay is prevented by per-salt nonces
 - **Allowance Management**: Monitor allowance changes across chains

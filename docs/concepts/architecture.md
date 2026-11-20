@@ -284,9 +284,9 @@ Permit3 implements several security features:
    - Works with witness functionality
 
 5. **Timestamp-Ordered Expirations**:
-   - Timestamps order `expiration` updates across chains, not amount changes
-   - Prevents a stale expiration update from clobbering a newer one
-   - Amount deltas apply unconditionally; replay is prevented by per-salt nonces, not timestamps
+   - For Increase operations, the newer signed timestamp decides the expiration, on every chain
+   - An Increase signed earlier cannot overwrite the expiration set by one signed later
+   - Amounts are not ordered by timestamp, and replay is prevented by per-salt nonces, not timestamps
 
 <a id="gas-optimization"></a>
 ## Gas Optimization

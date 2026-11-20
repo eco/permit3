@@ -116,10 +116,10 @@ struct Allowance {
 }
 ```
 
-- Timestamp precedence governs the `expiration` field only: the most recent signed timestamp wins, so an out-of-order expiration update cannot overwrite a newer one
-- Amount changes are NOT ordered by timestamp. Each Increase adds its `amountDelta` unconditionally, and each Decrease subtracts unconditionally, regardless of timestamp order
-- Replay protection comes from the per-salt (non-sequential) nonce, not from timestamps — a given signed operation can only be executed once
-- Critical for keeping expiration consistent across chains during async allowance updates
+- Timestamp precedence applies to the `expiration` set by Increase operations: an Increase signed earlier cannot overwrite the expiration set by one signed later, even when the transactions run in the other order. With equal timestamps the later expiration wins
+- Amounts are not ordered by timestamp. Each Increase adds its `amountDelta` and each Decrease subtracts its own, regardless of timestamp order. The unlimited allowance (`type(uint160).max`) is the exception: an Increase by `type(uint160).max` makes the allowance unlimited, an unlimited allowance stays unlimited under any Increase, and only a Decrease by `type(uint160).max` changes it (to 0)
+- Lock and Unlock follow their own timestamp rules, and `approve()` and `lockdown()` set the stored timestamp to `block.timestamp`; see [Timestamp Management](./docs/concepts/allowance-system.md#timestamp-management)
+- Replay protection comes from the per-salt (non-sequential) nonce, not from timestamps: a signed permit runs at most once
 
 ### Account Locking
 
