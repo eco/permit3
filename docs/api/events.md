@@ -19,7 +19,7 @@ event Permit(
     address indexed spender,  // Spender who received the allowance
     uint160 amount,           // Updated allowance amount
     uint48 expiration,        // New expiration timestamp
-    uint48 timestamp          // Update timestamp
+    uint48 timestamp          // Operation timestamp: the signed one (a Decrease's is not stored), or block.timestamp for a Lock signed later
 );
 ```
 

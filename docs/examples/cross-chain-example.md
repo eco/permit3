@@ -75,7 +75,7 @@ const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
 // Create salt, deadline, and timestamp
 const salt = ethers.utils.randomBytes(32);
 const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-const timestamp = Math.floor(Date.now() / 1000);
+const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains; see "Signing the Timestamp"
 
 // Define domain and types for EIP-712 signature
 const domain = {

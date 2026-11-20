@@ -71,7 +71,7 @@ const domain = {
 
 const permit = {
     modeOrExpiration: 0, // TransferERC20 mode
-    token: tokenAddress,
+    tokenKey: ethers.utils.hexZeroPad(tokenAddress, 32), // an ERC-20's key: its address, left-padded to 32 bytes
     account: recipientAddress,
     amountDelta: ethers.utils.parseUnits('10', 18) // 10 tokens
 };
@@ -99,21 +99,11 @@ const types = {
         { name: 'deadline', type: 'uint48' },
         { name: 'timestamp', type: 'uint48' },
         { name: 'merkleRoot', type: 'bytes32' }
-    ],
-    ChainPermits: [
-        { name: 'chainId', type: 'uint64' },
-        { name: 'permits', type: 'AllowanceOrTransfer[]' }
-    ],
-    AllowanceOrTransfer: [
-        { name: 'modeOrExpiration', type: 'uint48' },
-        { name: 'token', type: 'address' },
-        { name: 'account', type: 'address' },
-        { name: 'amountDelta', type: 'uint160' }
     ]
 };
 
-// Calculate the permits hash
-const permitsHash = ethers.utils.keccak256(/* hash calculation logic */);
+// Calculate the permits hash (a view call on Permit3)
+const permitsHash = await permit3.hashChainPermits(chainPermits);
 
 const value = {
     owner: permitData.owner,

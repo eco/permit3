@@ -106,7 +106,7 @@ async function emergencyLockdownAllChains() {
         
         // 3. Sign the unbalanced root
         const salt = ethers.utils.randomBytes(32);
-        const timestamp = Math.floor(Date.now() / 1000);
+        const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains
         const deadline = timestamp + 300; // 5 minutes - quick action needed!
         
         const domain = {
@@ -251,7 +251,7 @@ class SecurePermitManager {
         
         // Sign with short deadline
         const deadline = now + 600; // 10 minute signing window
-        const timestamp = now;
+        const timestamp = (await this.provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
         
         const domain = {
             name: "Permit3",
@@ -494,7 +494,7 @@ class MultiSigPermitManager {
     // Create signature request for a signer
     async createSignatureRequest(operation) {
         const salt = ethers.utils.id(operation.id);
-        const timestamp = Math.floor(Date.now() / 1000);
+        const timestamp = await signingTimestamp(providers); // smallest latest-block time of the operation's chains
         const deadline = operation.expiresAt;
         
         const permitDataHash = await this.permit3.hashChainPermits(operation.chainPermits);

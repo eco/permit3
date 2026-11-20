@@ -161,7 +161,7 @@ const chainPermits = {
 // Create salt, deadline, and timestamp
 const salt = ethers.utils.randomBytes(32);
 const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour
-const timestamp = Math.floor(Date.now() / 1000);
+const timestamp = (await provider.getBlock('latest')).timestamp; // latest block time, not the wall clock
 
 // Data to sign
 const value = {

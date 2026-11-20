@@ -88,7 +88,8 @@ async function emergencyLockdown(pairs) { // pairs: [{ token, spender }]
 Without gas on the owner's account, sign Lock operations and let a relayer submit them:
 
 ```javascript
-// Sign Lock operations for a relayer to submit
+// Sign Lock operations for a relayer to submit. All pairs go in one permit, so one pair that is already
+// locked reverts the whole permit: if that can happen, sign one permit per pair, or use lockdown().
 async function signEmergencyLock(pairs) { // pairs: [{ token, spender }]
     const permits = pairs.map(({ token, spender }) => ({
         modeOrExpiration: 2, // Lock mode
@@ -154,7 +155,7 @@ When working with cross-chain permits, additional security considerations apply:
 ```javascript
 // Use the same salt, deadline, and timestamp across all chains
 const salt = ethers.utils.randomBytes(32);
-const timestamp = Math.floor(Date.now() / 1000);
+const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains; see "Signing the Timestamp"
 const deadline = timestamp + 3600; // 1 hour
 
 // Share these values across all chain operations

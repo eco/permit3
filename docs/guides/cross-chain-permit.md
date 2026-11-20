@@ -91,7 +91,7 @@ const merkleRoot = '0x' + merkleTree.getRoot().toString('hex');
 ```javascript
 // Create signature
 const salt = ethers.utils.randomBytes(32);
-const timestamp = Math.floor(Date.now() / 1000);
+const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains; see "Signing the Timestamp"
 const deadline = timestamp + 3600; // 1 hour validity
 
 const domain = {
@@ -263,7 +263,7 @@ class CrossChainPermitBuilder {
         
         // Create signature
         const salt = ethers.utils.randomBytes(32);
-        const timestamp = Math.floor(Date.now() / 1000);
+        const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains
         const deadline = timestamp + 3600;
         
         // ... (signing logic)
@@ -508,7 +508,7 @@ async function executeCrossChainPermits() {
     // Step 3: Create signature
     const owner = await signers.ethereum.getAddress();
     const salt = ethers.utils.randomBytes(32);
-    const timestamp = Math.floor(Date.now() / 1000);
+    const timestamp = await signingTimestamp(providers); // smallest latest-block time of the chains
     const deadline = timestamp + 3600;
     
     const domain = {
